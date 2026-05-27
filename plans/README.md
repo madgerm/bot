@@ -11,3 +11,7 @@ Hier legt ihr **Entwürfe, Roadmaps und technische Pläne** ab, bevor sie ins Ti
 ## Vorlage
 
 Siehe `TEMPLATE.md` — kopieren und umbenennen.
+
+## Aktuelle Pläne
+
+- [`2026-05-26-coding-agent-system.md`](2026-05-26-coding-agent-system.md) — verteiltes Multi-Agent-Coding-System (Vision, Architektur, Phasen).
