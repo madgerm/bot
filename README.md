@@ -34,6 +34,22 @@ Konfigurationsdateien:
 | `config/task_models.json` | Optional: Model-Routing pro Task-Kategorie |
 | `teams/<id>/team.json` | Team-Metadaten |
 | `teams/<id>/agents/<agent>/agent.json` | Agent-Definition |
+| `teams/<id>/agents/<agent>/inbox/` | Eingehende Messages (`pending` → `processing` → `done`/`failed`) |
+| `teams/<id>/agents/<agent>/outbox/` | Kopie gesendeter Messages |
+
+### Nachrichten (MVP Schritt 2)
+
+```bash
+bot msg send --team demo --from orchestrator --to worker-exec \
+  --subject "Aufgabe" --content "Bitte ausführen"
+bot msg list --team demo --agent worker-exec --status pending
+bot msg claim --team demo --agent worker-exec
+bot msg done --team demo --agent worker-exec --id <message-id>
+bot msg fail --team demo --agent worker-exec --id <message-id> --error "Grund"
+bot msg retry --team demo --agent worker-exec --id <message-id>
+```
+
+Message-JSON: `id`, `schema_version`, `status`, `created_at`/`updated_at`, `from_agent`/`to_agent`, optional `task_category`, `retry_count`.
 
 ## Tests
 
