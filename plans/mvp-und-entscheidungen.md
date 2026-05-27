@@ -326,9 +326,26 @@ Optional später weitere Collections (z. B. `team_{slug}__review`).
 - **Mehr Betrieb:** User-Anlage, systemd-Politik, Secret-Rotation, Monitoring pro Host.
 - **Nicht jede Kleininstallation** will System-User — daher **optional**: gleiche Software auch im **Single-User-Modus** (alles unter einem Dienst) weiter anbieten.
 
+### Installation (einmalig, privilegiert — z. B. root)
+
+- **Paket/Binaries** (`team-agent`, Laufzeitabhängigkeiten, **systemd-Vorlagen**, Standard-Pfade) werden **einmal systemweit** installiert — typischerweise durch **root** oder ein Paket (`deb`/`rpm`) / Ansible-Rolle.
+- Ziel: danach soll der **Alltagsbetrieb** für Endnutzer **ohne dauerhaftes root** möglich sein — je nach gewähltem **Start-Modus** (siehe nächster Abschnitt).
+
+### Team-Agent: systemweit bereitgestellt vs. pro Benutzer selbst
+
+| `team_agent.scope` | Bedeutung |
+|--------------------|-----------|
+| **`system`** | Pro Team (oder pro Host) existiert **ein** **systemweiter** Agent-/Controller-Dienst (**systemd** auf *system*-Ebene, oft mit dediziertem Linux-User `team_<slug>` und Home unter `/home/team_<slug>/`). Die Runtime steht **allen** berechtigten GUI-Nutzern **gemeinsam** zur Verfügung; Anbindung der UI über **Server-IP + Token**. |
+| **`user`** | Jeder **menschliche Benutzer**, der den Team-Agent nutzen will, führt (einmalig) ein **Bootstrap unter seiner UID** aus: Artefakte/Caches nach `$XDG_DATA_HOME/team-agent/…`, Aktivierung von **`systemctl --user`**-Units, Start **immer im Kontext dieses Benutzers**. Kein zentral geteilter Team-Dienst — sinnvoll für **Laptops**, geteilte Workstations oder strikte „alles unter meinem Account“. |
+| **`hybrid`** | Vorgabe z. B. **system** auf Servern, **user** auf Entwickler-Rechnern — per Maschinenprofil / Config. |
+
+**Konvention:** CLI wie `team-agent run --team <slug>` läuft **als der aktuell eingeloggte Benutzer**; wenn der Betrieb **dedizierte Team-Unix-User** nutzt, übernimmt das **installierte systemd-Template** (`User=team_<slug>`) das Heruntersetzen der Rechte — nicht der Mensch per Hand.
+
 ### Empfehlung
 
-- **Produkt:** beide Modi vorsehen — **`deployment.topology`**: `single_user` | `linux_user_per_team` (Namen final bei Implementierung).
+- **Produkt:** beide Topologien vorsehen — **`deployment.topology`**: `single_user` | `linux_user_per_team` (Namen final bei Implementierung).
+- **Zusätzlich** Start-/Installations-Policy — **`deployment.team_agent_scope`**: `system` | `user` | `hybrid` (systemweit bereitgestellter Team-Dienst vs. jeder Benutzer bootstrappt unter seiner UID).
+- **Dokumentieren**, wo Daten landen: `/home/team_<slug>/…` (system + Team-User) vs. `~/.local/share/team-agent/<slug>/…` (user-scope).
 - **Sicherheit:** *Hashkey* in der Praxis als **hochentropisches Token** (z. B. 256 Bit) behandeln, **TLS**, **kein** Secret in Git; optional **mTLS** zwischen zentraler UI und Team-Host.
 - **Begriff „Primitive“:** im Sinne von **Isolation-Primitive** auf OS-Ebene (Team = User), nicht als eigene Programmiersprache.
 
