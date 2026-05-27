@@ -14,9 +14,13 @@
       "interval_seconds": 5
     },
     "llm": {
+      "enabled": false,
       "provider": "litellm",
       "api_base": "http://127.0.0.1:4000",
-      "secret_ref": "LITELLM_API_KEY"
+      "secret_ref": "LITELLM_API_KEY",
+      "max_retries": 3,
+      "retry_backoff_seconds": 1.0,
+      "timeout_seconds": 120
     }
   },
   "qdrant_global": {

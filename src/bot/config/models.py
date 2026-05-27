@@ -27,9 +27,13 @@ class PollingConfig(BaseModel):
 
 
 class LlmConfig(BaseModel):
+    enabled: bool = False
     provider: str = "litellm"
     api_base: str = "http://127.0.0.1:4000"
     secret_ref: str | None = None
+    max_retries: int = Field(default=3, ge=1)
+    retry_backoff_seconds: float = Field(default=1.0, ge=0)
+    timeout_seconds: float = Field(default=120.0, gt=0)
 
 
 class SystemBlock(BaseModel):

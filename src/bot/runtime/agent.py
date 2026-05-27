@@ -7,7 +7,9 @@ import threading
 from pathlib import Path
 
 from bot.config.models import AgentConfig
+from bot.llm import LlmStack
 from bot.messages import Message, MessageError, MessageService
+from bot.runtime.context import HandlerContext
 from bot.runtime.handlers import AgentHandler, HandlerResult, handler_for_role
 
 logger = logging.getLogger(__name__)
@@ -23,6 +25,7 @@ class AgentRunner:
         team_id: str,
         agent_cfg: AgentConfig,
         default_interval: float,
+        llm_stack: LlmStack,
         handler: AgentHandler | None = None,
     ) -> None:
         self.root = root
@@ -31,6 +34,7 @@ class AgentRunner:
         self.role = agent_cfg.agent.role
         self.enabled = agent_cfg.agent.enabled
         self.interval = agent_cfg.agent.interval_seconds or default_interval
+        self._llm_stack = llm_stack
         self._handler = handler or handler_for_role(self.role)
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -54,10 +58,15 @@ class AgentRunner:
             },
         )
 
+        ctx = HandlerContext(
+            root=self.root,
+            team_id=self.team_id,
+            agent_id=self.agent_id,
+            role=self.role,
+            llm_stack=self._llm_stack,
+        )
         try:
-            result = self._handler.handle(
-                message, agent_id=self.agent_id, team_id=self.team_id
-            )
+            result = self._handler.handle(message, ctx)
             self._apply_result(service, message, result)
         except Exception as exc:
             logger.exception(

@@ -8,6 +8,7 @@ from pathlib import Path
 
 from bot.config import ConfigLoadError, ConfigStore
 from bot.config.models import RuntimeConfig
+from bot.llm import LlmStack, build_llm_stack
 from bot.runtime.team import TeamRuntime
 
 logger = logging.getLogger(__name__)
@@ -20,6 +21,7 @@ class Supervisor:
         self.root = Path(root).resolve()
         self._store = ConfigStore(self.root)
         self._teams: dict[str, TeamRuntime] = {}
+        self._llm_stack: LlmStack | None = None
         self._lock = threading.RLock()
         self._running = False
 
@@ -39,6 +41,7 @@ class Supervisor:
 
     def _build_teams(self, config: RuntimeConfig, team_filter: set[str] | None = None) -> None:
         interval = config.system.system.polling.interval_seconds
+        self._llm_stack = build_llm_stack(config)
         teams: dict[str, TeamRuntime] = {}
         for team_id, bundle in config.teams.items():
             if team_filter and team_id not in team_filter:
@@ -50,6 +53,7 @@ class Supervisor:
                 team_id=team_id,
                 bundle=bundle,
                 default_interval=interval,
+                llm_stack=self._llm_stack,
             )
         self._teams = teams
 

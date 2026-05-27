@@ -64,7 +64,24 @@ bot run --team demo --once
 bot run --watch-config
 ```
 
-Ablauf (Demo-Team): Aufgabe an `orchestrator` → `worker-exec` → `worker-review` → Ergebnis zurück an `orchestrator`. Ohne LLM (Platzhalter-Handler); LLM kommt in Schritt 4.
+Ablauf (Demo-Team): Aufgabe an `orchestrator` → `worker-exec` → `worker-review` → Ergebnis zurück an `orchestrator`.
+
+### LLM / LiteLLM (MVP Schritt 4)
+
+In `config/system.json`: `"llm": { "enabled": true, "api_base": "…", … }` und `config/task_models.json` für Model-Routing.
+
+```bash
+# API-Key z. B. als Umgebungsvariable (Name aus secret_ref)
+export LITELLM_API_KEY=sk-...
+
+bot llm test --task-category coding --prompt "Kurz antworten"
+bot run --team demo --once   # nutzt LLM in den Handlern, wenn enabled
+```
+
+- **Routing:** `task_category` oder Rollen-Default (`planning` / `coding` / `review`)
+- **Override:** `model_override` in der Message
+- **Retries + Fallback:** `max_retries`, Alternativen aus `task_models.json`
+- **`enabled: false`:** Stub-Client (für lokale Tests ohne API)
 
 ## Tests
 

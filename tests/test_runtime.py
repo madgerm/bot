@@ -1,60 +1,10 @@
-import json
-from pathlib import Path
-
 import pytest
 
 from bot.messages import MessageService
 from bot.runtime import Supervisor
 
 
-@pytest.fixture
-def runtime_project(tmp_path: Path) -> Path:
-    config_dir = tmp_path / "config"
-    config_dir.mkdir()
-    (config_dir / "system.json").write_text(
-        json.dumps(
-            {
-                "system": {
-                    "name": "test-runtime",
-                    "polling": {"interval_seconds": 1},
-                    "communication": {
-                        "inbox_base": "teams/{team_id}/agents/{agent_id}/inbox"
-                    },
-                }
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    team_dir = tmp_path / "teams" / "alpha"
-    team_dir.mkdir(parents=True)
-    (team_dir / "team.json").write_text(
-        json.dumps(
-            {
-                "team": {
-                    "id": "alpha",
-                    "name": "Alpha",
-                    "orchestrator_id": "orchestrator",
-                }
-            }
-        ),
-        encoding="utf-8",
-    )
-    for agent_id, role in (
-        ("orchestrator", "orchestrator"),
-        ("worker-exec", "worker"),
-        ("worker-review", "reviewer"),
-    ):
-        agent_dir = team_dir / "agents" / agent_id
-        agent_dir.mkdir(parents=True)
-        (agent_dir / "agent.json").write_text(
-            json.dumps({"agent": {"id": agent_id, "role": role, "enabled": True}}),
-            encoding="utf-8",
-        )
-    return tmp_path
-
-
-def test_supervisor_pipeline(runtime_project: Path) -> None:
+def test_supervisor_pipeline(runtime_project) -> None:
     service = MessageService(runtime_project)
     sent = service.send(
         team_id="alpha",
@@ -78,7 +28,7 @@ def test_supervisor_pipeline(runtime_project: Path) -> None:
     assert not pending_review
 
 
-def test_run_once_cli(runtime_project: Path) -> None:
+def test_run_once_cli(runtime_project) -> None:
     from bot.cli import main
 
     service = MessageService(runtime_project)

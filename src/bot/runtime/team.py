@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from bot.config.models import TeamBundle
+from bot.llm import LlmStack
 from bot.runtime.agent import AgentRunner
 
 
@@ -16,6 +17,7 @@ class TeamRuntime:
         team_id: str,
         bundle: TeamBundle,
         default_interval: float,
+        llm_stack: LlmStack,
     ) -> None:
         self.team_id = team_id
         self._runners: list[AgentRunner] = []
@@ -39,6 +41,7 @@ class TeamRuntime:
                     team_id=team_id,
                     agent_cfg=agent_cfg,
                     default_interval=default_interval,
+                    llm_stack=llm_stack,
                 )
             )
 
