@@ -45,10 +45,27 @@ class SystemBlock(BaseModel):
     llm: LlmConfig = Field(default_factory=LlmConfig)
 
 
+class EmbeddingConfig(BaseModel):
+    provider: Literal["hash", "litellm"] = "hash"
+    model: str | None = None
+    vector_size: int = Field(default=384, ge=8)
+
+
 class QdrantGlobalConfig(BaseModel):
-    enabled: bool = True
+    enabled: bool = False
     url: str = "http://127.0.0.1:6333"
     secret_ref: str | None = None
+    embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
+    timeout_seconds: float = Field(default=30.0, gt=0)
+
+
+class PlaywrightGlobalConfig(BaseModel):
+    mode: Literal["local", "remote"] = "local"
+    ws_endpoints: list[str] = Field(default_factory=list)
+    base_host: str | None = None
+    secret_ref: str | None = None
+    headless: bool = True
+    timeout_seconds: float = Field(default=60.0, gt=0)
 
 
 class SystemConfig(BaseModel):
@@ -56,6 +73,7 @@ class SystemConfig(BaseModel):
 
     system: SystemBlock
     qdrant_global: QdrantGlobalConfig | None = None
+    playwright_global: PlaywrightGlobalConfig | None = None
 
 
 class TaskModelEntry(BaseModel):

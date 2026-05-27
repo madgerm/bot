@@ -99,6 +99,99 @@ bot web --ssl-cert cert.pem --ssl-key key.pem   # HTTPS
 - **Team-Ansicht:** Agents, Message-Status, letzte Nachrichten
 - **Admin:** Nutzer- und Team-Übersicht (nur Rolle `admin`)
 - Session-Cookies + **Team-Scoping** auf jeder Route
+- **Chat:** `/teams/<id>/chat` — SQLite-Verlauf (`data/<id>/chat.sqlite`)
+- **Wissen:** `/teams/<id>/knowledge` — Qdrant-Suche
+
+---
+
+## Phase 2: Qdrant, Team-Chat, Playwright
+
+### Team initialisieren
+
+```bash
+bot team init demo    # legt chat.sqlite + Qdrant-Collections an (wenn Qdrant aktiv)
+```
+
+### Qdrant (Vektor-Wissen pro Team)
+
+In `config/system.json`:
+
+```json
+"qdrant_global": {
+  "enabled": true,
+  "url": "http://127.0.0.1:6333",
+  "secret_ref": "QDRANT_API_KEY",
+  "embedding": { "provider": "hash", "vector_size": 384 }
+}
+```
+
+- Collections: `team_<slug>__project`, `team_<slug>__background`
+- Registry: `data/<team>/qdrant_registry.json`
+
+```bash
+export QDRANT_API_KEY=...   # falls Qdrant Cloud/auth
+bot qdrant init --team demo
+bot qdrant upsert --team demo --collection project --text "Unsere API nutzt FastAPI"
+bot qdrant search --team demo --collection project --query "FastAPI"
+```
+
+`embedding.provider`: `hash` (offline/Tests) oder `litellm` (echte Embeddings).
+
+### Team-Chat (SQLite-Historie)
+
+Pro Team eine Datei: **`data/<team_id>/chat.sqlite`**
+
+```bash
+bot chat send --team demo --role user --content "Hallo Team" --agent orchestrator
+bot chat list --team demo
+bot chat list --team demo --agent orchestrator --search "Hallo"
+bot chat clear --team demo --yes
+```
+
+Im Web-Panel: Team → **Chat** — senden, filtern, Verlauf leeren (Bestätigung `CLEAR`).
+
+### Playwright (Browser)
+
+Global in `config/system.json` → `playwright_global`:
+
+```json
+"playwright_global": {
+  "mode": "local",
+  "headless": true,
+  "ws_endpoints": []
+}
+```
+
+Team-Override: `teams/<id>/playwright.json`:
+
+```json
+{
+  "playwright": {
+    "source": "custom",
+    "mode": "remote",
+    "ws_endpoints": ["ws://browser-host:9222"]
+  }
+}
+```
+
+Installation:
+
+```bash
+pip install -e ".[playwright]"
+playwright install chromium
+```
+
+```bash
+bot browser config --team demo
+bot browser open --team demo --url https://example.com --screenshot data/demo/screenshots/example.png
+```
+
+| Modus | Bedeutung |
+|-------|-----------|
+| `local` | Browser auf dem Rechner des Team-Runners |
+| `remote` | Verbindung über `ws_endpoints` (CDP/WebSocket) |
+
+---
 
 ## Tests
 

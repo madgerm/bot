@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Wissen — {{ team_id }}{% endblock %}
+{% block content %}
+<div class="mb-6 flex flex-wrap gap-4 items-center">
+  <a href="/teams/{{ team_id }}" class="text-sm text-indigo-400">← Team</a>
+  <a href="/teams/{{ team_id }}/chat" class="text-sm text-indigo-400">Chat</a>
+  <h1 class="text-2xl font-bold">Wissen (Qdrant)</h1>
+</div>
+
+{% if qdrant_error %}
+<div class="mb-4 p-3 rounded bg-amber-900/40 border border-amber-700 text-amber-200 text-sm">
+  Qdrant: {{ qdrant_error }} — in <code>config/system.json</code> <code>qdrant_global.enabled</code> auf
+  <code>true</code> setzen und Server starten, dann <code>bot team init {{ team_id }}</code>.
+</div>
+{% endif %}
+
+<p class="text-sm text-slate-400 mb-4">Collections: {% for k,v in collections.items() %}<code class="text-slate-300">{{ k }}={{ v }}</code> {% endfor %}</p>
+
+<form method="post" action="/teams/{{ team_id }}/knowledge/search" class="mb-6 flex flex-wrap gap-2">
+  <input name="query" value="{{ query }}" required placeholder="Suchanfrage…"
+    class="flex-1 min-w-[200px] rounded bg-slate-800 border border-slate-700 px-3 py-2">
+  <select name="collection" class="rounded bg-slate-800 border border-slate-700 px-2 py-2">
+    <option value="project" {% if collection == 'project' %}selected{% endif %}>project</option>
+    <option value="background" {% if collection == 'background' %}selected{% endif %}>background</option>
+  </select>
+  <button type="submit" class="px-4 py-2 rounded bg-indigo-600">Suchen</button>
+</form>
+
+{% if results %}
+<ul class="space-y-3">
+  {% for hit in results %}
+  <li class="p-4 rounded-lg border border-slate-800 bg-slate-900">
+    <div class="text-xs text-slate-500 mb-1">Score: {{ '%.3f'|format(hit.score) }} · {{ hit.id }}</div>
+    <p class="text-sm">{{ hit.payload.get('text', '') }}</p>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

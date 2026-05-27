@@ -10,6 +10,9 @@ from pathlib import Path
 from bot import __version__
 from bot.cli_msg import register_msg_commands
 from bot.cli_llm import register_llm_commands
+from bot.cli_browser import register_browser_commands
+from bot.cli_chat import register_chat_commands
+from bot.cli_qdrant import register_qdrant_commands
 from bot.cli_web import register_web_commands
 from bot.cli_run import register_run_commands
 from bot.config import ConfigLoadError, ConfigStore, load_runtime_config
@@ -128,8 +131,27 @@ def build_parser() -> argparse.ArgumentParser:
     register_run_commands(sub, add_root)
     register_llm_commands(sub, add_root)
     register_web_commands(sub, add_root)
+    register_qdrant_commands(sub, add_root)
+    register_chat_commands(sub, add_root)
+    register_browser_commands(sub, add_root)
+
+    team_parser = sub.add_parser("team", help="Team-Ressourcen")
+    team_sub = team_parser.add_subparsers(dest="team_command", required=True)
+    init_cmd = team_sub.add_parser("init", help="Qdrant-Collections + Chat-DB anlegen")
+    add_root(init_cmd)
+    init_cmd.add_argument("team_id")
+    init_cmd.set_defaults(func=_cmd_team_init)
 
     return parser
+
+
+def _cmd_team_init(args: argparse.Namespace) -> int:
+    from bot.team_init import init_team_resources
+
+    results = init_team_resources(args.root, args.team_id)
+    for key, value in results.items():
+        print(f"{key}: {value}")
+    return 0
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -143,7 +165,7 @@ def main(argv: list[str] | None = None) -> None:
     if hasattr(args, "root") and args.root is None:
         args.root = _default_root()
 
-    if args.command in ("config", "msg", "run", "llm", "web"):
+    if args.command in ("config", "msg", "run", "llm", "web", "qdrant", "chat", "browser", "team"):
         raise SystemExit(args.func(args))
 
     parser.error(f"Unbekannter Befehl: {args.command}")
