@@ -33,6 +33,7 @@ Die exakte Reihenfolge ist weniger wichtig als **„Kern zuerst“**. Sinnvolle 
 | 5 | Web: Auth + Admin (User/Team) + Team-Dashboard (Status, letzte Messages) |
 | 5b | **Team-Chat:** eine **SQLite pro Team** (`chat.sqlite`) + **GUI** (Verlauf filtern, Einträge selektiv löschen, Chat **komplett leeren** — nur mit Team-Rechten) |
 | 6 | Webhooks (eingehend) + optional interne Events |
+| 6a | **Playwright:** global `mode` = `remote` (feste Ports / WS zu Browser-Server) **oder** `local` (GUI startet Playwright auf **Nutzer-Rechner**); Team optional `source: global` / `custom` |
 | 7 | Qdrant, weitere Agents, Broker-Multi-Machine, domänenspezifische UIs |
 
 Parallel können **Coding**- und **Story**-Spezifika angebaut werden, sobald Schritt 3 steht — sie teilen denselben Kern.
@@ -270,6 +271,32 @@ Optional später weitere Collections (z. B. `team_{slug}__review`).
 ### Betrieb
 
 - SQLite liegt im **Team-Datenverzeichnis**; Datei in **Backups** einschließen. Bei extremen Größen später: Archiv-Tabellen oder Export — **kein** MVP-Zwang.
+
+---
+
+## Browser-Automation: Playwright (global, Remote oder lokal)
+
+### Ziel
+
+- Agents (und optional die GUI) sollen **Browser-Automation** einheitlich über **Playwright** nutzen können — wahlweise über einen **dedizierten Server** mit **festgelegten Ports / WebSocket-Endpoints** oder **lokal** auf dem Rechner des Nutzers.
+
+### Global (`playwright_global` in der System-Config)
+
+- **`mode`: `remote` | `local`**
+  - **`remote`:** Anbindung an einen **Browser-/Playwright-Worker** im Netzwerk — z. B. feste **Ports** pro Profil (Chromium/Firefox/WebKit), oder ein dokumentierter **Playwright-WebSocket-Endpoint** (typisch `ws://host:PORT/...`). Felder: `base_host`, `ports` oder `ws_endpoints[]`, TLS, `secret_ref` für Token/mTLS.
+  - **`local`:** Standard für „**ab lokal**“: Über die GUI-Aktion („**Playwright lokal starten**“ / „Lokaler Browser“) wird auf dem **Rechner des Nutzers** eine Playwright-Session gestartet (Voraussetzung: installierte Browser-Binaries). Gut für Entwicklung, kleine Teams oder wenn kein zentraler Browser-Server existiert.
+
+### Team-Overrides (wie bei Medien / Qdrant-Konvention)
+
+- Pro Team: `playwright.source`: `global` | `custom` — bei `custom` eigene `mode`/`endpoints`/Ports (z. B. eigener Browser-Pool für ein Kunden-Team).
+
+### Sicherheit (Remote)
+
+- Remote-Browser **nicht** ungeschützt ins offene Internet; mindestens **VPN/mTLS/Token**, strikte **Team-Isolation** (Sessions nur mit `team_id`-Kontext), Logging ohne sensible Seiteninhalte.
+
+### MVP-Hinweis
+
+- Zentrale Browserfarm ist **betrieblich** anspruchsvoller; MVP oft **`local`** zuerst, **`remote`** nachziehen — beide Pfade im **Config-Schema** und in der **GUI** vorsehen (Schalter „Systemstandard“ vs. „eigener Endpoint“).
 
 ---
 
