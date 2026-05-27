@@ -61,6 +61,12 @@ Details und Beispiel-JSON bleiben in den jeweiligen System-Plänen unter Kommuni
 
 ---
 
+## Betriebs-Isolation (optional)
+
+- Statt alle Team-Daten unter **demselben OS-Benutzer** zu mischen, kann jedes Team als **eigener Linux-Account** mit **systemd** laufen (Homeverzeichnis pro Team, Secret für die Anbindung der zentralen UI). Details und Vor-/Nachteile: **`mvp-und-entscheidungen.md`** (*Deployment-Variante: Team als Linux-User + systemd*).
+
+---
+
 ## Trigger, Web-Zugang, Auth (festgelegt)
 
 Konkrete Defaults (Inbox, Webhook, Polling, ein öffentliches Panel, Admin vs. Team-Nutzer, MVP-Reihenfolge, Secrets, Prozessmodell-Empfehlung, Story/Modell-Haltung): **`mvp-und-entscheidungen.md`**.

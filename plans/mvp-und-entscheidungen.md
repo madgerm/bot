@@ -300,6 +300,40 @@ Optional später weitere Collections (z. B. `team_{slug}__review`).
 
 ---
 
+## Deployment-Variante: Team als Linux-User + systemd (hart isoliert)
+
+### Idee (Design-Alternative zur „alles unter einem OS-User“)
+
+- Jedes **Team** kann als **eigener Linux-Account** (eigener Systembenutzer mit **Homeverzeichnis** `/home/team_<slug>/` o. Ä.) betrieben werden — das Team ist damit ein **hartes Isolations-Primitive** auf OS-Ebene (Dateirechte, Ressourcen, Prozessbaum).
+- Der **Agent-/Team-Prozess** läuft **nicht** unter dem Login des Menschen, der die UI bedient, sondern unter diesem **Team-User**; Daten (`data/`, SQLite, Inboxen, Crawl-Snapshots) liegen **im Home** des Team-Users.
+- **systemd** (User-Unit oder System-Unit pro Team): Dienst **„Team Rubber“** startet beim Boot **selbstständig** den Team-Agent-Controller und hält ihn am Leben (`Restart=on-failure`).
+- **Kopplung an die zentrale UI / den „Agent Controller“ oben:** die GUI kennt **`server_ip`** (oder Hostname) und einen **gemeinsamen Geheim-`hashkey`** (besser: **API-Token** / **mTLS** — der Begriff *Hashkey* steht hier für einen **langen, nicht erratbaren Shared Secret**, der beim Provisionieren erzeugt wird). Der **Controller** auf dem Team-Host exponiert einen **HTTPS-API-Port** (nur intern/VPN), authentisiert Anfragen mit diesem Secret, und steuert den lokalen Supervisor.
+
+### Ablauf (skizzenhaft)
+
+1. **Provisioning:** Admin legt Team an → Skript erstellt Linux-User, Home, Verzeichnisstruktur, schreibt `team.env` mit `TEAM_SECRET`, installiert **systemd-Unit**.
+2. **Laufzeit:** systemd startet `agent-team@rubber` → Prozess lädt Config aus `~team_rubber/...`, öffnet nur diese Pfade.
+3. **UI:** Operator trägt in der **obersten** Steuerungs-GUI „**Remote-Team-Host**“ + **Secret** ein → Panel spricht per TLS mit dem Team-Controller → Status, Chat, Dateien (über definierte APIs), **kein** direktes SSH für normale Nutzer nötig.
+
+### Vorteile
+
+- **Isolation:** Kompromittierung eines Teams reißt nicht sofort alle anderen Team-Homes mit.
+- **Fairness / Limits:** `systemd` **CPUQuota=**, **MemoryMax=**, **TasksMax=** pro Team-Dienst.
+- **Klare Pfade:** Backup = Home des Users archivieren.
+
+### Nachteile / Kosten
+
+- **Mehr Betrieb:** User-Anlage, systemd-Politik, Secret-Rotation, Monitoring pro Host.
+- **Nicht jede Kleininstallation** will System-User — daher **optional**: gleiche Software auch im **Single-User-Modus** (alles unter einem Dienst) weiter anbieten.
+
+### Empfehlung
+
+- **Produkt:** beide Modi vorsehen — **`deployment.topology`**: `single_user` | `linux_user_per_team` (Namen final bei Implementierung).
+- **Sicherheit:** *Hashkey* in der Praxis als **hochentropisches Token** (z. B. 256 Bit) behandeln, **TLS**, **kein** Secret in Git; optional **mTLS** zwischen zentraler UI und Team-Host.
+- **Begriff „Primitive“:** im Sinne von **Isolation-Primitive** auf OS-Ebene (Team = User), nicht als eigene Programmiersprache.
+
+---
+
 ## Hinweis zur „Reihenfolge“
 
 Wenn du „nervst“ bis alles läuft — gut: dann dient diese Datei als **Referenz**, gegen die wir Iterationen spiegeln. Reihenfolge ist **anpassbar**, solange der **MVP-Kern** oben nicht dauerhaft übersprungen wird.
