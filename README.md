@@ -51,6 +51,21 @@ bot msg retry --team demo --agent worker-exec --id <message-id>
 
 Message-JSON: `id`, `schema_version`, `status`, `created_at`/`updated_at`, `from_agent`/`to_agent`, optional `task_category`, `retry_count`.
 
+### Runtime / Supervisor (MVP Schritt 3)
+
+```bash
+# Dauerbetrieb: alle Teams, Agent-Loops mit Polling
+bot run
+
+# Nur Demo-Team, ein Durchlauf bis alle Queues leer (Tests/Cron)
+bot run --team demo --once
+
+# Mit Config Hot-Reload
+bot run --watch-config
+```
+
+Ablauf (Demo-Team): Aufgabe an `orchestrator` → `worker-exec` → `worker-review` → Ergebnis zurück an `orchestrator`. Ohne LLM (Platzhalter-Handler); LLM kommt in Schritt 4.
+
 ## Tests
 
 ```bash

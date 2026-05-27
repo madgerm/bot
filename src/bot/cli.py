@@ -9,6 +9,7 @@ from pathlib import Path
 
 from bot import __version__
 from bot.cli_msg import register_msg_commands
+from bot.cli_run import register_run_commands
 from bot.config import ConfigLoadError, ConfigStore, load_runtime_config
 
 
@@ -122,6 +123,7 @@ def build_parser() -> argparse.ArgumentParser:
     watch.set_defaults(func=_cmd_config_watch)
 
     register_msg_commands(sub, add_root)
+    register_run_commands(sub, add_root)
 
     return parser
 
@@ -137,7 +139,7 @@ def main(argv: list[str] | None = None) -> None:
     if hasattr(args, "root") and args.root is None:
         args.root = _default_root()
 
-    if args.command in ("config", "msg"):
+    if args.command in ("config", "msg", "run"):
         raise SystemExit(args.func(args))
 
     parser.error(f"Unbekannter Befehl: {args.command}")
