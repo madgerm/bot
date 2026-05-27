@@ -17,10 +17,23 @@ pip install -e ".[dev]"
 ## Nutzung
 
 ```bash
-bot
+bot --help
+bot config validate          # Konfiguration prüfen
+bot config show              # Geladene Config als JSON
+bot config watch             # Hot-Reload (Änderungen an config/ und teams/)
+
 # oder
-python -m bot
+python -m bot config validate
 ```
+
+Konfigurationsdateien:
+
+| Pfad | Inhalt |
+|------|--------|
+| `config/system.json` | System (LLM, Polling, Auth, …) |
+| `config/task_models.json` | Optional: Model-Routing pro Task-Kategorie |
+| `teams/<id>/team.json` | Team-Metadaten |
+| `teams/<id>/agents/<agent>/agent.json` | Agent-Definition |
 
 ## Tests
 

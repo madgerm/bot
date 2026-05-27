@@ -1,0 +1,27 @@
+{
+  "system": {
+    "name": "bot-runtime",
+    "host": "127.0.0.1",
+    "auth": {
+      "enabled": false,
+      "users": []
+    },
+    "communication": {
+      "mode": "direct",
+      "inbox_base": "teams/{team_id}/agents/{agent_id}/inbox"
+    },
+    "polling": {
+      "interval_seconds": 5
+    },
+    "llm": {
+      "provider": "litellm",
+      "api_base": "http://127.0.0.1:4000",
+      "secret_ref": "LITELLM_API_KEY"
+    }
+  },
+  "qdrant_global": {
+    "enabled": false,
+    "url": "http://127.0.0.1:6333",
+    "secret_ref": "QDRANT_API_KEY"
+  }
+}

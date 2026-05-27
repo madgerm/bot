@@ -1,0 +1,16 @@
+{
+  "task_models": {
+    "planning": {
+      "default": "ollama/qwen3-14b-tools-thinking",
+      "alternatives": []
+    },
+    "coding": {
+      "default": "ollama/qwen2.5-coder-14b-tools-insert",
+      "alternatives": []
+    },
+    "review": {
+      "default": "ollama/qwen3-14b-tools-thinking",
+      "alternatives": []
+    }
+  }
+}
