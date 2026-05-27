@@ -1,0 +1,4 @@
+{
+  "token_env": "BOT_TEAM_API_TOKEN",
+  "teams": ["demo"]
+}

@@ -16,6 +16,12 @@
       </span>
       · {{ team.agent_count }} Agent(s)
     </p>
+    {% if team.connection %}
+    <p class="text-xs text-slate-500 mt-1">Runner: {{ team.connection }}</p>
+    {% endif %}
+    {% if team.error %}
+    <p class="text-xs text-red-400 mt-1">{{ team.error }}</p>
+    {% endif %}
   </a>
   {% else %}
   <p class="text-slate-400">Keine Teams sichtbar.</p>

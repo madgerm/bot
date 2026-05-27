@@ -1,12 +1,33 @@
 # bot
 
-Python-Projekt mit `src/`-Layout und Ordner **`plans/`** für Entwürfe und technische Planung.
+Multi-Agent-Runtime mit Team-Runner, file-basierter Message-Queue und Web-Panel.
+
+## Architektur (zwei Rollen)
+
+| Rolle | Was es ist | Startbefehl |
+|--------|------------|-------------|
+| **Team-Runner** | Führt Agents aus (`bot run`), optional HTTP-API für Fernzugriff | `bot run` + `bot team serve` |
+| **Web-Panel** | Login, Dashboard, Team-Status (lokal oder per API) | `bot web` |
+
+```text
+┌─────────────────────┐         HTTPS + Bearer-Token          ┌──────────────────────┐
+│  Rechner A          │  ─────────────────────────────────►  │  Rechner B           │
+│  Web-Panel          │         (nur bei mode: remote)         │  Team-Runner         │
+│  bot web :8080      │                                        │  bot run             │
+│  config/team_hosts  │                                        │  bot team serve :8443│
+└─────────────────────┘                                        └──────────────────────┘
+
+Alles auf einem Rechner: mode "local" in team_hosts.json — kein API-Token nötig.
+```
+
+---
 
 ## Voraussetzungen
 
 - Python 3.11+
+- Optional: LiteLLM-kompatibler Server (Ollama, LiteLLM-Proxy, …)
 
-## Einrichtung
+## Installation
 
 ```bash
 python -m venv .venv
@@ -14,182 +35,163 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 ```
 
-## Nutzung
+---
+
+## Schnellstart (alles lokal auf einem Rechner)
+
+### 1. Team-Runner starten (Agents arbeiten)
 
 ```bash
-bot --help
-bot config validate          # Konfiguration prüfen
-bot config show              # Geladene Config als JSON
-bot config watch             # Hot-Reload (Änderungen an config/ und teams/)
+# Konfiguration prüfen
+bot config validate
 
-# oder
-python -m bot config validate
-```
-
-Konfigurationsdateien:
-
-| Pfad | Inhalt |
-|------|--------|
-| `config/system.json` | System (LLM, Polling, Auth, …) |
-| `config/task_models.json` | Optional: Model-Routing pro Task-Kategorie |
-| `teams/<id>/team.json` | Team-Metadaten |
-| `teams/<id>/agents/<agent>/agent.json` | Agent-Definition |
-| `teams/<id>/agents/<agent>/inbox/` | Eingehende Messages (`pending` → `processing` → `done`/`failed`) |
-| `teams/<id>/agents/<agent>/outbox/` | Kopie gesendeter Messages |
-
-### Nachrichten (MVP Schritt 2)
-
-```bash
-bot msg send --team demo --from orchestrator --to worker-exec \
-  --subject "Aufgabe" --content "Bitte ausführen"
-bot msg list --team demo --agent worker-exec --status pending
-bot msg claim --team demo --agent worker-exec
-bot msg done --team demo --agent worker-exec --id <message-id>
-bot msg fail --team demo --agent worker-exec --id <message-id> --error "Grund"
-bot msg retry --team demo --agent worker-exec --id <message-id>
-```
-
-Message-JSON: `id`, `schema_version`, `status`, `created_at`/`updated_at`, `from_agent`/`to_agent`, optional `task_category`, `retry_count`.
-
-### Runtime / Supervisor (MVP Schritt 3)
-
-```bash
-# Dauerbetrieb: alle Teams, Agent-Loops mit Polling
+# Dauerbetrieb: alle Teams, Agent-Loops
 bot run
 
-# Nur Demo-Team, ein Durchlauf bis alle Queues leer (Tests/Cron)
+# Nur Demo-Team, ein Durchlauf (Test/Cron)
 bot run --team demo --once
-
-# Mit Config Hot-Reload
-bot run --watch-config
 ```
 
-Ablauf (Demo-Team): Aufgabe an `orchestrator` → `worker-exec` → `worker-review` → Ergebnis zurück an `orchestrator`.
+Der Team-Runner liest `config/`, `teams/<id>/` und die Inboxen unter  
+`teams/<id>/agents/<agent>/inbox/`.
 
-### LLM / LiteLLM (MVP Schritt 4)
-
-In `config/system.json`: `"llm": { "enabled": true, "api_base": "…", … }` und `config/task_models.json` für Model-Routing.
-
-```bash
-# API-Key z. B. als Umgebungsvariable (Name aus secret_ref)
-export LITELLM_API_KEY=sk-...
-
-bot llm test --task-category coding --prompt "Kurz antworten"
-bot run --team demo --once   # nutzt LLM in den Handlern, wenn enabled
-```
-
-- **Routing:** `task_category` oder Rollen-Default (`planning` / `coding` / `review`)
-- **Override:** `model_override` in der Message
-- **Retries + Fallback:** `max_retries`, Alternativen aus `task_models.json`
-- **`enabled: false`:** Stub-Client (für lokale Tests ohne API)
-
-### Web-Panel (MVP Schritt 5)
+### 2. Web-Panel starten (Bedienoberfläche)
 
 ```bash
-# Optional: sicheres Session-Secret setzen
 export BOT_SESSION_SECRET=$(python -c "import secrets; print(secrets.token_hex(32))")
 
-bot web                    # http://127.0.0.1:8080
-bot web --ssl-cert cert.pem --ssl-key key.pem   # HTTPS
-
-# Login: config/users.json (Demo: admin/changeme, demo/changeme)
+bot web
+# → http://127.0.0.1:8080
 ```
 
-- **Dashboard:** zugängliche Teams
+Login: `config/users.json` (Demo: **admin** / **changeme** oder **demo** / **changeme**).
+
+Standard: `config/team_hosts.json` verweist auf **lokal** — das Panel liest dieselben Dateien wie der Runner (oder spricht per API mit einem Remote-Runner).
+
+- **Dashboard:** zugängliche Teams (inkl. Runner-Verbindung)
 - **Team-Ansicht:** Agents, Message-Status, letzte Nachrichten
-- **Admin:** Nutzer- und Team-Übersicht (nur Rolle `admin`)
-- Session-Cookies + **Team-Scoping** auf jeder Route
 - **Chat:** `/teams/<id>/chat` — SQLite-Verlauf (`data/<id>/chat.sqlite`)
 - **Wissen:** `/teams/<id>/knowledge` — Qdrant-Suche
+- **Admin:** Nutzer, Teams und Team-Runner-Hosts
+
+### 3. Aufgabe auslösen
+
+```bash
+bot msg send --team demo --from orchestrator --to orchestrator \
+  --subject "Aufgabe" --content "Feature X umsetzen"
+
+bot run --team demo --once   # oder bot run dauerhaft
+```
+
+Pipeline: `orchestrator` → `worker-exec` → `worker-review` → `orchestrator`.
+
+---
+
+## Remote: Web-Panel ↔ Team-Runner auf anderem Rechner
+
+Wenn der **Team-Runner** auf Server B läuft und das **Web-Panel** auf Server A, brauchst du:
+
+1. HTTP-API auf dem Team-Runner (`bot team serve`)
+2. Ein gemeinsames **API-Token** (`bot team token`)
+3. Eintrag in `config/team_hosts.json` auf dem Web-Panel-Rechner
+
+```bash
+bot team token --write-config
+# → export BOT_TEAM_API_TOKEN=...
+
+# Server B:
+export BOT_TEAM_API_TOKEN=<token>
+bot run --team demo
+bot team serve --host 0.0.0.0 --port 8443
+
+# Server A:
+export BOT_TEAM_API_TOKEN=<derselbe-token>
+bot web
+```
+
+Details und `team_hosts.json`-Beispiele siehe oben in der Architektur-Tabelle.
 
 ---
 
 ## Phase 2: Qdrant, Team-Chat, Playwright
 
-### Team initialisieren
+### Team-Ressourcen initialisieren
 
 ```bash
-bot team init demo    # legt chat.sqlite + Qdrant-Collections an (wenn Qdrant aktiv)
+bot team init demo    # chat.sqlite + Qdrant-Collections (wenn Qdrant aktiv)
 ```
 
-### Qdrant (Vektor-Wissen pro Team)
+### Qdrant
 
-In `config/system.json`:
-
-```json
-"qdrant_global": {
-  "enabled": true,
-  "url": "http://127.0.0.1:6333",
-  "secret_ref": "QDRANT_API_KEY",
-  "embedding": { "provider": "hash", "vector_size": 384 }
-}
-```
-
-- Collections: `team_<slug>__project`, `team_<slug>__background`
-- Registry: `data/<team>/qdrant_registry.json`
+In `config/system.json`: `qdrant_global.enabled = true`
 
 ```bash
-export QDRANT_API_KEY=...   # falls Qdrant Cloud/auth
 bot qdrant init --team demo
-bot qdrant upsert --team demo --collection project --text "Unsere API nutzt FastAPI"
+bot qdrant upsert --team demo --collection project --text "Projektwissen …"
 bot qdrant search --team demo --collection project --query "FastAPI"
 ```
 
-`embedding.provider`: `hash` (offline/Tests) oder `litellm` (echte Embeddings).
+Collections: `team_<slug>__project`, `team_<slug>__background`
 
-### Team-Chat (SQLite-Historie)
-
-Pro Team eine Datei: **`data/<team_id>/chat.sqlite`**
+### Team-Chat (SQLite)
 
 ```bash
-bot chat send --team demo --role user --content "Hallo Team" --agent orchestrator
+bot chat send --team demo --role user --content "Hallo" --agent orchestrator
 bot chat list --team demo
-bot chat list --team demo --agent orchestrator --search "Hallo"
 bot chat clear --team demo --yes
 ```
 
-Im Web-Panel: Team → **Chat** — senden, filtern, Verlauf leeren (Bestätigung `CLEAR`).
-
-### Playwright (Browser)
-
-Global in `config/system.json` → `playwright_global`:
-
-```json
-"playwright_global": {
-  "mode": "local",
-  "headless": true,
-  "ws_endpoints": []
-}
-```
-
-Team-Override: `teams/<id>/playwright.json`:
-
-```json
-{
-  "playwright": {
-    "source": "custom",
-    "mode": "remote",
-    "ws_endpoints": ["ws://browser-host:9222"]
-  }
-}
-```
-
-Installation:
+### Playwright
 
 ```bash
 pip install -e ".[playwright]"
 playwright install chromium
+bot browser open --team demo --url https://example.com
 ```
+
+---
+
+## CLI-Übersicht
+
+| Befehl | Zweck |
+|--------|--------|
+| `bot config validate` | Konfiguration prüfen |
+| `bot run [--team ID] [--once]` | Team-Runner (Supervisor) |
+| `bot team serve` / `bot team token` | Remote-API + Token |
+| `bot team init <id>` | Chat-DB + Qdrant-Collections |
+| `bot web` | Web-Panel |
+| `bot msg …` | Agent-Inbox (file-basiert) |
+| `bot chat …` | Team-Chat (SQLite) |
+| `bot qdrant …` | Vektor-Wissen |
+| `bot browser …` | Playwright |
+| `bot llm test` | LLM-Verbindung testen |
+
+---
+
+## Konfigurationsdateien
+
+| Datei | Wo | Inhalt |
+|-------|-----|--------|
+| `config/system.json` | Panel + Runner | System, LLM, Qdrant, Playwright |
+| `config/task_models.json` | Panel + Runner | Model-Routing |
+| `config/users.json` | Panel | Web-Login |
+| `config/team_hosts.json` | Panel | Lokale/Remote Team-Runner |
+| `config/team_api.json` | Runner | API-Token (`token_env`) |
+| `data/<team>/chat.sqlite` | Runner/Panel | Chat-Historie |
+| `teams/<id>/…` | Runner | Teams, Agents, Inboxen |
+
+---
+
+## LLM (LiteLLM)
+
+In `config/system.json`: `"llm": { "enabled": true, … }`.
 
 ```bash
-bot browser config --team demo
-bot browser open --team demo --url https://example.com --screenshot data/demo/screenshots/example.png
+export LITELLM_API_KEY=sk-...
+bot llm test --task-category coding --prompt "Kurz antworten"
 ```
 
-| Modus | Bedeutung |
-|-------|-----------|
-| `local` | Browser auf dem Rechner des Team-Runners |
-| `remote` | Verbindung über `ws_endpoints` (CDP/WebSocket) |
+Mit `"enabled": false` nutzen die Handler den **Stub**.
 
 ---
 
@@ -199,14 +201,18 @@ bot browser open --team demo --url https://example.com --screenshot data/demo/sc
 pytest
 ```
 
+---
+
 ## Ordner
 
 | Pfad | Zweck |
 |------|--------|
 | `src/bot/` | Anwendungscode |
 | `tests/` | Tests |
-| `plans/` | Pläne, Roadmaps, Architektur-Skizzen (`plans/README.md`, `plans/TEMPLATE.md`) |
+| `plans/` | Architektur- und MVP-Pläne |
 
-## Paket umbenennen
+## Sicherheit (Kurz)
 
-Paketname und Projektname stehen in `pyproject.toml` (`name`, `[project.scripts]`, Import `bot`). Bei Umbenennung diese Stellen und den Ordner `src/bot/` anpassen.
+- Web-Panel: `BOT_SESSION_SECRET` setzen, HTTPS in Produktion (`bot web --ssl-cert …`).
+- Team-API: langer Zufallstoken (`bot team token`), nur VPN/Firewall oder TLS.
+- `config/users.json` / Tokens **nicht** committen — Passwörter in Produktion hashen (bcrypt `$2…`).

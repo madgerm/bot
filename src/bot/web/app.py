@@ -22,7 +22,8 @@ from bot.web.auth import (
     require_team_access,
     session_secret,
 )
-from bot.web.services import build_team_dashboard, list_accessible_teams
+from bot.hosts import HostRegistry, TeamHostError
+from bot.web.services import build_team_dashboard
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
@@ -40,6 +41,10 @@ def create_app(root: Path | str) -> FastAPI:
         same_site="lax",
     )
     app.state.root = root_path
+    try:
+        app.state.hosts = HostRegistry(root_path)
+    except TeamHostError as exc:
+        raise RuntimeError(str(exc)) from exc
 
     @app.get("/", response_class=HTMLResponse)
     async def index(request: Request):
@@ -84,14 +89,14 @@ def create_app(root: Path | str) -> FastAPI:
 
     @app.get("/dashboard", response_class=HTMLResponse)
     async def dashboard(request: Request, user: CurrentUser):
+        registry: HostRegistry = app.state.hosts
         try:
-            config = load_runtime_config(root_path)
-            teams = list_accessible_teams(
-                root_path,
+            teams = registry.list_teams_for_user(
                 user.teams,
                 is_admin=user.role == "admin",
             )
-        except ConfigLoadError as exc:
+            system_name = registry.system_name()
+        except (ConfigLoadError, TeamHostError) as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
 
         return templates.TemplateResponse(
@@ -99,7 +104,7 @@ def create_app(root: Path | str) -> FastAPI:
             "dashboard.html",
             {
                 "user": user,
-                "system_name": config.system.system.name,
+                "system_name": system_name,
                 "teams": teams,
             },
         )
@@ -107,15 +112,23 @@ def create_app(root: Path | str) -> FastAPI:
     @app.get("/teams/{team_id}", response_class=HTMLResponse)
     async def team_page(request: Request, team_id: str, user: CurrentUser):
         require_team_access(team_id, user)
+        registry: HostRegistry = app.state.hosts
+        client = registry.client_for_team(team_id)
         try:
-            dashboard = build_team_dashboard(root_path, team_id)
-        except ConfigLoadError as exc:
+            dashboard = client.get_dashboard(team_id)
+        except (ConfigLoadError, TeamHostError) as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
         return templates.TemplateResponse(
             request,
             "team.html",
-            {"user": user, "dashboard": dashboard, "team_id": team_id},
+            {
+                "user": user,
+                "dashboard": dashboard,
+                "team_id": team_id,
+                "connection": client.connection_display(),
+                "host_label": client.label,
+            },
         )
 
     @app.get("/teams/{team_id}/chat", response_class=HTMLResponse)
@@ -240,9 +253,10 @@ def create_app(root: Path | str) -> FastAPI:
     async def admin_page(request: Request, user: CurrentUser):
         require_admin(user)
         users_cfg = load_users_config(root_path)
+        registry: HostRegistry = app.state.hosts
         try:
-            teams = list_accessible_teams(root_path, None, is_admin=True)
-        except ConfigLoadError as exc:
+            teams = registry.list_teams_for_user(None, is_admin=True)
+        except (ConfigLoadError, TeamHostError) as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
 
         safe_users = [
@@ -252,7 +266,12 @@ def create_app(root: Path | str) -> FastAPI:
         return templates.TemplateResponse(
             request,
             "admin.html",
-            {"user": user, "users": safe_users, "teams": teams},
+            {
+                "user": user,
+                "users": safe_users,
+                "teams": teams,
+                "hosts": registry.list_hosts(),
+            },
         )
 
     @app.get("/health")
