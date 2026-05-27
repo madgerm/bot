@@ -166,7 +166,63 @@ bot browser open --team demo --url https://example.com
 | `bot browser …` | Playwright |
 | `bot mail …` | E-Mail (IMAP/SMTP, Freigabe) |
 | `bot hours …` | Öffnungszeiten (Master, Diff, Publish) |
+| `bot tasks …` | Task Board (SQLite) |
+| `bot git …` | Git pro Team-Workspace |
+| `bot crawl …` | Domain-Crawl + Qdrant |
+| `bot story …` | Story (Charaktere, Welten, Szenen) |
+| `bot media …` | Vision, STT, TTS, Bilder |
+| `bot deploy …` | systemd + Provision (Linux-User/Team) |
+| `bot broker …` | Redis-Broker drain |
 | `bot llm test` | LLM-Verbindung testen |
+
+---
+
+## Phase 3: Plattform-Erweiterungen
+
+### Webhooks (eingehend)
+
+```bash
+export BOT_WEBHOOK_SECRET=...
+curl -X POST http://127.0.0.1:8080/api/v1/webhooks/demo/orchestrator \
+  -H "X-Webhook-Token: $BOT_WEBHOOK_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"subject":"CI","content":"Deploy auslösen"}'
+```
+
+### Task Board, Agent Manager, Dateien, Git, Story
+
+Web-Panel (pro Team):
+
+| Pfad | Funktion |
+|------|----------|
+| `/teams/<id>/tasks` | Kanban (todo / in progress / done) |
+| `/teams/<id>/agents` | Agents anlegen/löschen |
+| `/teams/<id>/files` | Datei-Browser + Editor (`data/<id>/workspace`) |
+| `/teams/<id>/git` | Status, Commit |
+| `/teams/<id>/story` | Charaktere, Welten, Szenen |
+| `/teams/<id>/media` | Bildgenerierung |
+| `/teams/<id>/crawl` | Domain-Crawl → Qdrant |
+
+CLI: `bot tasks`, `bot git`, `bot story`, `bot crawl`, `bot media image`.
+
+### Broker / Multi-Machine
+
+In `config/system.json`: `communication.mode = "broker"` und Redis-URL. Optional: `pip install -e ".[broker]"`, dann `bot broker drain --team demo --agent orchestrator`.
+
+### Medien, Crawl, Integrationen
+
+- **Medien:** `media_global` in `system.json`, Override: `teams/<id>/media.json`
+- **Crawl:** `teams/<id>/crawl.json` (Beispiel: `teams/demo/crawl.json.example`)
+- **Telegram/Matrix:** `teams/<id>/integrations.json` → `POST /api/v1/integrations/<team>/telegram|matrix`
+
+### Deployment (Linux-User pro Team)
+
+```bash
+bot deploy generate --team demo
+# → deploy/demo/bot-team@demo.service, provision-demo.sh
+```
+
+Admin-UI: `/admin/deploy`
 
 ---
 
@@ -222,6 +278,13 @@ Web-Panel: `/teams/<id>/hours` — Abgleich, Freigabe, **PUBLISH** bestätigen.
 | `teams/<id>/email.json` | Runner/Panel | IMAP/SMTP (Secrets per Env) |
 | `teams/<id>/hours.json` | Runner/Panel | Website/Google-Abgleich |
 | `teams/<id>/hours.master.json` | Runner/Panel | Kanonische Öffnungszeiten |
+| `data/<team>/tasks.sqlite` | Runner/Panel | Task Board |
+| `data/<team>/story.sqlite` | Runner/Panel | Story-Daten |
+| `data/<team>/workspace/` | Runner/Panel | Datei-Browser / Git |
+| `teams/<id>/git.json` | Runner/Panel | Git-Remote/Branch |
+| `teams/<id>/crawl.json` | Runner/Panel | Crawl-Domains |
+| `teams/<id>/integrations.json` | Runner/Panel | Telegram, Matrix |
+| `teams/<id>/media.json` | Runner/Panel | Medien-Overrides |
 | `teams/<id>/…` | Runner | Teams, Agents, Inboxen |
 
 ---

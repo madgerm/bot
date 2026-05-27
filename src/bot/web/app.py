@@ -462,4 +462,68 @@ def create_app(root: Path | str) -> FastAPI:
     async def health():
         return {"status": "ok"}
 
+    # Phase 3: Webhooks API
+    from bot.webhooks import WebhookService, WebhookServiceError
+
+    @app.post("/api/v1/webhooks/{team_id}/{agent_id}")
+    async def webhook_ingest(
+        request: Request,
+        team_id: str,
+        agent_id: str,
+    ):
+        import json as _json
+
+        body = await request.body()
+        wh = WebhookService(root_path)
+        token = request.headers.get("X-Webhook-Token")
+        sig = request.headers.get("X-Webhook-Signature")
+        if not wh.verify_token(token) and not wh.verify_signature(body, sig):
+            raise HTTPException(status_code=401, detail="Webhook nicht autorisiert")
+        try:
+            payload = _json.loads(body)
+        except _json.JSONDecodeError as exc:
+            raise HTTPException(status_code=400, detail="Ungültiges JSON") from exc
+        try:
+            result = wh.ingest(
+                team_id=team_id,
+                to_agent=agent_id,
+                subject=payload.get("subject", "Webhook"),
+                content=payload.get("content", ""),
+                from_agent=payload.get("from_agent", "webhook"),
+                type=payload.get("type", "task"),
+                task_category=payload.get("task_category"),
+                metadata=payload.get("metadata"),
+            )
+        except WebhookServiceError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return result
+
+    @app.post("/api/v1/integrations/{team_id}/telegram")
+    async def telegram_webhook(request: Request, team_id: str):
+        from bot.integrations import IntegrationService, IntegrationServiceError
+
+        update = await request.json()
+        try:
+            return IntegrationService.for_team(root_path, team_id).handle_telegram_update(
+                update
+            )
+        except IntegrationServiceError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/api/v1/integrations/{team_id}/matrix")
+    async def matrix_webhook(request: Request, team_id: str):
+        from bot.integrations import IntegrationService, IntegrationServiceError
+
+        event = await request.json()
+        try:
+            return IntegrationService.for_team(root_path, team_id).handle_matrix_event(
+                event
+            )
+        except IntegrationServiceError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    from bot.web.routes_phase3 import register_phase3_routes
+
+    register_phase3_routes(app, templates, root_path)
+
     return app

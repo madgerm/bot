@@ -64,6 +64,16 @@ class MessageService:
         recipient.ensure_dirs()
         sender.ensure_dirs()
 
+        comm = self._config.system.system.communication
+        if comm.mode == "broker":
+            from bot.messages.broker import BrokerError, MessageBroker
+
+            broker = MessageBroker.from_root(self._root)
+            if broker:
+                try:
+                    broker.publish(team_id, to_agent, message)
+                except BrokerError:
+                    pass
         stored = recipient.receive(message)
         sender.write_outbox_copy(stored)
         return stored

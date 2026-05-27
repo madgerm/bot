@@ -8,7 +8,13 @@
     },
     "communication": {
       "mode": "direct",
-      "inbox_base": "teams/{team_id}/agents/{agent_id}/inbox"
+      "inbox_base": "teams/{team_id}/agents/{agent_id}/inbox",
+      "broker": {
+        "type": "redis",
+        "url": "redis://127.0.0.1:6379/0",
+        "secret_ref": null,
+        "queue_prefix": "bot"
+      }
     },
     "polling": {
       "interval_seconds": 5
@@ -38,5 +44,41 @@
     "ws_endpoints": [],
     "headless": true,
     "timeout_seconds": 60
+  },
+  "webhooks_global": {
+    "enabled": true,
+    "secret_ref": "BOT_WEBHOOK_SECRET",
+    "path_prefix": "/api/v1/webhooks"
+  },
+  "media_global": {
+    "vision": {
+      "source": "global",
+      "provider": "litellm",
+      "model": "gpt-4o-mini",
+      "secret_ref": "LITELLM_API_KEY"
+    },
+    "stt": {
+      "source": "global",
+      "endpoint": "http://127.0.0.1:9100/transcribe",
+      "secret_ref": null
+    },
+    "tts": {
+      "source": "global",
+      "endpoint": "http://127.0.0.1:9101/synthesize",
+      "voice_id": "de_DE_neural"
+    },
+    "image_generation": {
+      "source": "global",
+      "type": "webhook",
+      "url": "http://127.0.0.1:9200/generate",
+      "default_aspect": "16:9",
+      "timeout_seconds": 180
+    }
+  },
+  "deployment": {
+    "topology": "single_user",
+    "team_agent_scope": "system",
+    "team_user_prefix": "team_",
+    "systemd_template": "bot-team@.service"
   }
 }
