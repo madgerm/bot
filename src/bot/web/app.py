@@ -125,8 +125,127 @@ def create_app(root: Path | str) -> FastAPI:
             {
                 "user": user,
                 "dashboard": dashboard,
+                "team_id": team_id,
                 "connection": client.connection_display(),
                 "host_label": client.label,
+            },
+        )
+
+    @app.get("/teams/{team_id}/chat", response_class=HTMLResponse)
+    async def team_chat_page(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        agent: str | None = None,
+        q: str | None = None,
+    ):
+        require_team_access(team_id, user)
+        from bot.chat import ChatStore
+
+        store = ChatStore(root_path, team_id)
+        messages = store.list_messages(agent_id=agent, search=q, limit=100)
+        return templates.TemplateResponse(
+            request,
+            "team_chat.html",
+            {
+                "user": user,
+                "team_id": team_id,
+                "messages": messages,
+                "filter_agent": agent,
+                "filter_q": q,
+            },
+        )
+
+    @app.post("/teams/{team_id}/chat/send")
+    async def team_chat_send(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        content: str = Form(...),
+        role: str = Form("user"),
+        agent_id: str | None = Form(None),
+    ):
+        require_team_access(team_id, user)
+        from bot.chat import ChatStore
+
+        store = ChatStore(root_path, team_id)
+        store.add(role=role, content=content, agent_id=agent_id or None)  # type: ignore[arg-type]
+        return RedirectResponse(f"/teams/{team_id}/chat", status_code=302)
+
+    @app.post("/teams/{team_id}/chat/clear")
+    async def team_chat_clear(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        confirm: str = Form(""),
+    ):
+        require_team_access(team_id, user)
+        if confirm != "CLEAR":
+            raise HTTPException(status_code=400, detail="Bestätigung fehlt (CLEAR)")
+        from bot.chat import ChatStore
+
+        ChatStore(root_path, team_id).clear_all()
+        return RedirectResponse(f"/teams/{team_id}/chat", status_code=302)
+
+    @app.get("/teams/{team_id}/knowledge", response_class=HTMLResponse)
+    async def team_knowledge_page(request: Request, team_id: str, user: CurrentUser):
+        require_team_access(team_id, user)
+        collections: dict[str, str] = {}
+        qdrant_error: str | None = None
+        try:
+            from bot.qdrant.collections import load_registry
+
+            collections = load_registry(root_path, team_id)
+        except Exception as exc:
+            qdrant_error = str(exc)
+        return templates.TemplateResponse(
+            request,
+            "team_knowledge.html",
+            {
+                "user": user,
+                "team_id": team_id,
+                "collections": collections,
+                "qdrant_error": qdrant_error,
+                "results": None,
+                "query": "",
+            },
+        )
+
+    @app.post("/teams/{team_id}/knowledge/search", response_class=HTMLResponse)
+    async def team_knowledge_search(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        query: str = Form(...),
+        collection: str = Form("project"),
+    ):
+        require_team_access(team_id, user)
+        from bot.qdrant import QdrantService, QdrantServiceError
+        from bot.qdrant.collections import load_registry
+
+        results = None
+        qdrant_error: str | None = None
+        try:
+            service = QdrantService.from_root(root_path)
+            results = service.search(team_id, collection, query, limit=8)
+            collections = load_registry(root_path, team_id)
+        except Exception as exc:
+            if isinstance(exc, QdrantServiceError):
+                qdrant_error = str(exc)
+            else:
+                qdrant_error = str(exc)
+            collections = {}
+        return templates.TemplateResponse(
+            request,
+            "team_knowledge.html",
+            {
+                "user": user,
+                "team_id": team_id,
+                "collections": collections,
+                "qdrant_error": qdrant_error,
+                "results": results,
+                "query": query,
+                "collection": collection,
             },
         )
 

@@ -108,3 +108,19 @@ def register_team_commands(
         help="config/team_api.json mit token_env anlegen",
     )
     token.set_defaults(func=cmd_team_token)
+
+    init_cmd = team_sub.add_parser(
+        "init", help="Qdrant-Collections + Chat-DB anlegen"
+    )
+    add_root(init_cmd)
+    init_cmd.add_argument("team_id")
+    init_cmd.set_defaults(func=cmd_team_init)
+
+
+def cmd_team_init(args: argparse.Namespace) -> int:
+    from bot.team_init import init_team_resources
+
+    results = init_team_resources(args.root, args.team_id)
+    for key, value in results.items():
+        print(f"{key}: {value}")
+    return 0

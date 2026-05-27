@@ -26,6 +26,17 @@
   "qdrant_global": {
     "enabled": false,
     "url": "http://127.0.0.1:6333",
-    "secret_ref": "QDRANT_API_KEY"
+    "secret_ref": "QDRANT_API_KEY",
+    "embedding": {
+      "provider": "hash",
+      "vector_size": 384
+    },
+    "timeout_seconds": 30
+  },
+  "playwright_global": {
+    "mode": "local",
+    "ws_endpoints": [],
+    "headless": true,
+    "timeout_seconds": 60
   }
 }

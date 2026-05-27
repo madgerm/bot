@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Chat — {{ team_id }}{% endblock %}
+{% block content %}
+<div class="mb-6 flex flex-wrap gap-4 items-center">
+  <a href="/teams/{{ team_id }}" class="text-sm text-indigo-400">← Team</a>
+  <a href="/teams/{{ team_id }}/knowledge" class="text-sm text-indigo-400">Wissen (Qdrant)</a>
+  <h1 class="text-2xl font-bold">Team-Chat</h1>
+  <code class="text-slate-500 text-sm">data/{{ team_id }}/chat.sqlite</code>
+</div>
+
+<form method="get" class="flex flex-wrap gap-2 mb-4">
+  <input name="agent" placeholder="Agent filtern" value="{{ filter_agent or '' }}"
+    class="rounded bg-slate-800 border border-slate-700 px-3 py-1 text-sm">
+  <input name="q" placeholder="Textsuche" value="{{ filter_q or '' }}"
+    class="rounded bg-slate-800 border border-slate-700 px-3 py-1 text-sm">
+  <button type="submit" class="px-3 py-1 rounded bg-slate-700 text-sm">Filtern</button>
+</form>
+
+<form method="post" action="/teams/{{ team_id }}/chat/send" class="mb-6 p-4 rounded-lg border border-slate-800 bg-slate-900 space-y-3">
+  <textarea name="content" required rows="3" placeholder="Nachricht…"
+    class="w-full rounded bg-slate-800 border border-slate-700 px-3 py-2"></textarea>
+  <div class="flex flex-wrap gap-3">
+    <select name="role" class="rounded bg-slate-800 border border-slate-700 px-2 py-1 text-sm">
+      <option value="user">user</option>
+      <option value="assistant">assistant</option>
+      <option value="system">system</option>
+    </select>
+    <input name="agent_id" placeholder="agent_id (optional)"
+      class="rounded bg-slate-800 border border-slate-700 px-2 py-1 text-sm">
+    <button type="submit" class="px-4 py-1 rounded bg-indigo-600 text-sm">Senden</button>
+  </div>
+</form>
+
+<div class="space-y-3 mb-8">
+  {% for msg in messages %}
+  <article class="p-4 rounded-lg border border-slate-800 bg-slate-900/80">
+    <div class="flex justify-between text-xs text-slate-500 mb-1">
+      <span>{{ msg.role }}{% if msg.agent_id %} · {{ msg.agent_id }}{% endif %}</span>
+      <span>{{ msg.created_at }}</span>
+    </div>
+    <p class="text-sm whitespace-pre-wrap">{{ msg.content }}</p>
+  </article>
+  {% else %}
+  <p class="text-slate-500">Noch keine Chat-Nachrichten.</p>
+  {% endfor %}
+</div>
+
+<form method="post" action="/teams/{{ team_id }}/chat/clear" class="p-4 rounded border border-red-900/50 bg-red-950/30">
+  <p class="text-sm text-red-300 mb-2">Verlauf komplett leeren (zweistufig):</p>
+  <input name="confirm" placeholder="CLEAR eingeben" class="rounded bg-slate-800 border border-slate-700 px-2 py-1 text-sm mr-2">
+  <button type="submit" class="px-3 py-1 rounded bg-red-800 text-sm">Alles löschen</button>
+</form>
+{% endblock %}
