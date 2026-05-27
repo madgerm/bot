@@ -17,10 +17,88 @@ pip install -e ".[dev]"
 ## Nutzung
 
 ```bash
-bot
+bot --help
+bot config validate          # Konfiguration prüfen
+bot config show              # Geladene Config als JSON
+bot config watch             # Hot-Reload (Änderungen an config/ und teams/)
+
 # oder
-python -m bot
+python -m bot config validate
 ```
+
+Konfigurationsdateien:
+
+| Pfad | Inhalt |
+|------|--------|
+| `config/system.json` | System (LLM, Polling, Auth, …) |
+| `config/task_models.json` | Optional: Model-Routing pro Task-Kategorie |
+| `teams/<id>/team.json` | Team-Metadaten |
+| `teams/<id>/agents/<agent>/agent.json` | Agent-Definition |
+| `teams/<id>/agents/<agent>/inbox/` | Eingehende Messages (`pending` → `processing` → `done`/`failed`) |
+| `teams/<id>/agents/<agent>/outbox/` | Kopie gesendeter Messages |
+
+### Nachrichten (MVP Schritt 2)
+
+```bash
+bot msg send --team demo --from orchestrator --to worker-exec \
+  --subject "Aufgabe" --content "Bitte ausführen"
+bot msg list --team demo --agent worker-exec --status pending
+bot msg claim --team demo --agent worker-exec
+bot msg done --team demo --agent worker-exec --id <message-id>
+bot msg fail --team demo --agent worker-exec --id <message-id> --error "Grund"
+bot msg retry --team demo --agent worker-exec --id <message-id>
+```
+
+Message-JSON: `id`, `schema_version`, `status`, `created_at`/`updated_at`, `from_agent`/`to_agent`, optional `task_category`, `retry_count`.
+
+### Runtime / Supervisor (MVP Schritt 3)
+
+```bash
+# Dauerbetrieb: alle Teams, Agent-Loops mit Polling
+bot run
+
+# Nur Demo-Team, ein Durchlauf bis alle Queues leer (Tests/Cron)
+bot run --team demo --once
+
+# Mit Config Hot-Reload
+bot run --watch-config
+```
+
+Ablauf (Demo-Team): Aufgabe an `orchestrator` → `worker-exec` → `worker-review` → Ergebnis zurück an `orchestrator`.
+
+### LLM / LiteLLM (MVP Schritt 4)
+
+In `config/system.json`: `"llm": { "enabled": true, "api_base": "…", … }` und `config/task_models.json` für Model-Routing.
+
+```bash
+# API-Key z. B. als Umgebungsvariable (Name aus secret_ref)
+export LITELLM_API_KEY=sk-...
+
+bot llm test --task-category coding --prompt "Kurz antworten"
+bot run --team demo --once   # nutzt LLM in den Handlern, wenn enabled
+```
+
+- **Routing:** `task_category` oder Rollen-Default (`planning` / `coding` / `review`)
+- **Override:** `model_override` in der Message
+- **Retries + Fallback:** `max_retries`, Alternativen aus `task_models.json`
+- **`enabled: false`:** Stub-Client (für lokale Tests ohne API)
+
+### Web-Panel (MVP Schritt 5)
+
+```bash
+# Optional: sicheres Session-Secret setzen
+export BOT_SESSION_SECRET=$(python -c "import secrets; print(secrets.token_hex(32))")
+
+bot web                    # http://127.0.0.1:8080
+bot web --ssl-cert cert.pem --ssl-key key.pem   # HTTPS
+
+# Login: config/users.json (Demo: admin/changeme, demo/changeme)
+```
+
+- **Dashboard:** zugängliche Teams
+- **Team-Ansicht:** Agents, Message-Status, letzte Nachrichten
+- **Admin:** Nutzer- und Team-Übersicht (nur Rolle `admin`)
+- Session-Cookies + **Team-Scoping** auf jeder Route
 
 ## Tests
 

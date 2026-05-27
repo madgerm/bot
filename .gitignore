@@ -25,3 +25,12 @@ htmlcov/
 .idea/
 .vscode/
 .DS_Store
+
+# Laufzeit: file-basierte Nachrichtenqueues
+teams/**/agents/**/inbox/**/*.json
+teams/**/agents/**/outbox/**/*.json
+!teams/**/agents/**/inbox/.gitkeep
+!teams/**/agents/**/outbox/.gitkeep
+
+# Produktions-Secrets (Beispiel-users.json ist im Repo)
+config/users.local.json

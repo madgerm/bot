@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Bot Panel{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-2">Dashboard</h1>
+<p class="text-slate-400 mb-8">System: <span class="text-slate-200">{{ system_name }}</span></p>
+
+<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+  {% for team in teams %}
+  <a href="/teams/{{ team.id }}"
+    class="block p-5 rounded-lg border border-slate-800 bg-slate-900 hover:border-indigo-600 transition">
+    <h2 class="font-semibold text-lg">{{ team.name }}</h2>
+    <p class="text-sm text-slate-400 mt-1">ID: {{ team.id }}</p>
+    <p class="text-sm mt-2">
+      <span class="{% if team.enabled %}text-emerald-400{% else %}text-amber-400{% endif %}">
+        {% if team.enabled %}aktiv{% else %}deaktiviert{% endif %}
+      </span>
+      · {{ team.agent_count }} Agent(s)
+    </p>
+  </a>
+  {% else %}
+  <p class="text-slate-400">Keine Teams sichtbar.</p>
+  {% endfor %}
+</div>
+{% endblock %}
