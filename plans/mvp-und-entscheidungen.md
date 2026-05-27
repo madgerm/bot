@@ -121,21 +121,30 @@ Die früheren Tabellen mit `http://host:8765` … sind **Entwickler-/Debug-Ansic
 
 Beim Anlegen eines **Teams** sollen optionale Medien-Pipelines konfigurierbar sein (Web-UI + JSON im Team-Ordner). Das ist **nicht** Teil des harten MVP-Kerns, aber früh als **Schema** vorgesehen, damit UI und Runtime nicht umbauen müssen.
 
+### System-Defaults vs. Team-Overrides („global“ / „individuell“)
+
+- In der **System-Konfiguration** (z. B. `config/system.json`, Block `media_global` oder gleichwertig) werden **Standard-Endpunkte** für **Vision**, **STT**, **TTS** und **Bildgenerierung** gepflegt — das sind die **globalen Vorgaben** für alle Teams, die nichts Eigenes setzen.
+- **Pro Team** und **pro Kanal** (`vision`, `stt`, `tts`, `image_generation`) wählbar:
+  - **`source`: `"global"`** — dieser Kanal nutzt **1:1** die System-Vorgabe (kein doppeltes Pflegen derselben URLs im Team).
+  - **`source`: `"custom"`** — das Team bringt **eigene** Werte mit (eigener Server, anderes Modell, anderer Webhook, MiniMax nur für dieses Team, …).
+- **Granularität:** Mischform ist explizit erlaubt und sinnvoll, z. B. *Vision global, STT global, TTS individuell, Bilder individuell* — so bleiben günstige Defaults global, Ausreißer/Kostenfälle nur dort, wo nötig.
+- **Web-UI:** Schalter oder Dropdown pro Kanal: „Systemstandard“ vs. „Eigene Einstellungen“; bei „Eigene“ werden die Felder wie unten editierbar, bei „Systemstandard“ sind sie ausgegraut und werden zur Laufzeit aus `media_global` aufgelöst.
+
 ### Vision (Bilder verstehen)
 
-- Pro Team: **Vision-Profil** — welches **LLM** auf welchem **Server** Bilder einliest und versteht (z. B. LiteLLM mit Multimodal-Modell).
+- Pro Team: **Vision-Profil** — entweder **übernommen aus `media_global.vision`** (`source: "global"`) oder **eigenes Profil** (`source: "custom"`): welches **LLM** auf welchem **Server** Bilder einliest und versteht (z. B. LiteLLM mit Multimodal-Modell).
 - Felder (konzeptionell): `provider`, `api_base`, `model`, optional `max_side_px`, `timeout_seconds`, `secret_ref` für API-Keys.
 - Nutzung: Uploads im Web-Panel, Screenshots, Story-Boards — Agents erhalten Bildreferenzen im Kontext und lösen Vision-Calls nach Bedarf aus.
 
 ### Sprache: TTS und STT
 
-- **STT (Speech-to-Text):** z. B. lokales Modell (z. B. Whisper), Cloud-API oder eigener Dienst — `provider`, `endpoint`, `language`, `secret_ref`.
-- **TTS (Text-to-Speech):** `provider`, `voice_id`, `endpoint`, `sample_rate`, `secret_ref`.
+- **STT (Speech-to-Text):** wie Vision — **`source`: `global` oder `custom`**; bei `custom` z. B. lokales Whisper, Cloud-API oder eigener Dienst (`provider`, `endpoint`, `language`, `secret_ref`).
+- **TTS (Text-to-Speech):** ebenfalls **`source`** pro Team; bei `custom`: `provider`, `voice_id`, `endpoint`, `sample_rate`, `secret_ref`.
 - **Ziel:** **Sprach-Kommunikation** mit dem Team (Mikro → STT → Chat/Inbox; Antworten optional per TTS). Transport (WebRTC vs. Chunk-Upload) ist Implementierungsdetail; **Konfiguration ist team-scoped**.
 
 ### Bildgenerierung (mehrere Backends, wählbar pro Team)
 
-Eine abstrakte Aktion „Bild erzeugen“, Backend pro Team wählbar:
+Eine abstrakte Aktion „Bild erzeugen“; **`source`** pro Team entweder **`global`** (System-`media_global.image_generation`) oder **`custom`** (eigenes Backend pro Team), Backend dann wählbar:
 
 | `image_generation.type` | Bedeutung |
 |-------------------------|-----------|
@@ -149,6 +158,7 @@ Eine abstrakte Aktion „Bild erzeugen“, Backend pro Team wählbar:
 ### Platzierung in der Config
 
 - Block `team.media` oder Datei `team-media.json` neben den Team-Metadaten; pflegbar durch **Admin** bei Team-Erstellung; für normale Team-Nutzer standardmäßig **nur lesend** (optional später erweitern).
+- **System:** `media_global` in der zentralen Config; Resolver-Regel zur Laufzeit: pro Kanal effektive Config = `global` ? `media_global.<kanal>` : `team.media.<kanal>` (Pflichtfelder validieren).
 
 ### Beispiel `team.media` (Illustration, keine finale API-Garantie)
 
@@ -156,21 +166,10 @@ Eine abstrakte Aktion „Bild erzeugen“, Backend pro Team wählbar:
 {
   "team_id": "beispiel-team",
   "media": {
-    "vision": {
-      "provider": "litellm",
-      "api_base": "http://10.95.60.51:11434",
-      "model": "ollama/llava:latest",
-      "max_side_px": 1536,
-      "timeout_seconds": 120,
-      "secret_ref": null
-    },
-    "stt": {
-      "provider": "whisper-local",
-      "endpoint": "http://127.0.0.1:9100/transcribe",
-      "language": "de",
-      "secret_ref": null
-    },
+    "vision": { "source": "global" },
+    "stt": { "source": "global" },
     "tts": {
+      "source": "custom",
       "provider": "custom",
       "endpoint": "http://127.0.0.1:9101/synthesize",
       "voice_id": "de_DE_neural",
@@ -178,6 +177,7 @@ Eine abstrakte Aktion „Bild erzeugen“, Backend pro Team wählbar:
       "secret_ref": "TTS_API_KEY"
     },
     "image_generation": {
+      "source": "custom",
       "type": "webhook",
       "url": "https://bild-bridge.intern/generate",
       "headers_template": { "Authorization": "Bearer {{secret:IMG_WEBHOOK}}" },
@@ -193,6 +193,7 @@ Wechsel z. B. auf MiniMax-Bilder durch Austausch von `image_generation`:
 
 ```json
 "image_generation": {
+  "source": "custom",
   "type": "minimax",
   "api_base": "https://api.minimax.io",
   "model": "image-01",
