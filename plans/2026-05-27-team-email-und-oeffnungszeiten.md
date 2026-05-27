@@ -18,6 +18,19 @@ Am Ende soll ein Betreiber ein Team anlegen, Secrets setzen, Agents starten (`bo
 
 ---
 
+## Festgelegte Entscheidungen (Rollen)
+
+| Rolle | Aufgabe |
+|-------|---------|
+| **Admin** | System- und Team-**Aufbau**: Nutzer anlegen, Teams zuweisen, `email.json` / Secrets / Runner — **kein** täglicher Mail-Betrieb |
+| **Team-Nutzer** (alle mit Zugriff auf das Team in `users.json`) | **Betrieb**: Postfach bearbeiten, mit Agents diskutieren, Entwürfe **freigeben** und **abschicken** |
+
+**Freigabe & Versand:** Jeder Team-Nutzer mit `require_team_access(team_id)` darf freigeben und senden — **nicht** auf Admin beschränkt. Die Hürde ist **bewusste Freigabe pro Entwurf** (Human-in-the-loop), nicht eine Admin-Rolle.
+
+**Öffnungszeiten:** gleiches Modell — Team-Nutzer pflegen Master (falls berechtigt), prüfen Diffs, geben Publish frei; Admin richtet nur Team und API-Zugänge ein.
+
+---
+
 ## Ausgangslage (Ist)
 
 | Baustein | Vorhanden | Fehlt für die Use Cases |
@@ -49,13 +62,13 @@ Eingang → Verarbeitung (Agents) → draft / awaiting_approval
 ```
 
 - **Kein** LLM-Tool „send_mail“ ohne vorherigen Status `approved`.
-- Versand-Code prüft **serverseitig** `status == approved` und `approved_by` + `approved_at`.
-- Optional: zweite Bestätigung (`CONFIRM_SEND`) im UI für kritische Postfächer.
+- Versand-Code prüft **serverseitig** `status == approved` und `approved_by` + `approved_at` (jeder berechtigte Team-Nutzer).
+- Optional pro Team: UI-Bestätigung (`CONFIRM_SEND`) vor dem ersten Versand — **ohne** Admin-Pflicht.
 
 ### Secrets & Compliance
 
-- Credentials nur via **Umgebungsvariablen** / `secret_ref` (siehe `mvp-und-entscheidungen.md`).
-- Team-Scope: Nutzer sieht nur Teams aus `users.json`.
+- Credentials nur via **Umgebungsvariablen** / `secret_ref` (siehe `mvp-und-entscheidungen.md`); Konfiguration durch **Admin**, Laufzeit-Nutzung durch Team-Nutzer im Panel.
+- Team-Scope: Nutzer sieht und bedient nur Teams aus `users.json` (bestehendes RBAC).
 - Logging: **keine** Mail-Bodies / Passwörter; nur `message_id`, Betreff-Länge, Status.
 - Betreiber verantwortet **DSGVO**, Auftragsverarbeitung, Zugriff auf Firmenpostfächer.
 
@@ -184,7 +197,7 @@ Neue Routen (Team-Scope wie Chat):
 
 - `GET /teams/<id>/mail` — Thread-Liste, Filter `awaiting_approval`
 - `GET /teams/<id>/mail/<thread_id>` — Verlauf + aktueller Entwurf
-- `POST .../mail/approve` — Freigabe (nur Team-Mitglied)
+- `POST .../mail/approve` — Freigabe (jeder Team-Nutzer mit Team-Zugriff)
 - `POST .../mail/reject` — verwerfen + optional Rückmeldung an Orchestrator
 - `POST .../mail/revise` — Nutzer-Kommentar → neue Agent-Aufgabe
 
@@ -313,7 +326,7 @@ Format Öffnungszeiten (intern): strukturiertes JSON (Mo–So, intervals, except
 ## B.7 Web-Panel
 
 - `GET /teams/<id>/hours` — Master + letzter Diff
-- `POST .../hours/master` — Master bearbeiten (Admin/Team-Operator)
+- `POST .../hours/master` — Master bearbeiten (Team-Nutzer mit Team-Zugriff)
 - `POST .../hours/approve` / `publish`
 
 ## B.8 Phasen Öffnungszeiten
@@ -387,10 +400,10 @@ In `pyproject.toml` als optionale Extras: `mail = [...]`, `hours = [...]`.
 
 **Offen:**
 
-- [ ] Ein Postfach pro Team oder mehrere Aliase?
-- [ ] Soll Freigabe nur **Admin** oder jedes Team-Mitglied?
+- [ ] Ein Postfach pro Team oder mehrere Aliase? *(Empfehlung: 1 Konto/Team)*
+- [x] Freigabe/Versand: **jedes Team-Mitglied** mit Team-Zugriff; Admin nur Aufbau
 - [ ] Welches CMS / welcher Google-Account-Typ beim Kunden?
-- [ ] Feiertage: manuell in Master oder externe API?
+- [ ] Feiertage: manuell in Master oder externe API? *(Empfehlung: manuell MVP)*
 
 ---
 
