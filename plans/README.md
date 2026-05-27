@@ -18,3 +18,4 @@ Siehe `TEMPLATE.md` — kopieren und umbenennen.
 - [`runtime-teams.md`](runtime-teams.md) — **übergreifend:** ein System, Teams, Supervisor, Hot-Reload, Bedarfsgesteuerte Agents (gilt für Coding- und Story-Setup).
 - [`2026-05-26-coding-agent-system.md`](2026-05-26-coding-agent-system.md) — verteiltes Multi-Agent-Coding-System (Vision, Architektur, Phasen).
 - [`2026-05-26-story-agent-system.md`](2026-05-26-story-agent-system.md) — Multi-Agent-Storytelling (80k+ Wörter, StoryDB, World/Character).
+- [`2026-05-27-team-email-und-oeffnungszeiten.md`](2026-05-27-team-email-und-oeffnungszeiten.md) — **E-Mail-Team** (IMAP/SMTP, Entwurf + Freigabe) und **Öffnungszeiten-Team** (Website ↔ Google Business, Single Source of Truth).
