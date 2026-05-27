@@ -31,6 +31,7 @@ Die exakte Reihenfolge ist weniger wichtig als **„Kern zuerst“**. Sinnvolle 
 | 3 | Supervisor + **ein** Team-Template + Orchestrator + 2 Subagents |
 | 4 | LLM-Client + Router + Retries/Fallback (knapp) |
 | 5 | Web: Auth + Admin (User/Team) + Team-Dashboard (Status, letzte Messages) |
+| 5b | **Team-Chat:** eine **SQLite pro Team** (`chat.sqlite`) + **GUI** (Verlauf filtern, Einträge selektiv löschen, Chat **komplett leeren** — nur mit Team-Rechten) |
 | 6 | Webhooks (eingehend) + optional interne Events |
 | 7 | Qdrant, weitere Agents, Broker-Multi-Machine, domänenspezifische UIs |
 
@@ -238,6 +239,37 @@ Optional später weitere Collections (z. B. `team_{slug}__review`).
 ### Auflösung für Agents
 
 - Tools und Agents lesen **materialisierte Collection-Namen** aus der **Team-Registry** (beim Team-Init gesetzt), keine in Agent-Code fest verdrahteten Namen.
+
+---
+
+## Chat-Verlauf: SQLite pro Team
+
+### Ziel
+
+- Der **Chat-Verlauf** (Nutzer ↔ Agents; optional auch interne Agent-/Tool-Logs, falls gewünscht) wird **persistent** gespeichert — nicht nur im RAM.
+- **Pro Team genau eine SQLite-Datei** (z. B. `data/{team_slug}/chat.sqlite`), damit Daten **team-isoliert**, **einfach backupbar** und bei Team-Export/Delete **als Ganzes** handhabbar sind.
+
+### Inhalt & Schema (konzeptionell)
+
+- Mindestens Tabelle **`messages`**: `id` (UUID), `agent_id`, `role` (`user` / `assistant` / `system` / …), `content`, `created_at`, `metadata` (JSON für Anhänge, Modellname, Token-Hinweise), optional `thread_id` / `conversation_id` für mehrere Fäden.
+- Indizes auf `created_at`, `agent_id`, `thread_id`; Migrationen (z. B. Alembic oder SQL-Skripte) versionieren das Schema.
+- Bei großen Löschaktionen: **Batch**-`DELETE` + später `VACUUM` in einem **Wartungsfenster**, damit die UI nicht blockiert.
+
+### Rechte (RBAC)
+
+- **Lesen, einzelne Messages löschen, Verlauf teilweise oder komplett leeren:** nur **Team-Mitglieder** (bzw. Rollen mit explizitem „Chat-Verwaltung“-Recht innerhalb des Teams).
+- **Admin** kann je nach Organisations-Policy **Team-Reset** (z. B. Team löschen inkl. SQLite) — klar von „nur Chat leeren“ trennen.
+
+### GUI (Komfort)
+
+- **Verlaufsbrowser:** Filter nach Agent, Zeitraum, Freitext; Vorschau + Detailansicht.
+- **Selektives Löschen:** Checkboxen + „Ausgewählte löschen“; Kontextmenü auf einzelner Nachricht; optional „**alles vor Datum …** löschen“.
+- **Komplett leeren:** eigener Button mit **zweistufiger Bestätigung** („Team-Chat wirklich vollständig leeren?“), damit keine Fehlklicks passieren.
+- Optional: **Audit-Log** (wer hat wann wie viele Zeilen gelöscht / geleert) **ohne** den gelöschten Inhalt — für interne Nachvollziehbarkeit.
+
+### Betrieb
+
+- SQLite liegt im **Team-Datenverzeichnis**; Datei in **Backups** einschließen. Bei extremen Größen später: Archiv-Tabellen oder Export — **kein** MVP-Zwang.
 
 ---
 
