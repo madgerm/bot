@@ -206,6 +206,41 @@ Wechsel z. B. auf MiniMax-Bilder durch Austausch von `image_generation`:
 
 ---
 
+## Qdrant: globaler Server und Team-Collections
+
+### Begriff (Qdrant ≠ SQL-Datenbank)
+
+- Ein **Qdrant-Server** (oder Cluster) verwaltet **Collections** — Vektor-Indizes inkl. Payload. Klassische SQL-**Datenbanken** pro Team gibt es so nicht; stattdessen mehrere **Collections** mit **Namenskonvention**, die eurer Idee „pro Team eine logische Datenbank“ entsprechen.
+
+### Global
+
+- **System-Konfiguration** (z. B. `qdrant_global` in `config/system.json`): **URL**, optional **API-Key** (`secret_ref`), Standard-**Embedding-Profil** (Modell + Endpoint für Embeddings), globale Limits (Timeouts, maximale Batchgröße).
+
+### Team-Initialisierung (automatisch)
+
+Beim **Anlegen / Initialisieren** eines Teams legt die Runtime **idempotent** (nur anlegen, falls noch nicht vorhanden) mindestens diese **Collections** an — `team_slug` URL-sicher normalisiert (`[a-z0-9_]`):
+
+| Collection | Inhalt |
+|------------|--------|
+| `team_{slug}__project` | **Projektwissen** — indizierte **Codebase** / Arbeitsbaum, an dem das Team arbeitet. |
+| `team_{slug}__background` | **Hintergrundwissen** — längerlebige **Anleitungen / Wikis** (z. B. internes PHP-Wiki, Runbooks), bewusst getrennt von flüchtigem Chat und vom Rohtext der Repo-Dateien. |
+
+Optional später weitere Collections (z. B. `team_{slug}__review`).
+
+### Domains + Crawl4AI (optional pro Team)
+
+- Pro Team: Liste **`crawl.domains[]`** (URLs/Hosts), Pflege durch **Admin**; rechtliche/robots-Konformität und Zugriffsrecht liegen beim **Betreiber**.
+- **Crawl4AI** (oder gleichwertiger Crawler) erzeugt **offline nutzbare** Snapshots (Markdown/HTML) im Team-Datenbereich.
+- **Periodischer Index-Job** (Cron, optional zusätzlicher Watch auf dem Snapshot-Ordner): Änderungen chunken, embedden (Embedding-Profil **global** oder **Team-Override**), **Upsert** nach Qdrant — so bleiben **Wiki-/Web-Inhalte** fortlaufend aktuell.
+- **Ziel-Collection:** z. B. eine gemeinsame `team_{slug}__web` mit Payload-Feld `domain` / `canonical_url` **oder** mehrere Collections `team_{slug}__crawl__{host_hash}` — konkrete Wahl bei der Implementierung; beides ist planbar.
+- **Fortschreiben:** regelmäßiger Re-Crawl / Re-Embed; veraltete Chunks über Payload (`retired_at`, `content_hash`, `crawl_generation`) aus der Suche ausblenden oder ersetzen, damit der Index kontrollierbar bleibt.
+
+### Auflösung für Agents
+
+- Tools und Agents lesen **materialisierte Collection-Namen** aus der **Team-Registry** (beim Team-Init gesetzt), keine in Agent-Code fest verdrahteten Namen.
+
+---
+
 ## Hinweis zur „Reihenfolge“
 
 Wenn du „nervst“ bis alles läuft — gut: dann dient diese Datei als **Referenz**, gegen die wir Iterationen spiegeln. Reihenfolge ist **anpassbar**, solange der **MVP-Kern** oben nicht dauerhaft übersprungen wird.
