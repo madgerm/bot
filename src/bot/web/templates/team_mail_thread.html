@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ thread.subject }} — Mail{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <a href="/teams/{{ team_id }}/mail" class="text-sm text-indigo-400">← E-Mail</a>
+  <h1 class="text-2xl font-bold mt-2">{{ thread.subject }}</h1>
+  <p class="text-slate-500 text-sm">von {{ thread.from_addr }}</p>
+</div>
+
+{% if incoming %}
+<section class="mb-8 p-4 rounded-lg border border-slate-800 bg-slate-900">
+  <h2 class="text-sm text-slate-500 uppercase mb-2">Eingang</h2>
+  <pre class="text-sm whitespace-pre-wrap">{{ incoming.body_text }}</pre>
+</section>
+{% endif %}
+
+<section class="mb-8">
+  <h2 class="text-lg font-semibold mb-3">Antwort-Entwurf</h2>
+  <form method="post" action="/teams/{{ team_id }}/mail/{{ thread.id }}/draft" class="space-y-3 p-4 rounded border border-slate-800 bg-slate-900">
+    <input name="to_addrs" placeholder="Empfänger (komma-getrennt, leer = Absender)"
+      class="w-full rounded bg-slate-800 border border-slate-700 px-3 py-2 text-sm">
+    <input name="subject" placeholder="Betreff (leer = Re: …)"
+      class="w-full rounded bg-slate-800 border border-slate-700 px-3 py-2 text-sm">
+    <textarea name="body_text" required rows="8" placeholder="Antworttext…"
+      class="w-full rounded bg-slate-800 border border-slate-700 px-3 py-2 text-sm"></textarea>
+    <button type="submit" class="px-4 py-2 rounded bg-indigo-600 text-sm">Entwurf einreichen</button>
+  </form>
+</section>
+
+<section class="space-y-4">
+  <h2 class="text-lg font-semibold">Entwürfe</h2>
+  {% for d in drafts %}
+  <article class="p-4 rounded-lg border border-slate-800 bg-slate-900/80">
+    <div class="flex justify-between text-xs text-slate-500 mb-2">
+      <span>Status: <strong class="text-slate-300">{{ d.status }}</strong></span>
+      {% if d.approved_by %}<span>Freigegeben von {{ d.approved_by }}</span>{% endif %}
+    </div>
+    <p class="text-sm text-slate-400 mb-2">An: {{ d.to_addrs|join(', ') }}</p>
+    <pre class="text-sm whitespace-pre-wrap mb-4">{{ d.body_text }}</pre>
+    <div class="flex flex-wrap gap-2">
+      {% if d.status in ['draft', 'awaiting_approval'] %}
+      <form method="post" action="/teams/{{ team_id }}/mail/draft/{{ d.id }}/approve">
+        <button type="submit" class="px-3 py-1 rounded bg-emerald-800 text-sm">Freigeben</button>
+      </form>
+      {% endif %}
+      {% if d.status == 'approved' %}
+      <form method="post" action="/teams/{{ team_id }}/mail/draft/{{ d.id }}/send" class="flex gap-2 items-center">
+        <input name="confirm" placeholder="SEND" class="rounded bg-slate-800 border border-slate-700 px-2 py-1 text-sm w-24">
+        <button type="submit" class="px-3 py-1 rounded bg-indigo-600 text-sm">Jetzt senden</button>
+      </form>
+      {% endif %}
+    </div>
+  </article>
+  {% else %}
+  <p class="text-slate-500 text-sm">Noch kein Entwurf.</p>
+  {% endfor %}
+</section>
+{% endblock %}

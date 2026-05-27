@@ -1,0 +1,26 @@
+{
+  "email": {
+    "enabled": true,
+    "imap": {
+      "host": "imap.firma.de",
+      "port": 993,
+      "use_ssl": true,
+      "username": "buero@firma.de",
+      "secret_ref": "FIRMA_IMAP_PASSWORD",
+      "mailbox": "INBOX",
+      "poll_interval_seconds": 120
+    },
+    "smtp": {
+      "host": "smtp.firma.de",
+      "port": 587,
+      "starttls": true,
+      "username": "buero@firma.de",
+      "secret_ref": "FIRMA_SMTP_PASSWORD",
+      "from_display_name": "Firma GmbH"
+    },
+    "rules": {
+      "allowed_recipient_domains": ["firma.de"],
+      "require_approval": true
+    }
+  }
+}

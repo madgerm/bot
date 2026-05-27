@@ -1,0 +1,14 @@
+{
+  "hours": {
+    "enabled": true,
+    "master_file": "teams/demo/hours.master.json",
+    "website": {
+      "type": "file",
+      "path": "teams/demo/website_hours.json"
+    },
+    "google_business": {
+      "enabled": true
+    },
+    "require_approval": true
+  }
+}

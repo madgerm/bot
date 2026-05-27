@@ -22,4 +22,14 @@ def init_team_resources(root: Path, team_id: str) -> dict[str, str]:
     except Exception as exc:
         results["qdrant"] = f"übersprungen ({exc})"
 
+    from bot.mail.store import MailStore
+
+    MailStore(root, team_id)
+    results["email"] = str((root / "data" / team_id / "email.sqlite").resolve())
+
+    from bot.hours.store import HoursStore
+
+    HoursStore(root, team_id)
+    results["hours"] = str((root / "data" / team_id / "hours.sqlite").resolve())
+
     return results
