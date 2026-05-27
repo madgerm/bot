@@ -1,0 +1,16 @@
+{
+  "users": [
+    {
+      "username": "admin",
+      "password": "changeme",
+      "role": "admin",
+      "teams": ["demo"]
+    },
+    {
+      "username": "demo",
+      "password": "changeme",
+      "role": "user",
+      "teams": ["demo"]
+    }
+  ]
+}

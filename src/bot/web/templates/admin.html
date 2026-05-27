@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Admin — Bot Panel{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Administration</h1>
+
+<div class="grid gap-8 lg:grid-cols-2">
+  <section>
+    <h2 class="text-lg font-semibold mb-3">Nutzer</h2>
+    <div class="overflow-x-auto rounded-lg border border-slate-800">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-900 text-slate-400 text-left">
+          <tr>
+            <th class="px-4 py-2">Benutzer</th>
+            <th class="px-4 py-2">Rolle</th>
+            <th class="px-4 py-2">Teams</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr class="border-t border-slate-800">
+            <td class="px-4 py-2">{{ u.username }}</td>
+            <td class="px-4 py-2">{{ u.role }}</td>
+            <td class="px-4 py-2">{{ u.teams | join(', ') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="text-xs text-slate-500 mt-2">Bearbeiten: <code>config/users.json</code></p>
+  </section>
+
+  <section>
+    <h2 class="text-lg font-semibold mb-3">Teams</h2>
+    <div class="overflow-x-auto rounded-lg border border-slate-800">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-900 text-slate-400 text-left">
+          <tr>
+            <th class="px-4 py-2">ID</th>
+            <th class="px-4 py-2">Name</th>
+            <th class="px-4 py-2">Agents</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in teams %}
+          <tr class="border-t border-slate-800">
+            <td class="px-4 py-2"><a href="/teams/{{ t.id }}" class="text-indigo-400 hover:underline">{{ t.id }}</a></td>
+            <td class="px-4 py-2">{{ t.name }}</td>
+            <td class="px-4 py-2">{{ t.agent_count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="text-xs text-slate-500 mt-2">Bearbeiten: <code>teams/&lt;id&gt;/</code></p>
+  </section>
+</div>
+{% endblock %}

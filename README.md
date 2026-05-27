@@ -83,6 +83,23 @@ bot run --team demo --once   # nutzt LLM in den Handlern, wenn enabled
 - **Retries + Fallback:** `max_retries`, Alternativen aus `task_models.json`
 - **`enabled: false`:** Stub-Client (für lokale Tests ohne API)
 
+### Web-Panel (MVP Schritt 5)
+
+```bash
+# Optional: sicheres Session-Secret setzen
+export BOT_SESSION_SECRET=$(python -c "import secrets; print(secrets.token_hex(32))")
+
+bot web                    # http://127.0.0.1:8080
+bot web --ssl-cert cert.pem --ssl-key key.pem   # HTTPS
+
+# Login: config/users.json (Demo: admin/changeme, demo/changeme)
+```
+
+- **Dashboard:** zugängliche Teams
+- **Team-Ansicht:** Agents, Message-Status, letzte Nachrichten
+- **Admin:** Nutzer- und Team-Übersicht (nur Rolle `admin`)
+- Session-Cookies + **Team-Scoping** auf jeder Route
+
 ## Tests
 
 ```bash
