@@ -10,6 +10,8 @@ from pathlib import Path
 from bot import __version__
 from bot.cli_browser import register_browser_commands
 from bot.cli_chat import register_chat_commands
+from bot.cli_hours import register_hours_commands
+from bot.cli_mail import register_mail_commands
 from bot.cli_llm import register_llm_commands
 from bot.cli_msg import register_msg_commands
 from bot.cli_qdrant import register_qdrant_commands
@@ -136,6 +138,8 @@ def build_parser() -> argparse.ArgumentParser:
     register_chat_commands(sub, add_root)
     register_browser_commands(sub, add_root)
     register_team_commands(sub, add_root)
+    register_mail_commands(sub, add_root)
+    register_hours_commands(sub, add_root)
 
     return parser
 
@@ -161,6 +165,8 @@ def main(argv: list[str] | None = None) -> None:
         "qdrant",
         "chat",
         "browser",
+        "mail",
+        "hours",
     ):
         raise SystemExit(args.func(args))
 

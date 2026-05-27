@@ -249,6 +249,190 @@ def create_app(root: Path | str) -> FastAPI:
             },
         )
 
+    @app.get("/teams/{team_id}/mail", response_class=HTMLResponse)
+    async def team_mail_page(request: Request, team_id: str, user: CurrentUser):
+        require_team_access(team_id, user)
+        from bot.mail.store import MailStore
+
+        store = MailStore(root_path, team_id)
+        threads = store.list_threads(limit=50)
+        drafts = store.list_drafts(status="awaiting_approval", limit=20)
+        mail_error: str | None = None
+        return templates.TemplateResponse(
+            request,
+            "team_mail.html",
+            {
+                "user": user,
+                "team_id": team_id,
+                "threads": threads,
+                "drafts": drafts,
+                "mail_error": mail_error,
+            },
+        )
+
+    @app.get("/teams/{team_id}/mail/{thread_id}", response_class=HTMLResponse)
+    async def team_mail_thread_page(
+        request: Request, team_id: str, thread_id: str, user: CurrentUser
+    ):
+        require_team_access(team_id, user)
+        from bot.mail.store import MailStore
+
+        store = MailStore(root_path, team_id)
+        thread = store.get_thread(thread_id)
+        if not thread:
+            raise HTTPException(status_code=404, detail="Thread nicht gefunden")
+        incoming = store.get_incoming(thread_id)
+        drafts = store.list_drafts(thread_id=thread_id)
+        return templates.TemplateResponse(
+            request,
+            "team_mail_thread.html",
+            {
+                "user": user,
+                "team_id": team_id,
+                "thread": thread,
+                "incoming": incoming,
+                "drafts": drafts,
+            },
+        )
+
+    @app.post("/teams/{team_id}/mail/{thread_id}/draft")
+    async def team_mail_create_draft(
+        request: Request,
+        team_id: str,
+        thread_id: str,
+        user: CurrentUser,
+        body_text: str = Form(...),
+        to_addrs: str = Form(""),
+        subject: str = Form(""),
+    ):
+        require_team_access(team_id, user)
+        from bot.mail import MailService, MailServiceError
+
+        recipients = [a.strip() for a in to_addrs.split(",") if a.strip()] or None
+        try:
+            service = MailService.for_team(root_path, team_id)
+            service.create_reply_draft(
+                thread_id,
+                body_text=body_text,
+                to_addrs=recipients,
+                subject=subject or None,
+                created_by=user.username,
+            )
+        except MailServiceError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return RedirectResponse(f"/teams/{team_id}/mail/{thread_id}", status_code=302)
+
+    @app.post("/teams/{team_id}/mail/draft/{draft_id}/approve")
+    async def team_mail_approve(
+        request: Request,
+        team_id: str,
+        draft_id: str,
+        user: CurrentUser,
+    ):
+        require_team_access(team_id, user)
+        from bot.mail import MailService, MailServiceError
+
+        try:
+            MailService.for_team(root_path, team_id).approve(draft_id, user.username)
+        except MailServiceError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return RedirectResponse(request.headers.get("referer", f"/teams/{team_id}/mail"), status_code=302)
+
+    @app.post("/teams/{team_id}/mail/draft/{draft_id}/send")
+    async def team_mail_send(
+        request: Request,
+        team_id: str,
+        draft_id: str,
+        user: CurrentUser,
+        confirm: str = Form(""),
+    ):
+        require_team_access(team_id, user)
+        if confirm != "SEND":
+            raise HTTPException(status_code=400, detail="Bestätigung SEND fehlt")
+        from bot.mail import MailService, MailServiceError
+
+        try:
+            MailService.for_team(root_path, team_id).send_approved(draft_id)
+        except MailServiceError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return RedirectResponse(request.headers.get("referer", f"/teams/{team_id}/mail"), status_code=302)
+
+    @app.get("/teams/{team_id}/hours", response_class=HTMLResponse)
+    async def team_hours_page(request: Request, team_id: str, user: CurrentUser):
+        require_team_access(team_id, user)
+        hours_error: str | None = None
+        master = None
+        diffs = []
+        try:
+            from bot.hours import HoursService
+
+            service = HoursService.for_team(root_path, team_id)
+            master = service.get_master()
+            diffs = service.store.list_diffs(limit=10)
+        except Exception as exc:
+            hours_error = str(exc)
+        import json as _json
+
+        master_json = (
+            _json.dumps(master.normalized(), indent=2, ensure_ascii=False)
+            if master
+            else None
+        )
+        return templates.TemplateResponse(
+            request,
+            "team_hours.html",
+            {
+                "user": user,
+                "team_id": team_id,
+                "master_json": master_json,
+                "diffs": diffs,
+                "hours_error": hours_error,
+            },
+        )
+
+    @app.post("/teams/{team_id}/hours/check")
+    async def team_hours_check(request: Request, team_id: str, user: CurrentUser):
+        require_team_access(team_id, user)
+        from bot.hours import HoursService, HoursServiceError
+
+        try:
+            HoursService.for_team(root_path, team_id).check()
+        except HoursServiceError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return RedirectResponse(f"/teams/{team_id}/hours", status_code=302)
+
+    @app.post("/teams/{team_id}/hours/diff/{diff_id}/approve")
+    async def team_hours_approve(
+        request: Request, team_id: str, diff_id: str, user: CurrentUser
+    ):
+        require_team_access(team_id, user)
+        from bot.hours import HoursService, HoursServiceError
+
+        try:
+            HoursService.for_team(root_path, team_id).approve(diff_id, user.username)
+        except HoursServiceError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return RedirectResponse(f"/teams/{team_id}/hours", status_code=302)
+
+    @app.post("/teams/{team_id}/hours/diff/{diff_id}/publish")
+    async def team_hours_publish(
+        request: Request,
+        team_id: str,
+        diff_id: str,
+        user: CurrentUser,
+        confirm: str = Form(""),
+    ):
+        require_team_access(team_id, user)
+        if confirm != "PUBLISH":
+            raise HTTPException(status_code=400, detail="Bestätigung PUBLISH fehlt")
+        from bot.hours import HoursService, HoursServiceError
+
+        try:
+            HoursService.for_team(root_path, team_id).publish(diff_id)
+        except HoursServiceError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return RedirectResponse(f"/teams/{team_id}/hours", status_code=302)
+
     @app.get("/admin", response_class=HTMLResponse)
     async def admin_page(request: Request, user: CurrentUser):
         require_admin(user)

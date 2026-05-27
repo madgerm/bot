@@ -164,7 +164,46 @@ bot browser open --team demo --url https://example.com
 | `bot chat …` | Team-Chat (SQLite) |
 | `bot qdrant …` | Vektor-Wissen |
 | `bot browser …` | Playwright |
+| `bot mail …` | E-Mail (IMAP/SMTP, Freigabe) |
+| `bot hours …` | Öffnungszeiten (Master, Diff, Publish) |
 | `bot llm test` | LLM-Verbindung testen |
+
+---
+
+## E-Mail-Team (IMAP, Freigabe, Versand)
+
+**Rollen:** Admin legt Team + `teams/<id>/email.json` an; **alle Team-Nutzer** bearbeiten, freigeben und senden.
+
+```bash
+export FIRMA_IMAP_PASSWORD=...
+export FIRMA_SMTP_PASSWORD=...
+cp teams/demo/email.json.example teams/mein-team/email.json
+bot team init mein-team
+bot mail poll --team mein-team
+bot mail draft --team mein-team --thread <uuid> --body "Antwort…"
+bot mail approve --team mein-team --draft <uuid> --approved-by max
+bot mail send --team mein-team --draft <uuid>
+```
+
+Web-Panel: `/teams/<id>/mail` — Entwurf, **Freigeben**, dann **SEND** bestätigen.
+
+Agents versenden **nicht** selbst; Versand nur nach Status `approved`.
+
+---
+
+## Öffnungszeiten (Website ↔ Google)
+
+Master-Datei ist die Wahrheit; Abgleich erzeugt einen Diff; Publish nur nach Freigabe.
+
+```bash
+cp teams/demo/hours.json.example teams/mein-team/hours.json
+cp teams/demo/hours.master.json.example teams/mein-team/hours.master.json
+bot hours check --team mein-team
+bot hours approve --team mein-team --diff <uuid> --approved-by max
+bot hours publish --team mein-team --diff <uuid>
+```
+
+Web-Panel: `/teams/<id>/hours` — Abgleich, Freigabe, **PUBLISH** bestätigen.
 
 ---
 
@@ -178,6 +217,11 @@ bot browser open --team demo --url https://example.com
 | `config/team_hosts.json` | Panel | Lokale/Remote Team-Runner |
 | `config/team_api.json` | Runner | API-Token (`token_env`) |
 | `data/<team>/chat.sqlite` | Runner/Panel | Chat-Historie |
+| `data/<team>/email.sqlite` | Runner/Panel | E-Mail-Threads, Entwürfe |
+| `data/<team>/hours.sqlite` | Runner/Panel | Öffnungszeiten-Diffs |
+| `teams/<id>/email.json` | Runner/Panel | IMAP/SMTP (Secrets per Env) |
+| `teams/<id>/hours.json` | Runner/Panel | Website/Google-Abgleich |
+| `teams/<id>/hours.master.json` | Runner/Panel | Kanonische Öffnungszeiten |
 | `teams/<id>/…` | Runner | Teams, Agents, Inboxen |
 
 ---
