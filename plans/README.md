@@ -1,0 +1,13 @@
+# Pläne
+
+Hier legt ihr **Entwürfe, Roadmaps und technische Pläne** ab, bevor sie ins Ticket-System oder in die Doku wandern.
+
+## Konvention
+
+- Ein Plan = eine Datei, z. B. `2026-05-feature-x.md` oder `feature-x-architektur.md`.
+- Kurz halten: Ziel, Annahmen, offene Fragen, nächste Schritte.
+- Verlinkte Issues/PRs am Anfang der Datei nennen.
+
+## Vorlage
+
+Siehe `TEMPLATE.md` — kopieren und umbenennen.
