@@ -117,6 +117,94 @@ Die früheren Tabellen mit `http://host:8765` … sind **Entwickler-/Debug-Ansic
 
 ---
 
+## Team-Erstellung: Vision, Sprache, Bildgenerierung (Erweiterung)
+
+Beim Anlegen eines **Teams** sollen optionale Medien-Pipelines konfigurierbar sein (Web-UI + JSON im Team-Ordner). Das ist **nicht** Teil des harten MVP-Kerns, aber früh als **Schema** vorgesehen, damit UI und Runtime nicht umbauen müssen.
+
+### Vision (Bilder verstehen)
+
+- Pro Team: **Vision-Profil** — welches **LLM** auf welchem **Server** Bilder einliest und versteht (z. B. LiteLLM mit Multimodal-Modell).
+- Felder (konzeptionell): `provider`, `api_base`, `model`, optional `max_side_px`, `timeout_seconds`, `secret_ref` für API-Keys.
+- Nutzung: Uploads im Web-Panel, Screenshots, Story-Boards — Agents erhalten Bildreferenzen im Kontext und lösen Vision-Calls nach Bedarf aus.
+
+### Sprache: TTS und STT
+
+- **STT (Speech-to-Text):** z. B. lokales Modell (z. B. Whisper), Cloud-API oder eigener Dienst — `provider`, `endpoint`, `language`, `secret_ref`.
+- **TTS (Text-to-Speech):** `provider`, `voice_id`, `endpoint`, `sample_rate`, `secret_ref`.
+- **Ziel:** **Sprach-Kommunikation** mit dem Team (Mikro → STT → Chat/Inbox; Antworten optional per TTS). Transport (WebRTC vs. Chunk-Upload) ist Implementierungsdetail; **Konfiguration ist team-scoped**.
+
+### Bildgenerierung (mehrere Backends, wählbar pro Team)
+
+Eine abstrakte Aktion „Bild erzeugen“, Backend pro Team wählbar:
+
+| `image_generation.type` | Bedeutung |
+|-------------------------|-----------|
+| `webhook` | HTTP-POST an konfigurierte URL (Prompt, Größe, Team-Id); Antwort mit Bild-URL oder Base64. Ideal für **selbst gehostete** Generatoren (eigener Worker, ComfyUI-Bridge, …). |
+| `selfhosted` | Direkter Aufruf eines **selbst gehosteten** Bilddienstes mit fest dokumentiertem JSON-Schema (z. B. lokaler SDXL/Flux/ähnlicher Dienst). |
+| `minimax` | Anbindung der **MiniMax**-Bild-API (oder kompatibler Endpoint): `api_base`, `model`, `secret_ref`, ggf. Region — Feldnamen an die jeweils gültige API-Doku anpassen. |
+
+- Gemeinsam: `default_aspect`, `max_parallel`, `timeout_seconds`.
+- Ergebnis: Asset im Team-Speicher + Referenz in Chat/Message, damit Agents und Nutzer dasselbe Bild teilen.
+
+### Platzierung in der Config
+
+- Block `team.media` oder Datei `team-media.json` neben den Team-Metadaten; pflegbar durch **Admin** bei Team-Erstellung; für normale Team-Nutzer standardmäßig **nur lesend** (optional später erweitern).
+
+### Beispiel `team.media` (Illustration, keine finale API-Garantie)
+
+```json
+{
+  "team_id": "beispiel-team",
+  "media": {
+    "vision": {
+      "provider": "litellm",
+      "api_base": "http://10.95.60.51:11434",
+      "model": "ollama/llava:latest",
+      "max_side_px": 1536,
+      "timeout_seconds": 120,
+      "secret_ref": null
+    },
+    "stt": {
+      "provider": "whisper-local",
+      "endpoint": "http://127.0.0.1:9100/transcribe",
+      "language": "de",
+      "secret_ref": null
+    },
+    "tts": {
+      "provider": "custom",
+      "endpoint": "http://127.0.0.1:9101/synthesize",
+      "voice_id": "de_DE_neural",
+      "sample_rate": 24000,
+      "secret_ref": "TTS_API_KEY"
+    },
+    "image_generation": {
+      "type": "webhook",
+      "url": "https://bild-bridge.intern/generate",
+      "headers_template": { "Authorization": "Bearer {{secret:IMG_WEBHOOK}}" },
+      "default_aspect": "16:9",
+      "max_parallel": 2,
+      "timeout_seconds": 180
+    }
+  }
+}
+```
+
+Wechsel z. B. auf MiniMax-Bilder durch Austausch von `image_generation`:
+
+```json
+"image_generation": {
+  "type": "minimax",
+  "api_base": "https://api.minimax.io",
+  "model": "image-01",
+  "secret_ref": "MINIMAX_API_KEY",
+  "default_aspect": "1:1",
+  "timeout_seconds": 120
+}
+```
+
+
+---
+
 ## Hinweis zur „Reihenfolge“
 
 Wenn du „nervst“ bis alles läuft — gut: dann dient diese Datei als **Referenz**, gegen die wir Iterationen spiegeln. Reihenfolge ist **anpassbar**, solange der **MVP-Kern** oben nicht dauerhaft übersprungen wird.
@@ -125,3 +213,4 @@ Wenn du „nervst“ bis alles läuft — gut: dann dient diese Datei als **Refe
 
 *Status: verbindliche Planungs-Defaults (können bei Bedarf revidiert werden)*  
 *Letzte Änderung: 2026-05-27*
+
