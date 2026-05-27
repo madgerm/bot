@@ -6,6 +6,8 @@ Ein distributed multi-agent Storytelling-System für große Projekte (80.000+ Wo
 
 **Übergreifend (ein System, Teams, Supervisor, kein Full-Restart für neue Teams):** siehe [`runtime-teams.md`](runtime-teams.md).
 
+**MVP, Trigger, Auth, ein öffentliches Panel:** siehe [`mvp-und-entscheidungen.md`](mvp-und-entscheidungen.md).
+
 ---
 
 ## Architektur

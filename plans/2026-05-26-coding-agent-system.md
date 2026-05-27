@@ -6,6 +6,8 @@ Ein distributed multi-agent Coding-System. Eine Code-Basis, N Agents über JSON-
 
 **Übergreifend (ein System, Teams, Supervisor, kein Full-Restart für neue Teams):** siehe [`runtime-teams.md`](runtime-teams.md).
 
+**MVP, Trigger, Auth, ein öffentliches Panel:** siehe [`mvp-und-entscheidungen.md`](mvp-und-entscheidungen.md).
+
 ---
 
 ## Architektur

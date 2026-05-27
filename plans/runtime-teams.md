@@ -24,7 +24,7 @@ Agent-System (Runtime / Supervisor)
 
 - **Agent-System:** läuft dauerhaft; lädt Konfiguration; verwaltet Lebenszyklus der Worker.
 - **Team:** Konfiguration + Grenzen (Wer darf mit wem sprechen? Welcher Datenraum?).
-- **Agent:** konkreter Worker (LLM-Schleife, Tools, ggf. eigenes Web-Panel pro Rolle — je nach Implementierung).
+- **Agent:** konkreter Worker (LLM-Schleife, Tools). **Bedienoberfläche** für Menschen: ein gemeinsames Web-Panel (siehe `mvp-und-entscheidungen.md`); keine Pflicht zu „einem öffentlichen Port pro Agent“.
 
 ---
 
@@ -61,10 +61,9 @@ Details und Beispiel-JSON bleiben in den jeweiligen System-Plänen unter Kommuni
 
 ---
 
-## Offene Feinjustierung (für spätere Spezifikation)
+## Trigger, Web-Zugang, Auth (festgelegt)
 
-- Exakte **Trigger** für „Agent jetzt hochfahren“ (Task-Queue, Dashboard-Aktion, Cron, Ressourcenlimits).
-- **Ein** gemeinsames Web-Panel mit Team-Umschalter vs. **Port pro Agent** wie in den Skizzen — konsistent zur gewählten UI-Architektur festhalten.
+Konkrete Defaults (Inbox, Webhook, Polling, ein öffentliches Panel, Admin vs. Team-Nutzer, MVP-Reihenfolge, Secrets, Prozessmodell-Empfehlung, Story/Modell-Haltung): **`mvp-und-entscheidungen.md`**.
 
 ---
 
