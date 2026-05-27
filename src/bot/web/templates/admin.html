@@ -54,4 +54,37 @@
     <p class="text-xs text-slate-500 mt-2">Bearbeiten: <code>teams/&lt;id&gt;/</code></p>
   </section>
 </div>
+
+<section class="mt-10">
+  <h2 class="text-lg font-semibold mb-3">Team-Runner (Hosts)</h2>
+  <p class="text-sm text-slate-400 mb-4">
+    Hier legst du fest, wo das Web-Panel jedes Team findet — <strong>localhost</strong> oder ein
+    <strong>entfernter Rechner</strong> mit <code>bot team serve</code>.
+    Datei: <code>config/team_hosts.json</code>
+  </p>
+  <div class="overflow-x-auto rounded-lg border border-slate-800">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-900 text-slate-400 text-left">
+        <tr>
+          <th class="px-4 py-2">ID</th>
+          <th class="px-4 py-2">Modus</th>
+          <th class="px-4 py-2">URL / Pfad</th>
+          <th class="px-4 py-2">Token-Env</th>
+          <th class="px-4 py-2">Teams</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in hosts %}
+        <tr class="border-t border-slate-800">
+          <td class="px-4 py-2">{{ h.label }} <span class="text-slate-500">({{ h.id }})</span></td>
+          <td class="px-4 py-2">{{ h.mode }}</td>
+          <td class="px-4 py-2 font-mono text-xs">{% if h.mode == 'remote' %}{{ h.base_url }}{% else %}lokal{% endif %}</td>
+          <td class="px-4 py-2 font-mono text-xs">{{ h.token_env or '—' }}</td>
+          <td class="px-4 py-2">{{ h.teams | join(', ') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
 {% endblock %}

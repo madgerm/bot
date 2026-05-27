@@ -34,3 +34,4 @@ teams/**/agents/**/outbox/**/*.json
 
 # Produktions-Secrets (Beispiel-users.json ist im Repo)
 config/users.local.json
+config/team_api.json
