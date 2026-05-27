@@ -4,6 +4,8 @@
 
 Ein distributed multi-agent Coding-System. Eine Code-Basis, N Agents über JSON-Configs. Web Panel mit Agent Manager, File Editor, Qdrant-Config. Alles konfigurierbar über die Web-Oberfläche.
 
+**Übergreifend (ein System, Teams, Supervisor, kein Full-Restart für neue Teams):** siehe [`runtime-teams.md`](runtime-teams.md).
+
 ---
 
 ## Architektur

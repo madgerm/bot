@@ -4,6 +4,8 @@
 
 Ein distributed multi-agent Storytelling-System für große Projekte (80.000+ Worte). Eine Code-Basis, N Agents über JSON-Configs. Web Panel mit Agent Manager, File Editor, Character Builder, World Editor, Qdrant-Config. Alles konfigurierbar über die Web-Oberfläche.
 
+**Übergreifend (ein System, Teams, Supervisor, kein Full-Restart für neue Teams):** siehe [`runtime-teams.md`](runtime-teams.md).
+
 ---
 
 ## Architektur

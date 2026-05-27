@@ -14,5 +14,6 @@ Siehe `TEMPLATE.md` — kopieren und umbenennen.
 
 ## Aktuelle Pläne
 
+- [`runtime-teams.md`](runtime-teams.md) — **übergreifend:** ein System, Teams, Supervisor, Hot-Reload, Bedarfsgesteuerte Agents (gilt für Coding- und Story-Setup).
 - [`2026-05-26-coding-agent-system.md`](2026-05-26-coding-agent-system.md) — verteiltes Multi-Agent-Coding-System (Vision, Architektur, Phasen).
 - [`2026-05-26-story-agent-system.md`](2026-05-26-story-agent-system.md) — Multi-Agent-Storytelling (80k+ Wörter, StoryDB, World/Character).
