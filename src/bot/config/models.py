@@ -17,9 +17,18 @@ class AuthConfig(BaseModel):
     users: list[AuthUser] = Field(default_factory=list)
 
 
+class MultiMachineConfig(BaseModel):
+    """Multi-Machine nur über gemeinsame Datei-Inboxen (NFS/SSH-Mount), kein Redis."""
+
+    enabled: bool = False
+    shared_inbox_base: str | None = None
+    """Optionaler Pfad-Template wenn Inboxen auf einem Shared Volume liegen."""
+
+
 class CommunicationConfig(BaseModel):
-    mode: Literal["direct", "broker"] = "direct"
+    mode: Literal["direct"] = "direct"
     inbox_base: str = "teams/{team_id}/agents/{agent_id}/inbox"
+    multi_machine: MultiMachineConfig = Field(default_factory=MultiMachineConfig)
 
 
 class PollingConfig(BaseModel):
@@ -68,12 +77,58 @@ class PlaywrightGlobalConfig(BaseModel):
     timeout_seconds: float = Field(default=60.0, gt=0)
 
 
+class WebhooksGlobalConfig(BaseModel):
+    enabled: bool = True
+    secret_ref: str = "BOT_WEBHOOK_SECRET"
+    path_prefix: str = "/api/v1/webhooks"
+
+
+class MediaChannelConfig(BaseModel):
+    source: Literal["global", "custom"] = "global"
+    provider: str | None = None
+    api_base: str | None = None
+    model: str | None = None
+    endpoint: str | None = None
+    voice_id: str | None = None
+    secret_ref: str | None = None
+    timeout_seconds: float = Field(default=60.0, gt=0)
+
+
+class ImageGenerationConfig(BaseModel):
+    source: Literal["global", "custom"] = "global"
+    type: Literal["webhook", "selfhosted", "minimax"] = "webhook"
+    url: str | None = None
+    api_base: str | None = None
+    model: str | None = None
+    secret_ref: str | None = None
+    default_aspect: str = "16:9"
+    max_parallel: int = Field(default=2, ge=1)
+    timeout_seconds: float = Field(default=180.0, gt=0)
+
+
+class MediaGlobalConfig(BaseModel):
+    vision: MediaChannelConfig = Field(default_factory=MediaChannelConfig)
+    stt: MediaChannelConfig = Field(default_factory=MediaChannelConfig)
+    tts: MediaChannelConfig = Field(default_factory=MediaChannelConfig)
+    image_generation: ImageGenerationConfig = Field(default_factory=ImageGenerationConfig)
+
+
+class DeploymentConfig(BaseModel):
+    topology: Literal["single_user", "linux_user_per_team"] = "single_user"
+    team_agent_scope: Literal["system", "user", "hybrid"] = "system"
+    team_user_prefix: str = "team_"
+    systemd_template: str = "bot-team@.service"
+
+
 class SystemConfig(BaseModel):
     """Inhalt von config/system.json."""
 
     system: SystemBlock
     qdrant_global: QdrantGlobalConfig | None = None
     playwright_global: PlaywrightGlobalConfig | None = None
+    webhooks_global: WebhooksGlobalConfig | None = None
+    media_global: MediaGlobalConfig | None = None
+    deployment: DeploymentConfig | None = None
 
 
 class TaskModelEntry(BaseModel):
@@ -119,9 +174,18 @@ class TeamConfig(BaseModel):
 
 class AgentBlock(BaseModel):
     id: str
-    role: Literal["orchestrator", "worker", "reviewer"] = "worker"
+    role: Literal[
+        "orchestrator",
+        "worker",
+        "reviewer",
+        "story_writer",
+        "story_reviewer",
+        "coder",
+        "tester",
+    ] = "worker"
     enabled: bool = True
     interval_seconds: float | None = None
+    display_name: str | None = None
 
     @field_validator("id")
     @classmethod

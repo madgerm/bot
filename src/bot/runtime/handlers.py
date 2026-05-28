@@ -161,6 +161,10 @@ def handler_for_role(role: str) -> AgentHandler:
         "orchestrator": OrchestratorHandler(),
         "worker": WorkerExecHandler(),
         "reviewer": ReviewerHandler(),
+        "story_writer": WorkerExecHandler(),
+        "story_reviewer": ReviewerHandler(),
+        "coder": WorkerExecHandler(),
+        "tester": ReviewerHandler(),
     }
     if role not in mapping:
         raise ValueError(f"Kein Handler für Rolle '{role}'")

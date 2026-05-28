@@ -1,0 +1,10 @@
+{
+  "git": {
+    "enabled": true,
+    "repo_path": "data/{team_id}/workspace",
+    "remote_name": "origin",
+    "default_branch": "main",
+    "user_name": "bot",
+    "user_email": "bot@example.com"
+  }
+}

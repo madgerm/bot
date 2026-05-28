@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Characters — {{ team_id }}{% endblock %}
+{% block content %}
+<a href="/teams/{{ team_id }}/story" class="text-sm text-indigo-400">← Story Studio</a>
+<h1 class="text-2xl font-bold mt-4 mb-6">Character Manager</h1>
+<form method="post" class="mb-8 space-y-3 max-w-2xl border border-slate-800 rounded-lg p-4 bg-slate-900">
+  <h2 class="font-semibold text-sm text-slate-400">Neuer Charakter</h2>
+  <input name="char_id" placeholder="id (z.B. max_mueller)" required class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2">
+  <input name="name" placeholder="Name" required class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2">
+  <input name="role" placeholder="Rolle (Protagonist…)" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2">
+  <textarea name="bio" placeholder="Hintergrund" rows="3" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2"></textarea>
+  <input name="arc" placeholder="Character-Arc" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2">
+  <textarea name="relationships" placeholder="Beziehungen: anna_schmidt|Freundin (eine pro Zeile)" rows="2" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 font-mono text-sm"></textarea>
+  <button type="submit" class="bg-indigo-600 px-4 py-2 rounded text-sm">Speichern → characters/&lt;id&gt;.json</button>
+</form>
+<ul class="space-y-3">
+  {% for c in characters %}
+  <li class="p-4 bg-slate-900 border border-slate-800 rounded">
+    <div class="font-medium">{{ c.name }} <span class="text-xs text-slate-500">{{ c.id }}</span></div>
+    <p class="text-sm text-slate-400">{{ c.role }} · Arc: {{ c.arc or '—' }}</p>
+    {% if c.relationships %}
+    <p class="text-xs text-slate-500 mt-1">Beziehungen: {% for r in c.relationships %}{{ r.to }} ({{ r.type }}){% if not loop.last %}, {% endif %}{% endfor %}</p>
+    {% endif %}
+  </li>
+  {% else %}
+  <li class="text-slate-500 text-sm">Noch keine Charaktere.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

@@ -1,0 +1,16 @@
+{
+  "integrations": {
+    "telegram": {
+      "enabled": false,
+      "bot_token_ref": "TELEGRAM_BOT_TOKEN",
+      "default_agent_id": "orchestrator"
+    },
+    "matrix": {
+      "enabled": false,
+      "homeserver": "https://matrix.org",
+      "access_token_ref": "MATRIX_ACCESS_TOKEN",
+      "room_id": "!room:matrix.org",
+      "default_agent_id": "orchestrator"
+    }
+  }
+}

@@ -32,4 +32,21 @@ def init_team_resources(root: Path, team_id: str) -> dict[str, str]:
     HoursStore(root, team_id)
     results["hours"] = str((root / "data" / team_id / "hours.sqlite").resolve())
 
+    from bot.tasks.store import TaskStore
+
+    TaskStore(root, team_id)
+    results["tasks"] = str((root / "data" / team_id / "tasks.sqlite").resolve())
+
+    from bot.story import StoryDB
+
+    story = StoryDB(root, team_id)
+    if not (story.path / "meta.json").is_file():
+        story.ensure_story(title=f"Team {team_id}", genre="", setting="")
+    results["story"] = str(story.path.resolve())
+
+    from bot.files import FileService
+
+    FileService.for_team(root, team_id)
+    results["workspace"] = str((root / "data" / team_id / "workspace").resolve())
+
     return results

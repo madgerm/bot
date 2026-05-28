@@ -1,0 +1,12 @@
+{
+  "media": {
+    "vision": { "source": "global" },
+    "stt": { "source": "global" },
+    "tts": { "source": "global" },
+    "image_generation": {
+      "source": "custom",
+      "type": "webhook",
+      "url": "http://127.0.0.1:9200/generate"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}World Editor — {{ team_id }}{% endblock %}
+{% block content %}
+<a href="/teams/{{ team_id }}/story" class="text-sm text-indigo-400">← Story Studio</a>
+<h1 class="text-2xl font-bold mt-4 mb-6">World Editor</h1>
+{% for label, fname, content in [('Orte', 'orte.md', orte), ('Regeln', 'regeln.md', regeln), ('Timeline', 'timeline.md', timeline)] %}
+<form method="post" class="mb-8">
+  <input type="hidden" name="file" value="{{ fname }}">
+  <h2 class="font-semibold mb-2">{{ label }} <code class="text-xs text-slate-500">world/{{ fname }}</code></h2>
+  <textarea name="content" rows="12" class="w-full font-mono text-sm bg-slate-900 border border-slate-700 rounded p-3">{{ content }}</textarea>
+  <button type="submit" class="mt-2 bg-indigo-600 px-4 py-2 rounded text-sm">Speichern</button>
+</form>
+{% endfor %}
+{% endblock %}

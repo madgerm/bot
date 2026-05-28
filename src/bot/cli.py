@@ -11,6 +11,12 @@ from bot import __version__
 from bot.cli_browser import register_browser_commands
 from bot.cli_chat import register_chat_commands
 from bot.cli_hours import register_hours_commands
+from bot.cli_tasks import register_tasks_commands
+from bot.cli_git import register_git_commands
+from bot.cli_crawl import register_crawl_commands
+from bot.cli_story import register_story_commands
+from bot.cli_media import register_media_commands
+from bot.cli_deploy import register_deploy_commands
 from bot.cli_mail import register_mail_commands
 from bot.cli_llm import register_llm_commands
 from bot.cli_msg import register_msg_commands
@@ -140,7 +146,12 @@ def build_parser() -> argparse.ArgumentParser:
     register_team_commands(sub, add_root)
     register_mail_commands(sub, add_root)
     register_hours_commands(sub, add_root)
-
+    register_tasks_commands(sub, add_root)
+    register_git_commands(sub, add_root)
+    register_crawl_commands(sub, add_root)
+    register_story_commands(sub, add_root)
+    register_media_commands(sub, add_root)
+    register_deploy_commands(sub, add_root)
     return parser
 
 
@@ -167,6 +178,12 @@ def main(argv: list[str] | None = None) -> None:
         "browser",
         "mail",
         "hours",
+        "tasks",
+        "git",
+        "crawl",
+        "story",
+        "media",
+        "deploy",
     ):
         raise SystemExit(args.func(args))
 
