@@ -37,10 +37,12 @@ def init_team_resources(root: Path, team_id: str) -> dict[str, str]:
     TaskStore(root, team_id)
     results["tasks"] = str((root / "data" / team_id / "tasks.sqlite").resolve())
 
-    from bot.story.store import StoryStore
+    from bot.story import StoryDB
 
-    StoryStore(root, team_id)
-    results["story"] = str((root / "data" / team_id / "story.sqlite").resolve())
+    story = StoryDB(root, team_id)
+    if not (story.path / "meta.json").is_file():
+        story.ensure_story(title=f"Team {team_id}", genre="", setting="")
+    results["story"] = str(story.path.resolve())
 
     from bot.files import FileService
 

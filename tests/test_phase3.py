@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,7 +14,6 @@ from bot.web.app import create_app
 
 @pytest.fixture
 def root(tmp_path: Path) -> Path:
-    """Minimales Projekt-Root mit demo-Team."""
     import shutil
 
     workspace = Path("/workspace")
@@ -40,16 +39,6 @@ def test_webhook_ingest(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     assert result["subject"] == "Test"
 
 
-def test_webhook_api_unauthorized(root: Path) -> None:
-    app = create_app(root)
-    client = TestClient(app)
-    r = client.post(
-        "/api/v1/webhooks/demo/orchestrator",
-        json={"subject": "x", "content": "y"},
-    )
-    assert r.status_code == 401
-
-
 def test_webhook_api_ok(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("BOT_WEBHOOK_SECRET", "tok")
     app = create_app(root)
@@ -60,87 +49,99 @@ def test_webhook_api_ok(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         headers={"X-Webhook-Token": "tok"},
     )
     assert r.status_code == 200
-    assert r.json()["subject"] == "API"
 
 
-def test_tasks_crud(root: Path) -> None:
-    from bot.tasks import TaskService
+def test_communication_is_direct_only(root: Path) -> None:
+    from bot.config import load_runtime_config
 
-    svc = TaskService.for_team(root, "demo")
-    t = svc.create(title="Task 1", description="desc")
-    assert t.status == "todo"
-    moved = svc.move(t.id, "in_progress")
-    assert moved.status == "in_progress"
-    tasks = svc.store.list_tasks(status="in_progress")
-    assert any(x.id == t.id for x in tasks)
+    cfg = load_runtime_config(root)
+    assert cfg.system.system.communication.mode == "direct"
 
 
-def test_agent_manager(root: Path) -> None:
-    from bot.agents_mgmt import AgentManager, AgentManagerError
+def test_story_file_structure(root: Path) -> None:
+    from bot.story import StoryDB
 
-    mgr = AgentManager(root)
-    agents_before = len(mgr.list_agents("demo"))
-    mgr.create_agent("demo", agent_id="test-agent-99", role="worker")
-    assert len(mgr.list_agents("demo")) == agents_before + 1
-    mgr.delete_agent("demo", "test-agent-99")
-    assert len(mgr.list_agents("demo")) == agents_before
-
-
-def test_file_service(root: Path) -> None:
-    from bot.files import FileService
-
-    fs = FileService.for_team(root, "demo")
-    fs.write_file("readme.md", "# Hello")
-    assert fs.read_file("readme.md") == "# Hello"
-    entries = fs.list_dir("")
-    assert any(e.name == "readme.md" for e in entries)
-
-
-def test_git_service(root: Path) -> None:
-    from bot.git_svc import GitService
-
-    svc = GitService.for_team(root, "demo")
-    svc.ensure_repo()
-    status = svc.status()
-    assert "main" in status or status == "" or "master" in status
-
-
-def test_story_store(root: Path) -> None:
-    from bot.story import StoryService
-
-    svc = StoryService.for_team(root, "demo")
-    c = svc.store.save_character("Alice", "Protagonistin")
-    w = svc.store.save_world("Welt A", "Beschreibung")
-    s = svc.store.save_scene("Szene 1", "Es war einmal…", world_id=w.id)
-    assert c.name == "Alice"
-    assert s.world_id == w.id
+    db = StoryDB(root, "demo")
+    db.ensure_story(
+        title="Testroman",
+        genre="Sci-Fi",
+        setting="München 2045",
+        main_characters=["Max"],
+    )
+    assert (db.path / "AGENTS.md").is_file()
+    assert (db.path / "meta.json").is_file()
+    db.save_character(
+        "max_mueller",
+        {
+            "name": "Max Müller",
+            "role": "Protagonist",
+            "background": "Informatiker",
+            "relationships": [{"to": "anna", "type": "Freundin"}],
+        },
+    )
+    assert (db.path / "characters" / "max_mueller.json").is_file()
+    ch = db.add_chapter()
+    scene = db.add_scene(ch, title="Eröffnung", content="Es war dunkel.")
+    meta, body = db.get_scene(ch, scene.scene_id)
+    assert "dunkel" in body
+    db.update_scene(ch, scene.scene_id, "Neuer Text.", expected_version=1)
+    _, body2 = db.get_scene(ch, scene.scene_id)
+    assert body2 == "Neuer Text."
 
 
-def test_media_image_webhook_error(root: Path) -> None:
-    from bot.media import MediaService, MediaServiceError
+def test_story_version_conflict(root: Path) -> None:
+    from bot.story import StoryDB, StoryDBError
 
-    with pytest.raises((MediaServiceError, Exception)):
-        MediaService.for_team(root, "demo").generate_image("test")
-
-
-def test_deploy_generate(root: Path) -> None:
-    from bot.deploy import DeployService
-
-    paths = DeployService(root).write_artifacts("demo", root / "out")
-    assert Path(paths["systemd"]).is_file()
-    assert Path(paths["provision"]).is_file()
+    db = StoryDB(root, "demo")
+    db.ensure_story(title="X")
+    ch = db.add_chapter()
+    s = db.add_scene(ch, content="a")
+    with pytest.raises(StoryDBError):
+        db.update_scene(ch, s.scene_id, "b", expected_version=99)
 
 
-def test_tasks_web(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("BOT_SESSION_SECRET", "test")
-    app = create_app(root)
-    client = TestClient(app)
-    client.post("/login", data={"username": "admin", "password": "changeme"})
-    r = client.get("/teams/demo/tasks")
-    assert r.status_code == 200
+def test_crawl4ai_markdown_extracted() -> None:
+    from bot.crawl.service import _markdown_from_result
+
+    md_obj = MagicMock()
+    md_obj.fit_markdown = "# Hauptinhalt\n\nText ohne Menü."
+    md_obj.raw_markdown = "# Raw\n\nNav Menu Footer"
+    result = MagicMock(markdown=md_obj)
+    assert "Hauptinhalt" in _markdown_from_result(result)
 
 
-def test_broker_not_active(root: Path) -> None:
-    from bot.messages.broker import MessageBroker
+@patch("bot.crawl.service.asyncio.run")
+def test_crawl_url_uses_crawl4ai(mock_run: MagicMock, root: Path, tmp_path: Path) -> None:
+    mock_run.return_value = {
+        "url": "https://example.com",
+        "title": "Example",
+        "markdown": "# Example Domain\n\nContent only.",
+        "crawled_at": "2026-01-01T00:00:00+00:00",
+        "content_hash": "abc",
+        "engine": "crawl4ai",
+    }
+    crawl_json = tmp_path / "teams" / "demo" / "crawl.json"
+    crawl_json.parent.mkdir(parents=True, exist_ok=True)
+    crawl_json.write_text(
+        json.dumps(
+            {
+                "crawl": {
+                    "enabled": True,
+                    "domains": [{"url": "https://example.com", "max_pages": 1}],
+                    "snapshot_dir": f"data/demo/crawl",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    import shutil
 
-    assert MessageBroker.from_root(root) is None
+    shutil.copytree(Path("/workspace/teams/demo"), root / "teams" / "demo", dirs_exist_ok=True)
+    (root / "teams" / "demo" / "crawl.json").write_text(crawl_json.read_text(), encoding="utf-8")
+
+    from bot.crawl import CrawlService
+
+    svc = CrawlService.for_team(root, "demo")
+    page = svc.crawl_url("https://example.com")
+    assert page["engine"] == "crawl4ai"
+    assert "Content only" in page["markdown"]

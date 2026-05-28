@@ -9,11 +9,9 @@
     "communication": {
       "mode": "direct",
       "inbox_base": "teams/{team_id}/agents/{agent_id}/inbox",
-      "broker": {
-        "type": "redis",
-        "url": "redis://127.0.0.1:6379/0",
-        "secret_ref": null,
-        "queue_prefix": "bot"
+      "multi_machine": {
+        "enabled": false,
+        "shared_inbox_base": null
       }
     },
     "polling": {

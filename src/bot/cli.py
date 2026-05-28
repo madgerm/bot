@@ -17,7 +17,6 @@ from bot.cli_crawl import register_crawl_commands
 from bot.cli_story import register_story_commands
 from bot.cli_media import register_media_commands
 from bot.cli_deploy import register_deploy_commands
-from bot.cli_broker import register_broker_commands
 from bot.cli_mail import register_mail_commands
 from bot.cli_llm import register_llm_commands
 from bot.cli_msg import register_msg_commands
@@ -153,8 +152,6 @@ def build_parser() -> argparse.ArgumentParser:
     register_story_commands(sub, add_root)
     register_media_commands(sub, add_root)
     register_deploy_commands(sub, add_root)
-    register_broker_commands(sub, add_root)
-
     return parser
 
 
@@ -187,7 +184,6 @@ def main(argv: list[str] | None = None) -> None:
         "story",
         "media",
         "deploy",
-        "broker",
     ):
         raise SystemExit(args.func(args))
 

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Szenen — {{ team_id }}{% endblock %}
+{% block content %}
+<a href="/teams/{{ team_id }}/story" class="text-sm text-indigo-400">← Story Studio</a>
+<h1 class="text-2xl font-bold mt-4 mb-4">Szenen-Editor</h1>
+<form method="post" action="/teams/{{ team_id }}/story/scenes/chapter" class="mb-4">
+  <button type="submit" class="text-sm bg-slate-800 border border-slate-700 px-3 py-1 rounded">+ Kapitel</button>
+</form>
+<div class="grid lg:grid-cols-3 gap-6">
+  <aside class="text-sm space-y-2">
+    {% for ch in chapters %}
+    <div>
+      <a href="/teams/{{ team_id }}/story/scenes?chapter={{ ch }}" class="text-indigo-400 font-medium">{{ ch }}</a>
+      <ul class="ml-3 mt-1 space-y-1">
+        {% for s in scenes %}{% if s.chapter_id == ch %}
+        <li><a href="/teams/{{ team_id }}/story/scenes?chapter={{ ch }}&scene={{ s.scene_id }}" class="{% if current_scene == s.scene_id %}text-white{% else %}text-slate-400{% endif %}">{{ s.title }} (v{{ s.version }})</a></li>
+        {% endif %}{% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+  </aside>
+  <section class="lg:col-span-2">
+    {% if current_chapter %}
+    {% if current_scene and scene_meta %}
+    <form method="post" action="/teams/{{ team_id }}/story/scenes/save">
+      <input type="hidden" name="chapter_id" value="{{ current_chapter }}">
+      <input type="hidden" name="scene_id" value="{{ current_scene }}">
+      <input type="hidden" name="version" value="{{ scene_version }}">
+      <div class="flex gap-2 mb-2">
+        <select name="status" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm">
+          <option value="draft" {% if scene_meta.status == 'draft' %}selected{% endif %}>draft</option>
+          <option value="in_progress" {% if scene_meta.status == 'in_progress' %}selected{% endif %}>in_progress</option>
+          <option value="review" {% if scene_meta.status == 'review' %}selected{% endif %}>review</option>
+          <option value="done" {% if scene_meta.status == 'done' %}selected{% endif %}>done</option>
+        </select>
+        <span class="text-xs text-slate-500 self-center">Version {{ scene_version }} (optimistic lock)</span>
+      </div>
+      <textarea name="content" rows="24" class="w-full font-mono text-sm bg-slate-900 border border-slate-700 rounded p-3">{{ scene_body }}</textarea>
+      <button type="submit" class="mt-2 bg-indigo-600 px-4 py-2 rounded">Szene speichern</button>
+    </form>
+    {% else %}
+    <form method="post" action="/teams/{{ team_id }}/story/scenes/new" class="space-y-2">
+      <input type="hidden" name="chapter_id" value="{{ current_chapter }}">
+      <input name="title" placeholder="Szenentitel" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2">
+      <textarea name="content" rows="10" placeholder="Szene schreiben…" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2"></textarea>
+      <button type="submit" class="bg-indigo-600 px-4 py-2 rounded text-sm">Neue Szene</button>
+    </form>
+    {% endif %}
+    {% else %}
+    <p class="text-slate-500 text-sm">Kapitel wählen oder anlegen.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -2,34 +2,18 @@
 {% block title %}Story — {{ team_id }}{% endblock %}
 {% block content %}
 <a href="/teams/{{ team_id }}" class="text-sm text-indigo-400">← Team</a>
-<h1 class="text-2xl font-bold mt-4 mb-6">Story Studio</h1>
-<div class="grid md:grid-cols-3 gap-6">
-  <section class="rounded-lg border border-slate-800 bg-slate-900 p-4">
-    <h2 class="font-semibold mb-3">Charaktere</h2>
-    <form method="post" action="/teams/{{ team_id }}/story/character" class="space-y-2 mb-4">
-      <input name="name" required placeholder="Name" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm">
-      <input name="bio" placeholder="Bio" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm">
-      <button type="submit" class="text-sm text-indigo-400">+ Charakter</button>
-    </form>
-    <ul class="text-sm space-y-1">{% for c in characters %}<li>{{ c.name }}</li>{% endfor %}</ul>
-  </section>
-  <section class="rounded-lg border border-slate-800 bg-slate-900 p-4">
-    <h2 class="font-semibold mb-3">Welten</h2>
-    <form method="post" action="/teams/{{ team_id }}/story/world" class="space-y-2 mb-4">
-      <input name="name" required placeholder="Name" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm">
-      <textarea name="description" placeholder="Beschreibung" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm" rows="2"></textarea>
-      <button type="submit" class="text-sm text-indigo-400">+ Welt</button>
-    </form>
-    <ul class="text-sm space-y-1">{% for w in worlds %}<li>{{ w.name }}</li>{% endfor %}</ul>
-  </section>
-  <section class="rounded-lg border border-slate-800 bg-slate-900 p-4">
-    <h2 class="font-semibold mb-3">Szenen</h2>
-    <form method="post" action="/teams/{{ team_id }}/story/scene" class="space-y-2 mb-4">
-      <input name="title" required placeholder="Titel" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm">
-      <textarea name="content" placeholder="Inhalt" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm" rows="3"></textarea>
-      <button type="submit" class="text-sm text-indigo-400">+ Szene</button>
-    </form>
-    <ul class="text-sm space-y-2">{% for s in scenes %}<li><strong>{{ s.title }}</strong> (v{{ s.version }})</li>{% endfor %}</ul>
-  </section>
-</div>
+<h1 class="text-2xl font-bold mt-4 mb-2">Story Studio</h1>
+<p class="text-slate-400 text-sm mb-6">
+  Dateibasiert unter <code>data/{{ team_id }}/story/</code> — wie im Story-Plan (AGENTS.md, characters/, world/, chapters/).
+</p>
+{% if meta.title %}
+<p class="mb-4"><strong>{{ meta.title }}</strong> · {{ meta.genre }} · {{ meta.setting }}</p>
+{% endif %}
+<nav class="flex flex-wrap gap-3 text-sm mb-8">
+  <a href="/teams/{{ team_id }}/story/planner" class="px-3 py-2 rounded bg-slate-800 border border-slate-700 hover:border-indigo-500">Story Planner</a>
+  <a href="/teams/{{ team_id }}/story/characters" class="px-3 py-2 rounded bg-slate-800 border border-slate-700 hover:border-indigo-500">Character Manager ({{ character_count }})</a>
+  <a href="/teams/{{ team_id }}/story/world" class="px-3 py-2 rounded bg-slate-800 border border-slate-700 hover:border-indigo-500">World Editor</a>
+  <a href="/teams/{{ team_id }}/story/scenes" class="px-3 py-2 rounded bg-slate-800 border border-slate-700 hover:border-indigo-500">Szenen-Editor ({{ chapter_count }} Kapitel)</a>
+  <a href="/teams/{{ team_id }}/story/review" class="px-3 py-2 rounded bg-slate-800 border border-slate-700 hover:border-indigo-500">Review Panel</a>
+</nav>
 {% endblock %}

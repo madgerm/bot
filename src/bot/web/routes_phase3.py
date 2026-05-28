@@ -200,65 +200,253 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return RedirectResponse(f"/teams/{team_id}/git", status_code=302)
 
-    @app.get("/teams/{team_id}/story", response_class=HTMLResponse)
-    async def team_story_page(request: Request, team_id: str, user: CurrentUser):
-        require_team_access(team_id, user)
+    def _story_svc(team_id: str):
         from bot.story import StoryService
 
-        svc = StoryService.for_team(root_path, team_id)
+        return StoryService.for_team(root_path, team_id)
+
+    @app.get("/teams/{team_id}/story", response_class=HTMLResponse)
+    async def team_story_hub(request: Request, team_id: str, user: CurrentUser):
+        require_team_access(team_id, user)
+        db = _story_svc(team_id).db
         return templates.TemplateResponse(
             request,
             "team_story.html",
             {
                 "user": user,
                 "team_id": team_id,
-                "characters": svc.store.list_characters(),
-                "worlds": svc.store.list_worlds(),
-                "scenes": svc.store.list_scenes(),
+                "meta": db.get_meta(),
+                "chapter_count": len(db.list_chapters()),
+                "character_count": len(db.list_characters()),
             },
         )
 
-    @app.post("/teams/{team_id}/story/character")
-    async def team_story_character(
-        request: Request,
-        team_id: str,
-        user: CurrentUser,
-        name: str = Form(...),
-        bio: str = Form(""),
-    ):
+    @app.get("/teams/{team_id}/story/planner", response_class=HTMLResponse)
+    async def team_story_planner(request: Request, team_id: str, user: CurrentUser):
         require_team_access(team_id, user)
-        from bot.story import StoryService
+        db = _story_svc(team_id).db
+        return templates.TemplateResponse(
+            request,
+            "team_story_planner.html",
+            {"user": user, "team_id": team_id, "meta": db.get_meta()},
+        )
 
-        StoryService.for_team(root_path, team_id).store.save_character(name, bio)
-        return RedirectResponse(f"/teams/{team_id}/story", status_code=302)
-
-    @app.post("/teams/{team_id}/story/world")
-    async def team_story_world(
-        request: Request,
-        team_id: str,
-        user: CurrentUser,
-        name: str = Form(...),
-        description: str = Form(""),
-    ):
-        require_team_access(team_id, user)
-        from bot.story import StoryService
-
-        StoryService.for_team(root_path, team_id).store.save_world(name, description)
-        return RedirectResponse(f"/teams/{team_id}/story", status_code=302)
-
-    @app.post("/teams/{team_id}/story/scene")
-    async def team_story_scene(
+    @app.post("/teams/{team_id}/story/planner")
+    async def team_story_planner_save(
         request: Request,
         team_id: str,
         user: CurrentUser,
         title: str = Form(...),
+        genre: str = Form(""),
+        setting: str = Form(""),
+        tone: str = Form(""),
+        main_characters: str = Form(""),
+    ):
+        require_team_access(team_id, user)
+        chars = [c.strip() for c in main_characters.split(",") if c.strip()]
+        _story_svc(team_id).db.ensure_story(
+            title=title, genre=genre, setting=setting, tone=tone, main_characters=chars
+        )
+        return RedirectResponse(f"/teams/{team_id}/story/planner", status_code=302)
+
+    @app.get("/teams/{team_id}/story/characters", response_class=HTMLResponse)
+    async def team_story_characters(request: Request, team_id: str, user: CurrentUser):
+        require_team_access(team_id, user)
+        db = _story_svc(team_id).db
+        return templates.TemplateResponse(
+            request,
+            "team_story_characters.html",
+            {
+                "user": user,
+                "team_id": team_id,
+                "characters": db.list_characters(),
+            },
+        )
+
+    @app.post("/teams/{team_id}/story/characters")
+    async def team_story_characters_save(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        char_id: str = Form(...),
+        name: str = Form(...),
+        role: str = Form(""),
+        bio: str = Form(""),
+        arc: str = Form(""),
+        relationships: str = Form(""),
+    ):
+        require_team_access(team_id, user)
+        rels = []
+        for line in relationships.strip().splitlines():
+            if "|" in line:
+                to, typ = line.split("|", 1)
+                rels.append({"to": to.strip(), "type": typ.strip()})
+        _story_svc(team_id).db.save_character(
+            char_id.strip().lower().replace(" ", "_"),
+            {
+                "name": name,
+                "role": role,
+                "background": bio,
+                "arc": arc,
+                "relationships": rels,
+                "personality": {"traits": []},
+            },
+        )
+        return RedirectResponse(f"/teams/{team_id}/story/characters", status_code=302)
+
+    @app.get("/teams/{team_id}/story/world", response_class=HTMLResponse)
+    async def team_story_world(request: Request, team_id: str, user: CurrentUser):
+        require_team_access(team_id, user)
+        db = _story_svc(team_id).db
+        return templates.TemplateResponse(
+            request,
+            "team_story_world.html",
+            {
+                "user": user,
+                "team_id": team_id,
+                "orte": db.read_world_file("orte.md"),
+                "regeln": db.read_world_file("regeln.md"),
+                "timeline": db.read_world_file("timeline.md"),
+            },
+        )
+
+    @app.post("/teams/{team_id}/story/world")
+    async def team_story_world_save(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        file: str = Form(...),
+        content: str = Form(...),
+    ):
+        require_team_access(team_id, user)
+        from bot.story.db import StoryDBError
+
+        try:
+            _story_svc(team_id).db.write_world_file(file, content)
+        except StoryDBError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return RedirectResponse(f"/teams/{team_id}/story/world", status_code=302)
+
+    @app.get("/teams/{team_id}/story/scenes", response_class=HTMLResponse)
+    async def team_story_scenes(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        chapter: str | None = None,
+        scene: str | None = None,
+    ):
+        require_team_access(team_id, user)
+        db = _story_svc(team_id).db
+        chapters = db.list_chapters()
+        scenes = db.list_scenes(chapter)
+        scene_meta, scene_body, scene_version = None, "", 1
+        if chapter and scene:
+            try:
+                scene_meta, scene_body = db.get_scene(chapter, scene)
+                scene_version = int(scene_meta.get("version", 1))
+            except Exception:
+                pass
+        return templates.TemplateResponse(
+            request,
+            "team_story_scenes.html",
+            {
+                "user": user,
+                "team_id": team_id,
+                "chapters": chapters,
+                "scenes": scenes,
+                "current_chapter": chapter,
+                "current_scene": scene,
+                "scene_meta": scene_meta,
+                "scene_body": scene_body,
+                "scene_version": scene_version,
+            },
+        )
+
+    @app.post("/teams/{team_id}/story/scenes/chapter")
+    async def team_story_add_chapter(
+        request: Request, team_id: str, user: CurrentUser
+    ):
+        require_team_access(team_id, user)
+        ch = _story_svc(team_id).db.add_chapter()
+        return RedirectResponse(f"/teams/{team_id}/story/scenes?chapter={ch}", status_code=302)
+
+    @app.post("/teams/{team_id}/story/scenes/new")
+    async def team_story_new_scene(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        chapter_id: str = Form(...),
+        title: str = Form(""),
         content: str = Form(""),
     ):
         require_team_access(team_id, user)
-        from bot.story import StoryService
+        info = _story_svc(team_id).db.add_scene(
+            chapter_id, title=title, content=content
+        )
+        return RedirectResponse(
+            f"/teams/{team_id}/story/scenes?chapter={chapter_id}&scene={info.scene_id}",
+            status_code=302,
+        )
 
-        StoryService.for_team(root_path, team_id).store.save_scene(title, content)
-        return RedirectResponse(f"/teams/{team_id}/story", status_code=302)
+    @app.post("/teams/{team_id}/story/scenes/save")
+    async def team_story_save_scene(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        chapter_id: str = Form(...),
+        scene_id: str = Form(...),
+        content: str = Form(...),
+        version: int = Form(...),
+        status: str = Form("draft"),
+    ):
+        require_team_access(team_id, user)
+        from bot.story.db import StoryDBError
+
+        try:
+            _story_svc(team_id).db.update_scene(
+                chapter_id, scene_id, content, expected_version=version, status=status
+            )
+        except StoryDBError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        return RedirectResponse(
+            f"/teams/{team_id}/story/scenes?chapter={chapter_id}&scene={scene_id}",
+            status_code=302,
+        )
+
+    @app.get("/teams/{team_id}/story/review", response_class=HTMLResponse)
+    async def team_story_review(request: Request, team_id: str, user: CurrentUser):
+        require_team_access(team_id, user)
+        db = _story_svc(team_id).db
+        return templates.TemplateResponse(
+            request,
+            "team_story_review.html",
+            {
+                "user": user,
+                "team_id": team_id,
+                "issues": db.list_review_issues(),
+            },
+        )
+
+    @app.post("/teams/{team_id}/story/review")
+    async def team_story_review_add(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        checker: str = Form(...),
+        severity: str = Form("info"),
+        message: str = Form(...),
+        chapter_id: str = Form(""),
+        scene_id: str = Form(""),
+    ):
+        require_team_access(team_id, user)
+        _story_svc(team_id).db.add_review_issue(
+            checker=checker,
+            severity=severity,
+            message=message,
+            chapter_id=chapter_id or None,
+            scene_id=scene_id or None,
+        )
+        return RedirectResponse(f"/teams/{team_id}/story/review", status_code=302)
 
     @app.get("/teams/{team_id}/media", response_class=HTMLResponse)
     async def team_media_page(request: Request, team_id: str, user: CurrentUser):

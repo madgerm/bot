@@ -1,13 +1,6 @@
-"""Story-Team: Charaktere, Welten, Szenen."""
+"""Story-Team: dateibasierter StoryDB-Layer."""
 
-from bot.story.store import StoryStore, StoryStoreError, Character, World, Scene
+from bot.story.db import SceneInfo, StoryDB, StoryDBError
 from bot.story.service import StoryService
 
-__all__ = [
-    "StoryStore",
-    "StoryStoreError",
-    "Character",
-    "World",
-    "Scene",
-    "StoryService",
-]
+__all__ = ["StoryDB", "StoryDBError", "SceneInfo", "StoryService"]

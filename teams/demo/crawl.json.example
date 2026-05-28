@@ -5,6 +5,7 @@
       { "url": "https://example.com", "max_pages": 5, "enabled": true }
     ],
     "snapshot_dir": "data/{team_id}/crawl",
-    "qdrant_collection": "web"
+    "qdrant_collection": "web",
+    "prune_threshold": 0.48
   }
 }

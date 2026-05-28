@@ -17,17 +17,18 @@ class AuthConfig(BaseModel):
     users: list[AuthUser] = Field(default_factory=list)
 
 
-class BrokerConfig(BaseModel):
-    type: Literal["redis"] = "redis"
-    url: str = "redis://127.0.0.1:6379/0"
-    secret_ref: str | None = None
-    queue_prefix: str = "bot"
+class MultiMachineConfig(BaseModel):
+    """Multi-Machine nur über gemeinsame Datei-Inboxen (NFS/SSH-Mount), kein Redis."""
+
+    enabled: bool = False
+    shared_inbox_base: str | None = None
+    """Optionaler Pfad-Template wenn Inboxen auf einem Shared Volume liegen."""
 
 
 class CommunicationConfig(BaseModel):
-    mode: Literal["direct", "broker"] = "direct"
+    mode: Literal["direct"] = "direct"
     inbox_base: str = "teams/{team_id}/agents/{agent_id}/inbox"
-    broker: BrokerConfig | None = None
+    multi_machine: MultiMachineConfig = Field(default_factory=MultiMachineConfig)
 
 
 class PollingConfig(BaseModel):

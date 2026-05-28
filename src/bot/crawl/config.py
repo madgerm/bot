@@ -19,7 +19,8 @@ class CrawlConfig(BaseModel):
     domains: list[CrawlDomain] = Field(default_factory=list)
     snapshot_dir: str = "data/{team_id}/crawl"
     qdrant_collection: str = "web"
-    user_agent: str = "bot-crawler/1.0"
+    prune_threshold: float = Field(default=0.48, ge=0.0, le=1.0)
+    """Crawl4AI PruningContentFilter — höher = aggressiveres Entfernen von Menüs/Nav."""
 
 
 class CrawlConfigError(Exception):

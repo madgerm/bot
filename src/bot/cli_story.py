@@ -1,52 +1,52 @@
-"""CLI: Story (Charaktere, Welten, Szenen)."""
+"""CLI: Story (dateibasierter StoryDB)."""
 
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 
 
 def register_story_commands(sub, add_root) -> None:
-    p = sub.add_parser("story", help="Story-Team (Charaktere, Welten, Szenen)")
+    p = sub.add_parser("story", help="Story-Team (Dateien unter data/<team>/story/)")
     add_root(p)
     story_sub = p.add_subparsers(dest="story_command", required=True)
 
-    ls = story_sub.add_parser("list", help="Alles auflisten")
+    init = story_sub.add_parser("init", help="Story-Struktur anlegen")
+    add_root(init)
+    init.add_argument("--team", required=True)
+    init.add_argument("--title", required=True)
+    init.set_defaults(func=_cmd_init)
+
+    ls = story_sub.add_parser("list", help="Übersicht")
     add_root(ls)
     ls.add_argument("--team", required=True)
     ls.set_defaults(func=_cmd_list)
 
-    char = story_sub.add_parser("character", help="Charakter anlegen")
-    add_root(char)
-    char.add_argument("--team", required=True)
-    char.add_argument("--name", required=True)
-    char.add_argument("--bio", default="")
-    char.set_defaults(func=_cmd_character)
+
+def _cmd_init(args: argparse.Namespace) -> int:
+    from bot.story import StoryDB
+
+    db = StoryDB(args.root, args.team)
+    db.ensure_story(title=args.title)
+    print(db.path)
+    return 0
 
 
 def _cmd_list(args: argparse.Namespace) -> int:
-    from bot.story import StoryService
+    from bot.story import StoryDB
 
-    svc = StoryService.for_team(args.root, args.team)
+    db = StoryDB(args.root, args.team)
     print(
         json.dumps(
             {
-                "characters": [c.to_dict() for c in svc.store.list_characters()],
-                "worlds": [w.to_dict() for w in svc.store.list_worlds()],
-                "scenes": [s.to_dict() for s in svc.store.list_scenes()],
+                "meta": db.get_meta(),
+                "characters": db.list_characters(),
+                "chapters": db.list_chapters(),
+                "scenes": [s.to_dict() for s in db.list_scenes()],
             },
             indent=2,
             ensure_ascii=False,
         )
     )
-    return 0
-
-
-def _cmd_character(args: argparse.Namespace) -> int:
-    from bot.story import StoryService
-
-    c = StoryService.for_team(args.root, args.team).store.save_character(
-        args.name, args.bio
-    )
-    print(json.dumps(c.to_dict(), indent=2, ensure_ascii=False))
     return 0
