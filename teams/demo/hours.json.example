@@ -2,12 +2,18 @@
   "hours": {
     "enabled": true,
     "master_file": "teams/demo/hours.master.json",
+    "checker_agent_id": "hours-checker",
     "website": {
+      "type": "page",
+      "url": "https://example.com/kontakt",
+      "crawl_engine": "httpx"
+    },
+    "publish": {
       "type": "file",
       "path": "teams/demo/website_hours.json"
     },
     "google_business": {
-      "enabled": true
+      "enabled": false
     },
     "require_approval": true
   }

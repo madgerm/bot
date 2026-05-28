@@ -7,16 +7,20 @@
 </div>
 
 {% if hours_error %}
-<p class="text-amber-400 text-sm mb-4">Hinweis: {{ hours_error }} — <code>teams/{{ team_id }}/hours.json</code> anlegen.</p>
+<p class="text-amber-400 text-sm mb-4">Hinweis: {{ hours_error }}</p>
+{% else %}
+<p class="text-slate-400 text-sm mb-4 max-w-2xl">
+  Der Agent lädt die Website-URL, liest die Öffnungszeiten und vergleicht sie mit dem Master.
+</p>
 {% endif %}
 
 <form method="post" action="/teams/{{ team_id }}/hours/check" class="mb-6">
-  <button type="submit" class="px-4 py-2 rounded bg-indigo-600 text-sm">Abgleich starten</button>
+  <button type="submit" class="px-4 py-2 rounded bg-indigo-600 text-sm">Agent-Abgleich starten</button>
 </form>
 
 {% if master_json %}
 <section class="mb-8 p-4 rounded-lg border border-slate-800 bg-slate-900">
-  <h2 class="text-sm text-slate-500 uppercase mb-2">Master (Single Source of Truth)</h2>
+  <h2 class="text-sm text-slate-500 uppercase mb-2">Master</h2>
   <pre class="text-xs overflow-auto">{{ master_json }}</pre>
 </section>
 {% endif %}
@@ -26,9 +30,16 @@
   {% for record in diffs %}
   <article class="p-4 rounded-lg border border-slate-800 bg-slate-900/80">
     <div class="text-xs text-slate-500 mb-2">
-      {{ record.created_at }} · Status: <span class="text-slate-300">{{ record.status }}</span>
-      {% if record.approved_by %} · {{ record.approved_by }}{% endif %}
+      {{ record.created_at }} · {{ record.status }}
+      {% if record.diff_json.check_mode %} · {{ record.diff_json.check_mode }}{% endif %}
     </div>
+    {% if record.diff_json.agent_report %}
+    <p class="text-slate-400 text-xs mb-2">
+      {{ record.diff_json.agent_report.source_url or '' }}
+      · {{ record.diff_json.agent_report.extraction_method or '' }}
+      {% if record.diff_json.agent_report.agent_note %}<br>{{ record.diff_json.agent_report.agent_note }}{% endif %}
+    </p>
+    {% endif %}
     {% if record.diff_json.has_diff %}
     <p class="text-amber-300 text-sm mb-2">{{ record.diff_json.change_count }} Abweichung(en)</p>
     <ul class="text-xs text-slate-400 space-y-1 mb-3 max-h-40 overflow-auto">
@@ -37,14 +48,12 @@
       {% endfor %}
     </ul>
     {% else %}
-    <p class="text-emerald-400 text-sm mb-2">Keine Abweichungen</p>
+    <p class="text-emerald-400 text-sm mb-2">Keine Abweichungen.</p>
     {% endif %}
     {% if record.status == 'awaiting_approval' and record.diff_json.has_diff %}
-    <div class="flex flex-wrap gap-2">
-      <form method="post" action="/teams/{{ team_id }}/hours/diff/{{ record.id }}/approve">
-        <button type="submit" class="px-3 py-1 rounded bg-emerald-800 text-sm">Freigeben</button>
-      </form>
-    </div>
+    <form method="post" action="/teams/{{ team_id }}/hours/diff/{{ record.id }}/approve">
+      <button type="submit" class="px-3 py-1 rounded bg-emerald-800 text-sm">Freigeben</button>
+    </form>
     {% endif %}
     {% if record.status == 'approved' %}
     <form method="post" action="/teams/{{ team_id }}/hours/diff/{{ record.id }}/publish" class="flex gap-2 mt-2">
@@ -54,7 +63,7 @@
     {% endif %}
   </article>
   {% else %}
-  <p class="text-slate-500 text-sm">Noch kein Abgleich — Button oben nutzen.</p>
+  <p class="text-slate-500 text-sm">Noch kein Abgleich.</p>
   {% endfor %}
 </div>
 {% endblock %}

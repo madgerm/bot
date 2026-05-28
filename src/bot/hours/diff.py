@@ -8,6 +8,8 @@ from typing import Any
 def _flatten(data: dict[str, Any], prefix: str = "") -> dict[str, str]:
     out: dict[str, str] = {}
     for key, value in sorted(data.items()):
+        if key in {"note", "_note"}:
+            continue
         path = f"{prefix}.{key}" if prefix else key
         if isinstance(value, dict):
             out.update(_flatten(value, path))
@@ -28,6 +30,8 @@ def compute_diff(
     master: dict[str, Any],
     website: dict[str, Any],
     google: dict[str, Any] | None = None,
+    *,
+    agent_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     flat_master = _flatten(master)
     flat_web = _flatten(website)
@@ -68,8 +72,12 @@ def compute_diff(
                 }
             )
 
-    return {
+    result: dict[str, Any] = {
         "has_diff": bool(changes),
         "change_count": len(changes),
         "changes": changes,
+        "check_mode": "agent_page" if agent_report else "snapshot",
     }
+    if agent_report:
+        result["agent_report"] = agent_report
+    return result
