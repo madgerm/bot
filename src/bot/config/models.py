@@ -182,6 +182,13 @@ class AgentBlock(BaseModel):
         "story_reviewer",
         "coder",
         "tester",
+        "logik-pruefer",
+        "worldkeeper",
+        "character-manager",
+        "stil-pruefer",
+        "deutsch-pruefer",
+        "zeit-pruefer",
+        "detail-pruefer",
     ] = "worker"
     enabled: bool = True
     interval_seconds: float | None = None

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Story-Memory — {{ team_id }}{% endblock %}
+{% block content %}
+<a href="/teams/{{ team_id }}/story" class="text-sm text-indigo-400">← Story Studio</a>
+<h1 class="text-2xl font-bold mt-4 mb-2">Qdrant Story-Memory</h1>
+<p class="text-sm text-slate-500 mb-4">
+  Collections <code>team_*__story</code> und <code>team_*__world_consistency</code> — indexiert Szenen, Charaktere, World, Plot.
+</p>
+<form method="post" action="/teams/{{ team_id }}/story/memory/reindex" class="mb-6">
+  <button type="submit" class="bg-emerald-700 hover:bg-emerald-600 px-4 py-2 rounded text-sm">Alles neu indexieren</button>
+</form>
+<form method="get" class="flex gap-2 mb-6">
+  <input name="q" value="{{ query }}" placeholder="Semantische Suche…" class="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2">
+  <button type="submit" class="bg-indigo-600 px-4 py-2 rounded">Suchen</button>
+</form>
+{% if mem_error %}<p class="text-amber-400 text-sm">{{ mem_error }}</p>{% endif %}
+{% if results %}
+<ul class="space-y-3 text-sm">
+  {% for r in results %}
+  <li class="p-3 bg-slate-900 border border-slate-800 rounded">
+    <span class="text-xs text-slate-500">Score {{ "%.3f"|format(r.score) }} · {{ r.payload.kind if r.payload else '' }}</span>
+    <p class="mt-1 text-slate-300 line-clamp-4">{{ r.payload.text if r.payload else '' }}</p>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

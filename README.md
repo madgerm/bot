@@ -203,11 +203,27 @@ Web-Panel (pro Team):
 | `/teams/<id>/story/characters` | Character Manager (JSON + Beziehungen) |
 | `/teams/<id>/story/world` | World Editor (orte.md, regeln.md, timeline.md) |
 | `/teams/<id>/story/scenes` | Szenen-Editor (Kapitel/szene-*.md, Version) |
-| `/teams/<id>/story/review` | Review Panel (issues.jsonl) |
+| `/teams/<id>/story/plot` | Plot-Builder (3 Akte, Kapitel, Beats) |
+| `/teams/<id>/story/graph` | Beziehungs-Graph (Mermaid) |
+| `/teams/<id>/story/memory` | Qdrant Story-Memory (Index + Suche) |
+| `/teams/<id>/story/review` | Review Panel + **parallele Prüfer** |
 | `/teams/<id>/media` | Bildgenerierung |
 | `/teams/<id>/crawl` | Domain-Crawl → Qdrant |
 
 CLI: `bot tasks`, `bot git`, `bot story`, `bot crawl`, `bot media image`.
+
+### Story-Erweiterungen
+
+```bash
+bot story init --team demo --title "Mein Roman"
+bot story review --team demo --chapter kapitel-001 --scene szene-001
+bot story memory reindex --team demo
+bot story memory search --team demo --query "Max und Anna"
+```
+
+- **Plot:** `data/<team>/story/plot/outline.json`
+- **Prüfer:** `teams/<team>/story_review.json` (7 Standard-Prüfer, parallel)
+- **Qdrant:** Collections `team_*__story` und `team_*__world_consistency`
 
 ### Multi-Machine (nur Dateien)
 

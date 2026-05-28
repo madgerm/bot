@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Beziehungs-Graph — {{ team_id }}{% endblock %}
+{% block content %}
+<a href="/teams/{{ team_id }}/story" class="text-sm text-indigo-400">← Story Studio</a>
+<h1 class="text-2xl font-bold mt-4 mb-6">Character-Beziehungen</h1>
+<p class="text-sm text-slate-500 mb-4">Daten aus <code>characters/*.json</code> → relationships[]. Pflege im <a href="/teams/{{ team_id }}/story/characters" class="text-indigo-400">Character Manager</a>.</p>
+<div class="bg-slate-900 border border-slate-800 rounded-lg p-6 overflow-x-auto mb-8">
+  <pre class="mermaid">{{ mermaid }}</pre>
+</div>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+</script>
+<table class="w-full text-sm border border-slate-800 rounded overflow-hidden">
+  <thead class="bg-slate-900 text-slate-400 text-left"><tr><th class="px-3 py-2">Von</th><th class="px-3 py-2">Beziehung</th><th class="px-3 py-2">Zu</th></tr></thead>
+  <tbody>
+    {% for e in graph.edges %}
+    <tr class="border-t border-slate-800"><td class="px-3 py-2">{{ e.from }}</td><td class="px-3 py-2">{{ e.label }}</td><td class="px-3 py-2">{{ e.to }}</td></tr>
+    {% else %}
+    <tr><td colspan="3" class="px-3 py-4 text-slate-500">Keine Beziehungen definiert.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

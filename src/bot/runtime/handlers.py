@@ -127,6 +127,41 @@ class WorkerExecHandler(AgentHandler):
         )
 
 
+class StoryCheckerHandler(AgentHandler):
+    """Story-Prüfer (logik, world, character, …) — kurzes Review, zurück an Orchestrator."""
+
+    default_category = "logic_check"
+
+    def __init__(self, *, task_category: str = "logic_check", checker_name: str = "checker") -> None:
+        self.task_category = task_category
+        self.checker_name = checker_name
+        self.role = "reviewer"
+
+    def handle(self, message: Message, ctx: HandlerContext) -> HandlerResult:
+        category = message.task_category or self.task_category
+        review = self._complete(
+            ctx,
+            message,
+            system_prompt=(
+                f"Du bist der Story-Prüfer '{self.checker_name}'. "
+                "Prüfe die Szene. Antworte mit OK oder kurzer ISSUE-Liste."
+            ),
+            task_category=category,
+        )
+        return HandlerResult(
+            complete=True,
+            delegates=[
+                DelegateRequest(
+                    to_agent="orchestrator",
+                    subject=f"Review {self.checker_name}: {message.subject}",
+                    content=review,
+                    type="review_result",
+                    task_category=category,
+                )
+            ],
+        )
+
+
 class ReviewerHandler(AgentHandler):
     role = "reviewer"
     default_category = "review"
@@ -156,7 +191,21 @@ class ReviewerHandler(AgentHandler):
         )
 
 
+_STORY_CHECKER_ROLES: dict[str, tuple[str, str]] = {
+    "logik-pruefer": ("logic_check", "Logik-Prüfer"),
+    "worldkeeper": ("world_consistency", "Worldkeeper"),
+    "character-manager": ("character_consistency", "Character-Manager"),
+    "stil-pruefer": ("style_check", "Stil-Prüfer"),
+    "deutsch-pruefer": ("grammar_check", "Deutsch-Prüfer"),
+    "zeit-pruefer": ("tense_check", "Zeit-Prüfer"),
+    "detail-pruefer": ("detail_check", "Detail-Prüfer"),
+}
+
+
 def handler_for_role(role: str) -> AgentHandler:
+    if role in _STORY_CHECKER_ROLES:
+        cat, name = _STORY_CHECKER_ROLES[role]
+        return StoryCheckerHandler(task_category=cat, checker_name=name)
     mapping: dict[str, AgentHandler] = {
         "orchestrator": OrchestratorHandler(),
         "worker": WorkerExecHandler(),

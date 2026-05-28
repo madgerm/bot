@@ -95,6 +95,17 @@ class StoryDB:
         issues = self.path / "reviews" / "issues.jsonl"
         if not issues.is_file():
             issues.write_text("", encoding="utf-8")
+        (self.path / "plot").mkdir(exist_ok=True)
+        plot_path = self.path / "plot" / "outline.json"
+        if not plot_path.is_file():
+            self._write_json(
+                plot_path,
+                {
+                    "structure": "three_act",
+                    "acts": [],
+                    "notes": "",
+                },
+            )
 
     def get_meta(self) -> dict[str, Any]:
         p = self.path / "meta.json"
@@ -264,6 +275,85 @@ class StoryDB:
         lines = [ln for ln in p.read_text(encoding="utf-8").splitlines() if ln.strip()]
         issues = [json.loads(ln) for ln in lines[-limit:]]
         return issues
+
+    def get_plot(self) -> dict[str, Any]:
+        p = self.path / "plot" / "outline.json"
+        if not p.is_file():
+            return {"structure": "three_act", "acts": [], "notes": ""}
+        return json.loads(p.read_text(encoding="utf-8"))
+
+    def save_plot(self, plot: dict[str, Any]) -> dict[str, Any]:
+        plot["updated_at"] = datetime.now(UTC).isoformat()
+        self._write_json(self.path / "plot" / "outline.json", plot)
+        return plot
+
+    def build_relationship_graph(self) -> dict[str, Any]:
+        """Knoten und Kanten für Beziehungs-Graph (Mermaid/vis)."""
+        nodes: list[dict[str, str]] = []
+        edges: list[dict[str, str]] = []
+        for char in self.list_characters():
+            cid = char.get("id", "?")
+            label = char.get("name", cid)
+            nodes.append({"id": cid, "label": label, "role": char.get("role", "")})
+            for rel in char.get("relationships") or []:
+                to_id = rel.get("to")
+                if not to_id:
+                    continue
+                edges.append(
+                    {
+                        "from": cid,
+                        "to": to_id,
+                        "label": rel.get("type", ""),
+                        "dynamic": rel.get("dynamic", ""),
+                    }
+                )
+        return {"nodes": nodes, "edges": edges}
+
+    def gather_memory_documents(self) -> list[dict[str, Any]]:
+        """Alle indexierbaren Story-Texte für Qdrant."""
+        docs: list[dict[str, Any]] = []
+        meta = self.get_meta()
+        if meta:
+            docs.append(
+                {
+                    "kind": "meta",
+                    "id": "meta",
+                    "text": json.dumps(meta, ensure_ascii=False),
+                }
+            )
+        plot = self.get_plot()
+        if plot.get("acts"):
+            docs.append(
+                {
+                    "kind": "plot",
+                    "id": "plot",
+                    "text": json.dumps(plot, ensure_ascii=False),
+                }
+            )
+        for char in self.list_characters():
+            docs.append(
+                {
+                    "kind": "character",
+                    "id": char["id"],
+                    "text": json.dumps(char, ensure_ascii=False),
+                }
+            )
+        for fname in ("orte.md", "regeln.md", "timeline.md"):
+            text = self.read_world_file(fname)
+            if text.strip():
+                docs.append({"kind": "world", "id": fname, "text": text})
+        for scene in self.list_scenes():
+            meta_s, body = self.get_scene(scene.chapter_id, scene.scene_id)
+            docs.append(
+                {
+                    "kind": "scene",
+                    "id": f"{scene.chapter_id}/{scene.scene_id}",
+                    "text": f"{meta_s.get('title', '')}\n{body}",
+                    "chapter_id": scene.chapter_id,
+                    "scene_id": scene.scene_id,
+                }
+            )
+        return docs
 
     def add_review_issue(
         self,

@@ -1,0 +1,24 @@
+{
+  "story_review": {
+    "max_parallel": 7,
+    "dispatch_to_agent_inbox": true,
+    "checkers": [
+      {
+        "id": "logik-pruefer",
+        "name": "Logik-Prüfer",
+        "task_category": "logic_check",
+        "agent_id": "logik-pruefer",
+        "enabled": true,
+        "prompt": "Prüfe logische Konsistenz der Szene. OK oder nummerierte PROBLEME."
+      },
+      {
+        "id": "worldkeeper",
+        "name": "Worldkeeper",
+        "task_category": "world_consistency",
+        "agent_id": "worldkeeper",
+        "enabled": true,
+        "prompt": "Prüfe gegen World-Regeln und Orte. OK oder WORLD-ISSUES."
+      }
+    ]
+  }
+}

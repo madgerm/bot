@@ -3,19 +3,60 @@
 {% block content %}
 <a href="/teams/{{ team_id }}/story" class="text-sm text-indigo-400">← Story Studio</a>
 <h1 class="text-2xl font-bold mt-4 mb-6">Review Panel</h1>
-<form method="post" class="mb-8 space-y-2 max-w-xl">
-  <input name="checker" placeholder="Prüfer (logik-pruefer…)" required class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2">
+
+<section class="mb-10 p-4 border border-indigo-900/50 bg-indigo-950/30 rounded-lg">
+  <h2 class="font-semibold mb-2">Parallele Prüfer-Agenten</h2>
+  <p class="text-sm text-slate-400 mb-4">
+    Alle {{ checkers|length }} Prüfer laufen gleichzeitig (Thread-Pool). Ergebnisse landen in
+    <code>reviews/issues.jsonl</code>; optional Messages in Agent-Inboxen (file-basiert).
+  </p>
+  <form method="post" action="/teams/{{ team_id }}/story/review/parallel" class="flex flex-wrap gap-2 items-end">
+    <div>
+      <label class="text-xs text-slate-500">Kapitel</label>
+      <select name="chapter_id" required class="bg-slate-800 border border-slate-700 rounded px-3 py-2">
+        {% for ch in chapters %}<option value="{{ ch }}" {% if ch == current_chapter %}selected{% endif %}>{{ ch }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="text-xs text-slate-500">Szene</label>
+      <select name="scene_id" required class="bg-slate-800 border border-slate-700 rounded px-3 py-2">
+        {% for s in scenes %}<option value="{{ s.scene_id }}" {% if s.scene_id == current_scene %}selected{% endif %}>{{ s.scene_id }} — {{ s.title }}</option>{% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="bg-indigo-600 px-4 py-2 rounded">Alle Prüfer starten</button>
+  </form>
+  <ul class="mt-4 flex flex-wrap gap-2 text-xs text-slate-400">
+    {% for c in checkers %}<li class="px-2 py-1 bg-slate-800 rounded">{{ c.name }}</li>{% endfor %}
+  </ul>
+</section>
+
+{% if last_results %}
+<h2 class="font-semibold mb-3">Letztes Review-Ergebnis</h2>
+<div class="grid md:grid-cols-2 gap-3 mb-8">
+  {% for r in last_results %}
+  <div class="p-3 rounded border {% if r.status == 'ok' %}border-emerald-800 bg-emerald-950/20{% else %}border-amber-800 bg-amber-950/20{% endif %}">
+    <div class="font-medium">{{ r.name }} <span class="text-xs uppercase">{{ r.status }}</span></div>
+    {% if r.issues %}<ul class="text-sm text-slate-300 mt-1 list-disc ml-4">{% for i in r.issues %}<li>{{ i }}</li>{% endfor %}</ul>
+    {% else %}<p class="text-sm text-emerald-400 mt-1">OK</p>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<h2 class="font-semibold mb-3">Issues (manuell + automatisch)</h2>
+<form method="post" class="mb-6 space-y-2 max-w-xl">
+  <input name="checker" placeholder="Prüfer" required class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2">
   <select name="severity" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2">
     <option value="info">info</option>
     <option value="warning">warning</option>
     <option value="error">error</option>
   </select>
-  <textarea name="message" required placeholder="Issue" rows="3" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2"></textarea>
+  <textarea name="message" required placeholder="Issue" rows="2" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2"></textarea>
   <div class="flex gap-2">
-    <input name="chapter_id" placeholder="Kapitel (optional)" class="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2">
-    <input name="scene_id" placeholder="Szene (optional)" class="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2">
+    <input name="chapter_id" placeholder="Kapitel" class="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2">
+    <input name="scene_id" placeholder="Szene" class="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2">
   </div>
-  <button type="submit" class="bg-indigo-600 px-4 py-2 rounded text-sm">Issue erfassen</button>
+  <button type="submit" class="bg-slate-700 px-4 py-2 rounded text-sm">Manuell erfassen</button>
 </form>
 <ul class="space-y-2 text-sm">
   {% for i in issues | reverse %}
@@ -25,7 +66,7 @@
     {% if i.chapter_id %}<span class="text-slate-500"> · {{ i.chapter_id }}/{{ i.scene_id or '' }}</span>{% endif %}
   </li>
   {% else %}
-  <li class="text-slate-500">Keine offenen Issues.</li>
+  <li class="text-slate-500">Keine Issues.</li>
   {% endfor %}
 </ul>
 {% endblock %}

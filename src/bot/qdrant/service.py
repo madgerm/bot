@@ -54,7 +54,10 @@ class QdrantService:
         from qdrant_client.models import Distance, VectorParams
 
         client = self._get_client()
-        names = all_collections(team_id)
+        from bot.story.db import StoryDB
+
+        include_story = (self.root / "data" / team_id / "story" / "meta.json").is_file()
+        names = all_collections(team_id, include_story=include_story)
         dim = self.cfg.embedding.vector_size
         for suffix, name in names.items():
             if not client.collection_exists(name):

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Plot-Builder — {{ team_id }}{% endblock %}
+{% block content %}
+<a href="/teams/{{ team_id }}/story" class="text-sm text-indigo-400">← Story Studio</a>
+<h1 class="text-2xl font-bold mt-4 mb-2">Plot-Builder</h1>
+<p class="text-sm text-slate-500 mb-6">
+  Outline in <code>data/{{ team_id }}/story/plot/outline.json</code> — 3-Akt-Struktur, Kapitel, Plot-Beats.
+</p>
+<form method="post" class="space-y-4 max-w-3xl">
+  <div>
+    <label class="text-sm text-slate-400">Struktur</label>
+    <select name="structure" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 mt-1">
+      <option value="three_act" {% if plot.structure == 'three_act' %}selected{% endif %}>3 Akte</option>
+      <option value="hero_journey" {% if plot.structure == 'hero_journey' %}selected{% endif %}>Hero's Journey</option>
+      <option value="custom" {% if plot.structure == 'custom' %}selected{% endif %}>Custom</option>
+    </select>
+  </div>
+  <div>
+    <label class="text-sm text-slate-400">Acts / Kapitel / Beats (JSON)</label>
+    <p class="text-xs text-slate-500 mb-1">Beispiel: <code>[{"act":1,"title":"Setup","chapters":[{"id":"kapitel-001","title":"Ankunft","beats":["Hook","Inciting incident"]}]}]</code></p>
+    <textarea name="acts_json" rows="16" class="w-full font-mono text-sm bg-slate-900 border border-slate-700 rounded p-3">{{ acts_json }}</textarea>
+  </div>
+  <div>
+    <label class="text-sm text-slate-400">Notizen</label>
+    <textarea name="notes" rows="4" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 mt-1">{{ plot.notes or '' }}</textarea>
+  </div>
+  <button type="submit" class="bg-indigo-600 px-4 py-2 rounded">Plot speichern</button>
+</form>
+{% if plot.acts %}
+<h2 class="text-lg font-semibold mt-10 mb-3">Vorschau</h2>
+<div class="space-y-4 text-sm">
+  {% for act in plot.acts %}
+  <div class="p-4 bg-slate-900 border border-slate-800 rounded">
+    <div class="font-medium">Akt {{ act.act }} — {{ act.title }}</div>
+    {% for ch in act.get('chapters', []) %}
+    <div class="ml-4 mt-2 text-slate-300">📖 {{ ch.id or ch.title }}: {{ ch.title }}</div>
+    <ul class="ml-8 list-disc text-slate-500">{% for b in ch.get('beats', []) %}<li>{{ b }}</li>{% endfor %}</ul>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

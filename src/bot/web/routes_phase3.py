@@ -413,10 +413,125 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
             status_code=302,
         )
 
-    @app.get("/teams/{team_id}/story/review", response_class=HTMLResponse)
-    async def team_story_review(request: Request, team_id: str, user: CurrentUser):
+    @app.get("/teams/{team_id}/story/plot", response_class=HTMLResponse)
+    async def team_story_plot(request: Request, team_id: str, user: CurrentUser):
         require_team_access(team_id, user)
+        import json as _json
+
         db = _story_svc(team_id).db
+        plot = db.get_plot()
+        return templates.TemplateResponse(
+            request,
+            "team_story_plot.html",
+            {
+                "user": user,
+                "team_id": team_id,
+                "plot": plot,
+                "acts_json": _json.dumps(plot.get("acts", []), indent=2, ensure_ascii=False),
+            },
+        )
+
+    @app.post("/teams/{team_id}/story/plot")
+    async def team_story_plot_save(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        structure: str = Form("three_act"),
+        notes: str = Form(""),
+        acts_json: str = Form("[]"),
+    ):
+        require_team_access(team_id, user)
+        import json as _json
+
+        try:
+            acts = _json.loads(acts_json)
+        except _json.JSONDecodeError as exc:
+            raise HTTPException(status_code=400, detail="acts_json ungültig") from exc
+        _story_svc(team_id).db.save_plot(
+            {"structure": structure, "acts": acts, "notes": notes}
+        )
+        return RedirectResponse(f"/teams/{team_id}/story/plot", status_code=302)
+
+    @app.get("/teams/{team_id}/story/graph", response_class=HTMLResponse)
+    async def team_story_graph(request: Request, team_id: str, user: CurrentUser):
+        require_team_access(team_id, user)
+        from bot.story.graph import relationships_mermaid
+
+        db = _story_svc(team_id).db
+        graph = db.build_relationship_graph()
+        return templates.TemplateResponse(
+            request,
+            "team_story_graph.html",
+            {
+                "user": user,
+                "team_id": team_id,
+                "mermaid": relationships_mermaid(db),
+                "graph": graph,
+            },
+        )
+
+    @app.get("/teams/{team_id}/story/memory", response_class=HTMLResponse)
+    async def team_story_memory(
+        request: Request, team_id: str, user: CurrentUser, q: str = ""
+    ):
+        require_team_access(team_id, user)
+        from bot.story import StoryMemoryService, StoryMemoryError
+
+        results = None
+        mem_error = None
+        collections: dict[str, str] = {}
+        if q:
+            try:
+                svc = StoryMemoryService.for_team(root_path, team_id)
+                results = svc.search(q, collection="story", limit=10)
+                collections = svc.ensure_collections()
+            except StoryMemoryError as exc:
+                mem_error = str(exc)
+        return templates.TemplateResponse(
+            request,
+            "team_story_memory.html",
+            {
+                "user": user,
+                "team_id": team_id,
+                "query": q,
+                "results": results,
+                "mem_error": mem_error,
+                "collections": collections,
+            },
+        )
+
+    @app.post("/teams/{team_id}/story/memory/reindex")
+    async def team_story_memory_reindex(
+        request: Request, team_id: str, user: CurrentUser
+    ):
+        require_team_access(team_id, user)
+        from bot.story import StoryMemoryService, StoryMemoryError
+
+        try:
+            counts = StoryMemoryService.for_team(root_path, team_id).reindex_all()
+        except StoryMemoryError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return RedirectResponse(
+            f"/teams/{team_id}/story/memory?reindexed={counts}",
+            status_code=302,
+        )
+
+    @app.get("/teams/{team_id}/story/review", response_class=HTMLResponse)
+    async def team_story_review(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        chapter: str | None = None,
+        scene: str | None = None,
+    ):
+        require_team_access(team_id, user)
+        from bot.story.config import load_story_review_config
+
+        db = _story_svc(team_id).db
+        review_cfg = load_story_review_config(root_path, team_id)
+        chapters = db.list_chapters()
+        scenes = db.list_scenes(chapter) if chapter else []
+        last_results = None
         return templates.TemplateResponse(
             request,
             "team_story_review.html",
@@ -424,6 +539,47 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
                 "user": user,
                 "team_id": team_id,
                 "issues": db.list_review_issues(),
+                "checkers": review_cfg.checkers,
+                "chapters": chapters,
+                "scenes": scenes,
+                "current_chapter": chapter,
+                "current_scene": scene,
+                "last_results": last_results,
+            },
+        )
+
+    @app.post("/teams/{team_id}/story/review/parallel")
+    async def team_story_review_parallel(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        chapter_id: str = Form(...),
+        scene_id: str = Form(...),
+    ):
+        require_team_access(team_id, user)
+        from bot.story import StoryReviewRunner, StoryReviewError
+
+        try:
+            results = StoryReviewRunner.for_team(root_path, team_id).review_scene_parallel(
+                chapter_id, scene_id
+            )
+        except StoryReviewError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        import json as _json
+
+        return templates.TemplateResponse(
+            request,
+            "team_story_review.html",
+            {
+                "user": user,
+                "team_id": team_id,
+                "issues": _story_svc(team_id).db.list_review_issues(limit=30),
+                "checkers": load_story_review_config(root_path, team_id).checkers,
+                "chapters": _story_svc(team_id).db.list_chapters(),
+                "scenes": _story_svc(team_id).db.list_scenes(chapter_id),
+                "current_chapter": chapter_id,
+                "current_scene": scene_id,
+                "last_results": [r.to_dict() for r in results],
             },
         )
 

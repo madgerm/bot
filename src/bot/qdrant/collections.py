@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 
 COLLECTION_SUFFIXES = ("project", "background")
+STORY_COLLECTION_SUFFIXES = ("story", "world_consistency")
 
 
 def team_slug(team_id: str) -> str:
@@ -14,14 +15,26 @@ def team_slug(team_id: str) -> str:
     return slug.strip("_") or "team"
 
 
+def all_collection_suffixes(*, include_story: bool = False) -> tuple[str, ...]:
+    if include_story:
+        return COLLECTION_SUFFIXES + STORY_COLLECTION_SUFFIXES
+    return COLLECTION_SUFFIXES
+
+
 def collection_name(team_id: str, suffix: str) -> str:
-    if suffix not in COLLECTION_SUFFIXES:
+    allowed = set(COLLECTION_SUFFIXES) | set(STORY_COLLECTION_SUFFIXES)
+    if suffix not in allowed:
         raise ValueError(f"Unbekanntes Collection-Suffix: {suffix}")
     return f"team_{team_slug(team_id)}__{suffix}"
 
 
-def all_collections(team_id: str) -> dict[str, str]:
-    return {suffix: collection_name(team_id, suffix) for suffix in COLLECTION_SUFFIXES}
+def all_collections(team_id: str, *, include_story: bool = False) -> dict[str, str]:
+    suffixes = all_collection_suffixes(include_story=include_story)
+    return {suffix: collection_name(team_id, suffix) for suffix in suffixes}
+
+
+def _story_team(root: Path, team_id: str) -> bool:
+    return (root / "data" / team_id / "story" / "meta.json").is_file()
 
 
 def registry_path(root: Path, team_id: str) -> Path:
@@ -31,7 +44,7 @@ def registry_path(root: Path, team_id: str) -> Path:
 def save_registry(root: Path, team_id: str) -> dict[str, str]:
     path = registry_path(root, team_id)
     path.parent.mkdir(parents=True, exist_ok=True)
-    names = all_collections(team_id)
+    names = all_collections(team_id, include_story=_story_team(root, team_id))
     path.write_text(json.dumps({"collections": names}, indent=2) + "\n", encoding="utf-8")
     return names
 
