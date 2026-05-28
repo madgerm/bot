@@ -1,0 +1,9 @@
+{
+  "agent": {
+    "id": "orchestrator",
+    "role": "orchestrator",
+    "display_name": "Story-Orchestrator",
+    "enabled": true,
+    "interval_seconds": 3
+  }
+}

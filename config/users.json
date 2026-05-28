@@ -4,13 +4,13 @@
       "username": "admin",
       "password": "changeme",
       "role": "admin",
-      "teams": ["demo"]
+      "teams": ["demo", "story-demo"]
     },
     {
       "username": "demo",
       "password": "changeme",
       "role": "user",
-      "teams": ["demo"]
+      "teams": ["demo", "story-demo"]
     }
   ]
 }

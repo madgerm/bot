@@ -1,0 +1,9 @@
+{
+  "agent": {
+    "id": "character-manager",
+    "role": "character-manager",
+    "display_name": "Character-Manager",
+    "enabled": true,
+    "interval_seconds": 2
+  }
+}

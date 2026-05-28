@@ -1,0 +1,8 @@
+{
+  "team": {
+    "id": "story-demo",
+    "name": "Story-Demo (Orchestrator + Autor + 7 Prüfer)",
+    "orchestrator_id": "orchestrator",
+    "enabled": true
+  }
+}

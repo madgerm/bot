@@ -1,0 +1,64 @@
+{
+  "story_review": {
+    "max_parallel": 7,
+    "dispatch_to_agent_inbox": true,
+    "checkers": [
+      {
+        "id": "logik-pruefer",
+        "name": "Logik-Prüfer",
+        "task_category": "logic_check",
+        "agent_id": "logik-pruefer",
+        "enabled": true,
+        "prompt": "Prüfe logische Konsistenz. OK oder PROBLEME."
+      },
+      {
+        "id": "worldkeeper",
+        "name": "Worldkeeper",
+        "task_category": "world_consistency",
+        "agent_id": "worldkeeper",
+        "enabled": true,
+        "prompt": "Prüfe World-Regeln. OK oder WORLD-ISSUES."
+      },
+      {
+        "id": "character-manager",
+        "name": "Character-Manager",
+        "task_category": "character_consistency",
+        "agent_id": "character-manager",
+        "enabled": true,
+        "prompt": "Prüfe Charaktere. OK oder CHARACTER-ISSUES."
+      },
+      {
+        "id": "stil-pruefer",
+        "name": "Stil-Prüfer",
+        "task_category": "style_check",
+        "agent_id": "stil-pruefer",
+        "enabled": true,
+        "prompt": "Prüfe Stil. OK oder STYLE-ISSUES."
+      },
+      {
+        "id": "deutsch-pruefer",
+        "name": "Deutsch-Prüfer",
+        "task_category": "grammar_check",
+        "agent_id": "deutsch-pruefer",
+        "enabled": true,
+        "prompt": "Prüfe Grammatik (DE). OK oder GRAMMAR-ISSUES."
+      },
+      {
+        "id": "zeit-pruefer",
+        "name": "Zeit-Prüfer",
+        "task_category": "tense_check",
+        "agent_id": "zeit-pruefer",
+        "enabled": true,
+        "prompt": "Prüfe Tempus. OK oder TENSE-ISSUES."
+      },
+      {
+        "id": "detail-pruefer",
+        "name": "Detail-Prüfer",
+        "task_category": "detail_check",
+        "agent_id": "detail-pruefer",
+        "enabled": true,
+        "prompt": "Prüfe Details. OK oder DETAIL-ISSUES."
+      }
+    ]
+  }
+}

@@ -35,7 +35,9 @@ class AgentRunner:
         self.enabled = agent_cfg.agent.enabled
         self.interval = agent_cfg.agent.interval_seconds or default_interval
         self._llm_stack = llm_stack
-        self._handler = handler or handler_for_role(self.role)
+        self._handler = handler or handler_for_role(
+            self.role, team_id=team_id, root=root
+        )
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
 

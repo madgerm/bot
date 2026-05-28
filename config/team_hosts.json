@@ -4,7 +4,7 @@
       "id": "local",
       "label": "Lokal (dieser Rechner)",
       "mode": "local",
-      "teams": ["demo"]
+      "teams": ["demo", "story-demo"]
     }
   ]
 }

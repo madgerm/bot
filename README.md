@@ -212,6 +212,18 @@ Web-Panel (pro Team):
 
 CLI: `bot tasks`, `bot git`, `bot story`, `bot crawl`, `bot media image`.
 
+### Story-Demo-Team (9 Agents)
+
+Fertiges Team unter `teams/story-demo/` — Orchestrator, Drehbuch-Autor, 7 Prüfer mit Inboxen.
+
+```bash
+bot team init story-demo
+bot story init --team story-demo --title "Mein Roman"
+bot run --team story-demo
+```
+
+Siehe `teams/story-demo/README.md`.
+
 ### Story-Erweiterungen
 
 ```bash

@@ -1,0 +1,9 @@
+{
+  "agent": {
+    "id": "detail-pruefer",
+    "role": "detail-pruefer",
+    "display_name": "Detail-Prüfer",
+    "enabled": true,
+    "interval_seconds": 2
+  }
+}

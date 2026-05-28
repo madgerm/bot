@@ -1,0 +1,9 @@
+{
+  "agent": {
+    "id": "drehbuch-autor",
+    "role": "story_writer",
+    "display_name": "Drehbuch-Autor",
+    "enabled": true,
+    "interval_seconds": 3
+  }
+}

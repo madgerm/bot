@@ -1,0 +1,9 @@
+{
+  "agent": {
+    "id": "logik-pruefer",
+    "role": "logik-pruefer",
+    "display_name": "Logik-Prüfer",
+    "enabled": true,
+    "interval_seconds": 2
+  }
+}

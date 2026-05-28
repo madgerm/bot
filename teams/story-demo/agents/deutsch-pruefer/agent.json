@@ -1,0 +1,9 @@
+{
+  "agent": {
+    "id": "deutsch-pruefer",
+    "role": "deutsch-pruefer",
+    "display_name": "Deutsch-Prüfer",
+    "enabled": true,
+    "interval_seconds": 2
+  }
+}

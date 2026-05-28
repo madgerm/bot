@@ -1,0 +1,9 @@
+{
+  "agent": {
+    "id": "worldkeeper",
+    "role": "worldkeeper",
+    "display_name": "Worldkeeper",
+    "enabled": true,
+    "interval_seconds": 2
+  }
+}
