@@ -1,0 +1,329 @@
+/* Semantische Panel-Klassen — Light (default) + .dark auf <html> */
+
+:root {
+  --p-bg: #f8fafc;
+  --p-bg-elevated: #ffffff;
+  --p-bg-muted: #f1f5f9;
+  --p-bg-subtle: #e2e8f0;
+  --p-nav: rgba(255, 255, 255, 0.92);
+  --p-border: #e2e8f0;
+  --p-border-strong: #cbd5e1;
+  --p-text: #0f172a;
+  --p-text-secondary: #334155;
+  --p-text-muted: #64748b;
+  --p-text-faint: #94a3b8;
+  --p-link: #4f46e5;
+  --p-link-hover: #4338ca;
+  --p-input-bg: #ffffff;
+  --p-input-border: #cbd5e1;
+  --p-danger-bg: #fef2f2;
+  --p-danger-border: #fecaca;
+  --p-danger-text: #991b1b;
+  --p-warn-bg: #fffbeb;
+  --p-warn-border: #fde68a;
+  --p-warn-text: #92400e;
+}
+
+html.dark {
+  --p-bg: #020617;
+  --p-bg-elevated: #0f172a;
+  --p-bg-muted: #1e293b;
+  --p-bg-subtle: #334155;
+  --p-nav: rgba(15, 23, 42, 0.92);
+  --p-border: #1e293b;
+  --p-border-strong: #334155;
+  --p-text: #f1f5f9;
+  --p-text-secondary: #cbd5e1;
+  --p-text-muted: #94a3b8;
+  --p-text-faint: #64748b;
+  --p-link: #818cf8;
+  --p-link-hover: #a5b4fc;
+  --p-input-bg: #1e293b;
+  --p-input-border: #475569;
+  --p-danger-bg: rgba(127, 29, 29, 0.35);
+  --p-danger-border: #991b1b;
+  --p-danger-text: #fecaca;
+  --p-warn-bg: rgba(120, 53, 15, 0.25);
+  --p-warn-border: #b45309;
+  --p-warn-text: #fde68a;
+}
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+.p-page {
+  background-color: var(--p-bg);
+  color: var(--p-text);
+  min-height: 100vh;
+}
+
+.p-nav {
+  border-bottom: 1px solid var(--p-border);
+  background: var(--p-nav);
+  backdrop-filter: blur(8px);
+}
+
+.p-nav a,
+.p-nav button {
+  color: var(--p-text-secondary);
+}
+.p-nav a:hover,
+.p-nav button:hover {
+  color: var(--p-text);
+}
+
+.p-card {
+  background-color: var(--p-bg-elevated);
+  border: 1px solid var(--p-border);
+  border-radius: 0.5rem;
+}
+
+.p-card-muted {
+  background-color: var(--p-bg-muted);
+  border: 1px solid var(--p-border);
+  border-radius: 0.5rem;
+}
+
+.p-card-hover {
+  background-color: var(--p-bg-elevated);
+  border: 1px solid var(--p-border);
+  border-radius: 0.5rem;
+  transition: border-color 0.15s;
+}
+.p-card-hover:hover {
+  border-color: var(--p-link);
+}
+
+.p-muted {
+  color: var(--p-text-muted);
+}
+.p-faint {
+  color: var(--p-text-faint);
+}
+.p-secondary {
+  color: var(--p-text-secondary);
+}
+.p-link {
+  color: var(--p-link);
+}
+.p-link:hover {
+  color: var(--p-link-hover);
+}
+
+.p-label {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--p-text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.p-input,
+.p-textarea,
+.p-select {
+  width: 100%;
+  border-radius: 0.25rem;
+  background-color: var(--p-input-bg);
+  border: 1px solid var(--p-input-border);
+  color: var(--p-text);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+.p-input:focus,
+.p-textarea:focus,
+.p-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--p-link);
+}
+
+.p-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.25rem;
+  padding: 0.375rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.15s;
+}
+.p-btn-primary {
+  background-color: #4f46e5;
+  color: #fff;
+}
+.p-btn-primary:hover {
+  background-color: #4338ca;
+}
+.p-btn-muted {
+  background-color: var(--p-bg-subtle);
+  color: var(--p-text);
+}
+.p-btn-muted:hover {
+  background-color: var(--p-border-strong);
+}
+.p-btn-success {
+  background-color: #047857;
+  color: #fff;
+}
+.p-btn-success:hover {
+  background-color: #065f46;
+}
+.p-btn-danger {
+  background-color: #b91c1c;
+  color: #fff;
+}
+.p-btn-danger:hover {
+  background-color: #991b1b;
+}
+
+.p-alert-error {
+  background: var(--p-danger-bg);
+  border: 1px solid var(--p-danger-border);
+  color: var(--p-danger-text);
+  border-radius: 0.25rem;
+  padding: 0.75rem;
+}
+
+.p-alert-warn {
+  background: var(--p-warn-bg);
+  border: 1px solid var(--p-warn-border);
+  color: var(--p-warn-text);
+  border-radius: 0.25rem;
+  padding: 0.75rem;
+}
+
+.p-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--p-border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+.p-table thead {
+  background: var(--p-bg-muted);
+  color: var(--p-text-muted);
+  text-align: left;
+  font-size: 0.875rem;
+}
+.p-table th,
+.p-table td {
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--p-border);
+}
+.p-table tbody tr:hover {
+  background: var(--p-bg-muted);
+}
+
+.p-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--p-border);
+  background: var(--p-bg-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.p-theme-toggle:hover {
+  border-color: var(--p-border-strong);
+}
+
+.p-status-ok {
+  color: #059669;
+}
+html.dark .p-status-ok {
+  color: #34d399;
+}
+.p-status-warn {
+  color: #d97706;
+}
+html.dark .p-status-warn {
+  color: #fbbf24;
+}
+.p-status-bad {
+  color: #dc2626;
+}
+html.dark .p-status-bad {
+  color: #f87171;
+}
+
+code {
+  font-size: 0.85em;
+  color: var(--p-text-secondary);
+}
+
+.p-pre {
+  background-color: var(--p-bg-elevated);
+  border: 1px solid var(--p-border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  font-size: 0.875rem;
+  overflow-x: auto;
+  color: var(--p-text);
+}
+
+.p-list-item {
+  background-color: var(--p-bg-muted);
+  border: 1px solid var(--p-border-strong);
+  border-radius: 0.25rem;
+  padding: 0.75rem;
+}
+
+.p-divider {
+  border-bottom: 1px solid var(--p-border);
+}
+
+.p-chip {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+}
+.p-chip-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+html.dark .p-chip-pending {
+  background: #78350f;
+  color: #fde68a;
+}
+.p-chip-processing {
+  background: #dbeafe;
+  color: #1e40af;
+}
+html.dark .p-chip-processing {
+  background: #1e3a8a;
+  color: #bfdbfe;
+}
+.p-chip-done {
+  background: #d1fae5;
+  color: #065f46;
+}
+html.dark .p-chip-done {
+  background: #064e3b;
+  color: #a7f3d0;
+}
+.p-chip-failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+html.dark .p-chip-failed {
+  background: #7f1d1d;
+  color: #fecaca;
+}
+
+.p-nav-chip {
+  display: inline-block;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  background: var(--p-bg-muted);
+  border: 1px solid var(--p-border);
+  color: var(--p-text-secondary);
+  font-size: 0.875rem;
+}
+.p-nav-chip:hover {
+  border-color: var(--p-link);
+  color: var(--p-link);
+}

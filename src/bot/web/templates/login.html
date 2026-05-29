@@ -4,22 +4,21 @@
 <div class="max-w-md mx-auto mt-16">
   <h1 class="text-2xl font-bold mb-6">Anmelden</h1>
   {% if error %}
-  <div class="mb-4 p-3 rounded bg-red-900/50 border border-red-700 text-red-200">{{ error }}</div>
+  <div class="mb-4 p-3 rounded p-alert-error">{{ error }}</div>
   {% endif %}
-  <form method="post" action="/login" class="space-y-4 bg-slate-900 border border-slate-800 rounded-lg p-6">
+  <form method="post" action="/login" class="space-y-4 p-card p-6">
     <div>
-      <label class="block text-sm text-slate-400 mb-1" for="username">Benutzer</label>
+      <label class="p-label" for="username">Benutzer</label>
       <input id="username" name="username" type="text" required
-        class="w-full rounded bg-slate-800 border border-slate-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        class="p-input">
     </div>
     <div>
-      <label class="block text-sm text-slate-400 mb-1" for="password">Passwort</label>
+      <label class="p-label" for="password">Passwort</label>
       <input id="password" name="password" type="password" required
-        class="w-full rounded bg-slate-800 border border-slate-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        class="p-input">
     </div>
-    <button type="submit"
-      class="w-full py-2 rounded bg-indigo-600 hover:bg-indigo-500 font-medium">Einloggen</button>
+    <button type="submit" class="p-btn p-btn-primary w-full py-2">Einloggen</button>
   </form>
-  <p class="mt-4 text-xs text-slate-500">Demo: admin/changeme oder demo/changeme</p>
+  <p class="mt-4 text-xs p-faint">Demo: admin/changeme oder demo/changeme</p>
 </div>
 {% endblock %}

@@ -1,24 +1,42 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-theme="system">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Bot Panel{% endblock %}</title>
+  <script>
+    (function () {
+      var k = "bot-theme", m = "system";
+      try { m = localStorage.getItem(k) || "system"; } catch (e) {}
+      var dark = m === "dark" || (m === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.classList.toggle("dark", dark);
+      document.documentElement.dataset.theme = m;
+    })();
+  </script>
+  <link rel="stylesheet" href="/static/panel.css">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: "class" };
+  </script>
   <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script src="/static/theme.js" defer></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
-  <nav class="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-      <a href="/dashboard" class="font-semibold text-lg tracking-tight">bot panel</a>
-      <div class="flex items-center gap-4 text-sm text-slate-300">
+<body class="p-page">
+  <nav class="p-nav">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+      <a href="/dashboard" class="font-semibold text-lg tracking-tight p-secondary hover:p-link">bot panel</a>
+      <div class="flex items-center gap-3 text-sm">
+        <button type="button" id="theme-toggle" class="p-theme-toggle" aria-live="polite">
+          <span data-theme-icon aria-hidden="true">◐</span>
+          <span data-theme-label>System</span>
+        </button>
         {% if user %}
-        <span>{{ user.username }} ({{ user.role }})</span>
+        <span class="p-muted">{{ user.username }} ({{ user.role }})</span>
         {% if user.role == 'admin' %}
-        <a href="/admin" class="hover:text-white">Admin</a>
+        <a href="/admin" class="p-link">Admin</a>
         {% endif %}
         <form method="post" action="/logout">
-          <button type="submit" class="text-red-400 hover:text-red-300">Abmelden</button>
+          <button type="submit" class="p-status-bad hover:opacity-80">Abmelden</button>
         </form>
         {% endif %}
       </div>

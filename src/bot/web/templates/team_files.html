@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 {% block title %}Dateien — {{ team_id }}{% endblock %}
 {% block content %}
-<a href="/teams/{{ team_id }}" class="text-sm text-indigo-400">← Team</a>
+<a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
 <h1 class="text-2xl font-bold mt-4">Datei-Browser</h1>
-<p class="text-sm text-slate-500 mb-4">Workspace: <code>data/{{ team_id }}/workspace{% if path %}/{{ path }}{% endif %}</code></p>
+<p class="text-sm p-faint mb-4">Workspace: <code>data/{{ team_id }}/workspace{% if path %}/{{ path }}{% endif %}</code></p>
 <ul class="mb-6 space-y-1 text-sm">
-  {% if path %}<li><a href="/teams/{{ team_id }}/files" class="text-indigo-400">..</a></li>{% endif %}
+  {% if path %}<li><a href="/teams/{{ team_id }}/files" class="p-link">..</a></li>{% endif %}
   {% for e in entries %}
   <li>
     {% if e.is_dir %}
-    <a href="/teams/{{ team_id }}/files?path={{ e.path }}" class="text-indigo-400">📁 {{ e.name }}/</a>
+    <a href="/teams/{{ team_id }}/files?path={{ e.path }}" class="p-link">📁 {{ e.name }}/</a>
     {% else %}
-    <a href="/teams/{{ team_id }}/files?path={{ path }}&edit={{ e.path }}" class="text-slate-200">📄 {{ e.name }}</a>
+    <a href="/teams/{{ team_id }}/files?path={{ path }}&edit={{ e.path }}" class="p-secondary">📄 {{ e.name }}</a>
     {% endif %}
   </li>
   {% endfor %}
@@ -19,7 +19,7 @@
 {% if edit_path %}
 <form method="post" action="/teams/{{ team_id }}/files/save">
   <input type="hidden" name="file_path" value="{{ edit_path }}">
-  <textarea name="content" rows="20" class="w-full font-mono text-sm bg-slate-900 border border-slate-700 rounded p-3">{{ content }}</textarea>
+  <textarea name="content" rows="20" class="p-input w-full font-mono text-sm">{{ content }}</textarea>
   <button type="submit" class="mt-2 bg-indigo-600 px-4 py-2 rounded">Speichern</button>
 </form>
 {% endif %}
