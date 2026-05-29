@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Deployment{% endblock %}
 {% block content %}
-<a href="/admin" class="text-sm text-indigo-400">← Admin</a>
+<a href="/admin" class="text-sm p-link">← Admin</a>
 <h1 class="text-2xl font-bold mt-4 mb-4">Linux-User pro Team</h1>
 {% if deployment %}
-<p class="text-sm text-slate-400">Topology: {{ deployment.topology }} · Scope: {{ deployment.team_agent_scope }}</p>
+<p class="text-sm p-muted">Topology: {{ deployment.topology }} · Scope: {{ deployment.team_agent_scope }}</p>
 {% endif %}
 {% if generated %}
-<p class="text-emerald-400 text-sm mt-4">Artefakte für Team <code>{{ team_id }}</code>:</p>
+<p class="p-status-ok text-sm mt-4">Artefakte für Team <code>{{ team_id }}</code>:</p>
 <ul class="text-sm mt-2"><li><code>{{ generated.systemd }}</code></li><li><code>{{ generated.provision }}</code></li></ul>
 {% endif %}
-<p class="text-sm text-slate-500 mt-6">CLI: <code>bot deploy generate --team demo</code></p>
+<p class="text-sm p-faint mt-6">CLI: <code>bot deploy generate --team demo</code></p>
 {% endblock %}

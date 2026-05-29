@@ -2,14 +2,14 @@
 {% block title %}Admin — Bot Panel{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-bold mb-6">Administration</h1>
-<p class="mb-4"><a href="/admin/deploy" class="text-indigo-400 text-sm">→ Deployment (Linux-User pro Team)</a></p>
+<p class="mb-4"><a href="/admin/deploy" class="p-link text-sm">→ Deployment (Linux-User pro Team)</a></p>
 
 <div class="grid gap-8 lg:grid-cols-2">
   <section>
     <h2 class="text-lg font-semibold mb-3">Nutzer</h2>
-    <div class="overflow-x-auto rounded-lg border border-slate-800">
+    <div class="overflow-x-auto p-card">
       <table class="w-full text-sm">
-        <thead class="bg-slate-900 text-slate-400 text-left">
+        <thead class="p-muted text-left">
           <tr>
             <th class="px-4 py-2">Benutzer</th>
             <th class="px-4 py-2">Rolle</th>
@@ -18,7 +18,7 @@
         </thead>
         <tbody>
           {% for u in users %}
-          <tr class="border-t border-slate-800">
+          <tr class="border-t border-[var(--p-border)]">
             <td class="px-4 py-2">{{ u.username }}</td>
             <td class="px-4 py-2">{{ u.role }}</td>
             <td class="px-4 py-2">{{ u.teams | join(', ') }}</td>
@@ -27,14 +27,14 @@
         </tbody>
       </table>
     </div>
-    <p class="text-xs text-slate-500 mt-2">Bearbeiten: <code>config/users.json</code></p>
+    <p class="text-xs p-faint mt-2">Bearbeiten: <code>config/users.json</code></p>
   </section>
 
   <section>
     <h2 class="text-lg font-semibold mb-3">Teams</h2>
-    <div class="overflow-x-auto rounded-lg border border-slate-800">
+    <div class="overflow-x-auto p-card">
       <table class="w-full text-sm">
-        <thead class="bg-slate-900 text-slate-400 text-left">
+        <thead class="p-muted text-left">
           <tr>
             <th class="px-4 py-2">ID</th>
             <th class="px-4 py-2">Name</th>
@@ -43,8 +43,8 @@
         </thead>
         <tbody>
           {% for t in teams %}
-          <tr class="border-t border-slate-800">
-            <td class="px-4 py-2"><a href="/teams/{{ t.id }}" class="text-indigo-400 hover:underline">{{ t.id }}</a></td>
+          <tr class="border-t border-[var(--p-border)]">
+            <td class="px-4 py-2"><a href="/teams/{{ t.id }}" class="p-link hover:underline">{{ t.id }}</a></td>
             <td class="px-4 py-2">{{ t.name }}</td>
             <td class="px-4 py-2">{{ t.agent_count }}</td>
           </tr>
@@ -52,20 +52,20 @@
         </tbody>
       </table>
     </div>
-    <p class="text-xs text-slate-500 mt-2">Bearbeiten: <code>teams/&lt;id&gt;/</code></p>
+    <p class="text-xs p-faint mt-2">Bearbeiten: <code>teams/&lt;id&gt;/</code></p>
   </section>
 </div>
 
 <section class="mt-10">
   <h2 class="text-lg font-semibold mb-3">Team-Runner (Hosts)</h2>
-  <p class="text-sm text-slate-400 mb-4">
+  <p class="text-sm p-muted mb-4">
     Hier legst du fest, wo das Web-Panel jedes Team findet — <strong>localhost</strong> oder ein
     <strong>entfernter Rechner</strong> mit <code>bot team serve</code>.
     Datei: <code>config/team_hosts.json</code>
   </p>
-  <div class="overflow-x-auto rounded-lg border border-slate-800">
+  <div class="overflow-x-auto p-card">
     <table class="w-full text-sm">
-      <thead class="bg-slate-900 text-slate-400 text-left">
+      <thead class="p-muted text-left">
         <tr>
           <th class="px-4 py-2">ID</th>
           <th class="px-4 py-2">Modus</th>
@@ -76,8 +76,8 @@
       </thead>
       <tbody>
         {% for h in hosts %}
-        <tr class="border-t border-slate-800">
-          <td class="px-4 py-2">{{ h.label }} <span class="text-slate-500">({{ h.id }})</span></td>
+        <tr class="border-t border-[var(--p-border)]">
+          <td class="px-4 py-2">{{ h.label }} <span class="p-faint">({{ h.id }})</span></td>
           <td class="px-4 py-2">{{ h.mode }}</td>
           <td class="px-4 py-2 font-mono text-xs">{% if h.mode == 'remote' %}{{ h.base_url }}{% else %}lokal{% endif %}</td>
           <td class="px-4 py-2 font-mono text-xs">{{ h.token_env or '—' }}</td>
