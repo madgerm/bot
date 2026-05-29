@@ -4,13 +4,21 @@
       "username": "admin",
       "password": "changeme",
       "role": "admin",
-      "teams": ["demo"]
+      "teams": ["demo", "coding", "story"]
     },
     {
       "username": "demo",
       "password": "changeme",
       "role": "user",
-      "teams": ["demo"]
+      "teams": ["demo"],
+      "team_access": [{ "team_id": "demo", "access": "operator" }]
+    },
+    {
+      "username": "reader",
+      "password": "changeme",
+      "role": "user",
+      "teams": ["story"],
+      "team_access": [{ "team_id": "story", "access": "reader" }]
     }
   ]
 }

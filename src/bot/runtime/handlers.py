@@ -1,12 +1,16 @@
-"""Rollenbasierte Message-Handler mit LLM (LiteLLM) oder Stub."""
+"""Rollenbasierte Message-Handler mit LLM, Tools und Team-Pipeline."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from bot.config.loader import discover_teams
+from bot.config.models import TeamBundle
 from bot.llm import LlmError
 from bot.messages.models import Message
 from bot.runtime.context import HandlerContext
+from bot.runtime.pipeline import ResolvedPipeline, resolve_pipeline
+from bot.runtime.tools import TOOL_NAMES, run_tool_loop
 
 
 @dataclass
@@ -25,36 +29,73 @@ class HandlerResult:
     delegates: list[DelegateRequest] = field(default_factory=list)
 
 
+_TOOLS_EXEC = frozenset(
+    {
+        "read_file",
+        "write_file",
+        "list_files",
+        "git_status",
+        "git_commit",
+        "qdrant_search",
+        "browser_open",
+        "story_read_scene",
+        "story_write_scene",
+        "index_workspace",
+    }
+)
+_TOOLS_ORCH = frozenset(
+    {"read_file", "list_files", "qdrant_search", "index_workspace", "git_status"}
+)
+_TOOLS_REVIEW = frozenset(
+    {
+        "read_file",
+        "list_files",
+        "qdrant_search",
+        "story_read_scene",
+        "git_status",
+    }
+)
+_TOOLS_DOC = frozenset({"read_file", "write_file", "list_files", "git_status", "git_commit"})
+
+
+def _bundle(ctx: HandlerContext) -> TeamBundle:
+    teams = discover_teams(ctx.root / "teams")
+    bundle = teams.get(ctx.team_id)
+    if not bundle:
+        raise RuntimeError(f"Team '{ctx.team_id}' nicht in der Konfiguration")
+    return bundle
+
+
+def _pipeline(ctx: HandlerContext) -> ResolvedPipeline:
+    return resolve_pipeline(_bundle(ctx))
+
+
 class AgentHandler:
     role: str
     default_category: str
+    tools: frozenset[str] = TOOL_NAMES
 
     def handle(self, message: Message, ctx: HandlerContext) -> HandlerResult:
         raise NotImplementedError
 
-    def _complete(
+    def _run_with_tools(
         self,
         ctx: HandlerContext,
         message: Message,
         *,
         system_prompt: str,
         task_category: str | None = None,
+        tools: frozenset[str] | None = None,
     ) -> str:
         category = task_category or message.task_category or self.default_category
-        model = ctx.llm_stack.router.resolve(
-            category, role=ctx.role, override=message.model_override
-        )
-        fallbacks = ctx.llm_stack.router.fallbacks(category, role=ctx.role)
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {
-                "role": "user",
-                "content": f"Betreff: {message.subject}\n\n{message.content}",
-            },
-        ]
+        user_content = f"Betreff: {message.subject}\n\n{message.content}"
         try:
-            return ctx.llm_stack.client.complete(
-                model, messages, fallbacks=fallbacks or None
+            return run_tool_loop(
+                ctx,
+                system_prompt=system_prompt,
+                user_content=user_content,
+                task_category=category,
+                tools=tools or self.tools,
             )
         except LlmError as exc:
             raise RuntimeError(str(exc)) from exc
@@ -63,23 +104,27 @@ class AgentHandler:
 class OrchestratorHandler(AgentHandler):
     role = "orchestrator"
     default_category = "planning"
+    tools = _TOOLS_ORCH
 
     def handle(self, message: Message, ctx: HandlerContext) -> HandlerResult:
-        if message.type == "delegation_result":
+        pipe = _pipeline(ctx)
+
+        if message.type in {"delegation_result", "hours_check_result"}:
             return HandlerResult(complete=True)
 
-        if message.from_agent == "worker-review":
+        if message.from_agent == pipe.review_id:
             return HandlerResult(complete=True)
 
-        if message.from_agent in {"worker-exec", "worker-review"}:
+        if message.from_agent in {pipe.execute_id, pipe.review_id}:
             return HandlerResult(complete=True)
 
-        plan = self._complete(
+        plan = self._run_with_tools(
             ctx,
             message,
             system_prompt=(
                 "Du bist ein Orchestrator. Erstelle einen kurzen Ausführungsplan "
-                "(max. 5 Sätze) für den Worker-Agenten. Nur der Plan, keine Begrüßung."
+                "(max. 8 Sätze) für den Ausführungs-Agenten. Nutze Tools wenn nötig "
+                "(Kontext lesen, Wissen suchen). Beende mit done und summary."
             ),
             task_category="planning",
         )
@@ -88,7 +133,7 @@ class OrchestratorHandler(AgentHandler):
             complete=True,
             delegates=[
                 DelegateRequest(
-                    to_agent="worker-exec",
+                    to_agent=pipe.execute_id,
                     subject=message.subject,
                     content=body,
                     type=message.type,
@@ -101,23 +146,26 @@ class OrchestratorHandler(AgentHandler):
 class WorkerExecHandler(AgentHandler):
     role = "worker"
     default_category = "coding"
+    tools = _TOOLS_EXEC
 
     def handle(self, message: Message, ctx: HandlerContext) -> HandlerResult:
-        result = self._complete(
+        pipe = _pipeline(ctx)
+        result = self._run_with_tools(
             ctx,
             message,
             system_prompt=(
-                "Du bist ein Ausführungs-Agent. Bearbeite die Aufgabe knapp "
-                "(max. 8 Sätze). Beschreibe konkrete Schritte oder ein Ergebnis."
+                "Du bist ein Ausführungs-Agent (Coding oder Story). "
+                "Nutze Tools: Dateien lesen/schreiben, Git, Qdrant, Browser, Story-Szenen. "
+                "Führe die Aufgabe aus und fasse das Ergebnis in done.summary zusammen."
             ),
-            task_category="coding",
+            task_category=message.task_category or "coding",
         )
         executed = f"{message.content.rstrip()}\n\n--- Ausführung ---\n{result}"
         return HandlerResult(
             complete=True,
             delegates=[
                 DelegateRequest(
-                    to_agent="worker-review",
+                    to_agent=pipe.review_id,
                     subject=f"Review: {message.subject}",
                     content=executed,
                     type="review_task",
@@ -130,36 +178,78 @@ class WorkerExecHandler(AgentHandler):
 class ReviewerHandler(AgentHandler):
     role = "reviewer"
     default_category = "review"
+    tools = _TOOLS_REVIEW
 
     def handle(self, message: Message, ctx: HandlerContext) -> HandlerResult:
-        review = self._complete(
+        pipe = _pipeline(ctx)
+        review = self._run_with_tools(
             ctx,
             message,
             system_prompt=(
-                "Du bist ein Review-Agent. Prüfe die Arbeit. "
-                "Antworte mit APPROVED oder LISTE VON PROBLEMEN (kurz)."
+                "Du bist ein Review-Agent. Prüfe die Arbeit mit Tools wenn nötig. "
+                "Antworte in done.summary mit APPROVED oder LISTE VON PROBLEMEN (kurz)."
             ),
             task_category="review",
         )
         reviewed = f"{message.content.rstrip()}\n\n--- Review ---\n{review}"
+        delegates = [
+            DelegateRequest(
+                to_agent=pipe.orchestrator_id,
+                subject=f"Ergebnis: {message.subject}",
+                content=reviewed,
+                type="delegation_result",
+                task_category=message.task_category,
+            )
+        ]
+        if pipe.document_id and "APPROVED" in review.upper():
+            delegates.append(
+                DelegateRequest(
+                    to_agent=pipe.document_id,
+                    subject=f"Doku: {message.subject}",
+                    content=reviewed,
+                    type="documentation_task",
+                    task_category="documentation",
+                )
+            )
+        return HandlerResult(complete=True, delegates=delegates)
+
+
+class DocumenterHandler(AgentHandler):
+    role = "documenter"
+    default_category = "documentation"
+    tools = _TOOLS_DOC
+
+    def handle(self, message: Message, ctx: HandlerContext) -> HandlerResult:
+        pipe = _pipeline(ctx)
+        doc = self._run_with_tools(
+            ctx,
+            message,
+            system_prompt=(
+                "Du bist ein Doku-Agent. Erstelle oder aktualisiere Dokumentation "
+                "(README, Kommentare, Story-Notizen) mit den Datei- und Git-Tools. "
+                "Beende mit done.summary."
+            ),
+            task_category="documentation",
+        )
+        documented = f"{message.content.rstrip()}\n\n--- Dokumentation ---\n{doc}"
         return HandlerResult(
             complete=True,
             delegates=[
                 DelegateRequest(
-                    to_agent="orchestrator",
-                    subject=f"Ergebnis: {message.subject}",
-                    content=reviewed,
+                    to_agent=pipe.orchestrator_id,
+                    subject=f"Doku fertig: {message.subject}",
+                    content=documented,
                     type="delegation_result",
-                    task_category=message.task_category,
+                    task_category="documentation",
                 )
             ],
         )
 
 
-
 class HoursCheckerHandler(AgentHandler):
     role = "hours_checker"
     default_category = "review"
+    tools = frozenset({"browser_open"})
 
     def handle(self, message: Message, ctx: HandlerContext) -> HandlerResult:
         from bot.hours.service import HoursService, HoursServiceError
@@ -176,28 +266,19 @@ class HoursCheckerHandler(AgentHandler):
             if message.content.strip()
             else summary
         )
-        orch = _orchestrator_for_team(ctx)
-        if orch:
-            return HandlerResult(
-                complete=True,
-                delegates=[
-                    DelegateRequest(
-                        to_agent=orch,
-                        subject=f"Öffnungszeiten: {message.subject or 'Abgleich'}",
-                        content=body,
-                        type="hours_check_result",
-                    )
-                ],
-            )
-        return HandlerResult(complete=True)
+        pipe = _pipeline(ctx)
+        return HandlerResult(
+            complete=True,
+            delegates=[
+                DelegateRequest(
+                    to_agent=pipe.orchestrator_id,
+                    subject=f"Öffnungszeiten: {message.subject or 'Abgleich'}",
+                    content=body,
+                    type="hours_check_result",
+                )
+            ],
+        )
 
-
-def _orchestrator_for_team(ctx: HandlerContext) -> str | None:
-    from bot.config.loader import discover_teams
-
-    teams = discover_teams(ctx.root / "teams")
-    bundle = teams.get(ctx.team_id)
-    return bundle.team.team.orchestrator_id if bundle else None
 
 def handler_for_role(role: str) -> AgentHandler:
     mapping: dict[str, AgentHandler] = {
@@ -208,6 +289,7 @@ def handler_for_role(role: str) -> AgentHandler:
         "story_reviewer": ReviewerHandler(),
         "coder": WorkerExecHandler(),
         "tester": ReviewerHandler(),
+        "documenter": DocumenterHandler(),
         "hours_checker": HoursCheckerHandler(),
     }
     if role not in mapping:

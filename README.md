@@ -83,7 +83,9 @@ bot msg send --team demo --from orchestrator --to orchestrator \
 bot run --team demo --once   # oder bot run dauerhaft
 ```
 
-Pipeline: `orchestrator` → `worker-exec` → `worker-review` → `orchestrator`.
+Pipeline (konfigurierbar pro Team): z. B. Demo `orchestrator` → `worker-exec` → `worker-review`; Coding `coder` → `tester` → `doku`; Story `drehbuch-autor` → `logik-pruefer`. Agents nutzen **Tools** (Dateien, Git, Qdrant, Browser, Story-Szenen) im LLM-Loop.
+
+Fertige Team-Presets: `teams/demo/`, `teams/coding/`, `teams/story/`.
 
 ---
 

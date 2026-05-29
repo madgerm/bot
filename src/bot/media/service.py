@@ -69,9 +69,9 @@ class MediaService:
 
     def speech_to_text(self, audio_path: Path) -> str:
         cfg = resolve_channel(self._global, self._team, "stt")
-        if not isinstance(cfg, MediaChannelConfig) or not cfg.endpoint:
-            return f"[stt-stub] {audio_path.name}"
-        return self._http_transcribe(cfg, audio_path)
+        if isinstance(cfg, MediaChannelConfig) and cfg.endpoint:
+            return self._http_transcribe(cfg, audio_path)
+        return self._stt_litellm_or_stub(audio_path)
 
     def text_to_speech(self, text: str, out_path: Path) -> Path:
         cfg = resolve_channel(self._global, self._team, "tts")
@@ -140,9 +140,33 @@ class MediaService:
         resp.raise_for_status()
         return resp.json()
 
+    def _stt_litellm_or_stub(self, audio_path: Path) -> str:
+        try:
+            import litellm
+
+            api_key = resolve_secret(
+                self._global.stt.secret_ref if self._global else None
+            )
+            model = (self._global.stt.model if self._global else None) or "whisper-1"
+            with audio_path.open("rb") as f:
+                response = litellm.transcription(
+                    model=model,
+                    file=f,
+                    api_key=api_key,
+                )
+            text = getattr(response, "text", None) or str(response)
+            if text.strip():
+                return text.strip()
+        except Exception:
+            pass
+        return f"[stt-stub] {audio_path.name} — STT-Endpoint oder LITELLM_API_KEY konfigurieren"
+
     def _image_minimax(self, cfg: ImageGenerationConfig, prompt: str) -> dict[str, Any]:
         base = cfg.api_base or "https://api.minimax.io"
-        headers = {"Authorization": f"Bearer {resolve_secret(cfg.secret_ref) or ''}"}
+        token = resolve_secret(cfg.secret_ref)
+        if not token:
+            raise MediaServiceError("MINIMAX API-Key fehlt (secret_ref)")
+        headers = {"Authorization": f"Bearer {token}"}
         resp = httpx.post(
             f"{base.rstrip('/')}/v1/image_generation",
             json={"model": cfg.model or "image-01", "prompt": prompt},
@@ -150,7 +174,9 @@ class MediaService:
             timeout=cfg.timeout_seconds,
         )
         if resp.status_code >= 400:
-            return {"status": "stub", "prompt": prompt, "note": "minimax_endpoint_stub"}
+            raise MediaServiceError(
+                f"MiniMax HTTP {resp.status_code}: {resp.text[:500]}"
+            )
         return resp.json()
 
     def _image_selfhosted(self, cfg: ImageGenerationConfig, prompt: str) -> dict[str, Any]:

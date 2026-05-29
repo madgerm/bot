@@ -149,11 +149,20 @@ class TaskModelsConfig(BaseModel):
         return value
 
 
+class PipelineConfig(BaseModel):
+    """Agent-IDs für die Standard-Pipeline (überschreibt Preset-Defaults)."""
+
+    execute: str | None = None
+    review: str | None = None
+    document: str | None = None
+
+
 class TeamBlock(BaseModel):
     id: str
     name: str
     orchestrator_id: str
     enabled: bool = True
+    preset: Literal["generic", "demo", "coding", "story"] = "generic"
 
     @field_validator("id")
     @classmethod
@@ -170,6 +179,7 @@ class TeamConfig(BaseModel):
     """Inhalt von teams/<slug>/team.json."""
 
     team: TeamBlock
+    pipeline: PipelineConfig | None = None
 
 
 class AgentBlock(BaseModel):
@@ -182,6 +192,7 @@ class AgentBlock(BaseModel):
         "story_reviewer",
         "coder",
         "tester",
+        "documenter",
         "hours_checker",
     ] = "worker"
     enabled: bool = True

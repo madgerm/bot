@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from bot.web.auth import CurrentUser, require_admin, require_team_access
+from bot.web.team_access import require_team_write
 
 
 def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> None:
@@ -37,7 +38,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
         description: str = Form(""),
         assignee_agent: str = Form(""),
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         from bot.tasks import TaskService
 
         TaskService.for_team(root_path, team_id).create(
@@ -56,7 +57,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
         user: CurrentUser,
         status: str = Form(...),
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         from bot.tasks import TaskService, TaskServiceError
 
         try:
@@ -85,7 +86,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
         agent_id: str = Form(...),
         role: str = Form("worker"),
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         from bot.agents_mgmt import AgentManager, AgentManagerError
 
         try:
@@ -98,7 +99,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
     async def team_agents_delete(
         request: Request, team_id: str, agent_id: str, user: CurrentUser
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         from bot.agents_mgmt import AgentManager, AgentManagerError
 
         try:
@@ -147,7 +148,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
         file_path: str = Form(...),
         content: str = Form(...),
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         from bot.files import FileService, FileServiceError
 
         try:
@@ -191,7 +192,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
         user: CurrentUser,
         message: str = Form(...),
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         from bot.git_svc import GitService, GitServiceError
 
         try:
@@ -242,7 +243,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
         tone: str = Form(""),
         main_characters: str = Form(""),
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         chars = [c.strip() for c in main_characters.split(",") if c.strip()]
         _story_svc(team_id).db.ensure_story(
             title=title, genre=genre, setting=setting, tone=tone, main_characters=chars
@@ -275,7 +276,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
         arc: str = Form(""),
         relationships: str = Form(""),
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         rels = []
         for line in relationships.strip().splitlines():
             if "|" in line:
@@ -318,7 +319,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
         file: str = Form(...),
         content: str = Form(...),
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         from bot.story.db import StoryDBError
 
         try:
@@ -366,7 +367,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
     async def team_story_add_chapter(
         request: Request, team_id: str, user: CurrentUser
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         ch = _story_svc(team_id).db.add_chapter()
         return RedirectResponse(f"/teams/{team_id}/story/scenes?chapter={ch}", status_code=302)
 
@@ -379,7 +380,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
         title: str = Form(""),
         content: str = Form(""),
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         info = _story_svc(team_id).db.add_scene(
             chapter_id, title=title, content=content
         )
@@ -399,7 +400,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
         version: int = Form(...),
         status: str = Form("draft"),
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         from bot.story.db import StoryDBError
 
         try:
@@ -438,7 +439,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
         chapter_id: str = Form(""),
         scene_id: str = Form(""),
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         _story_svc(team_id).db.add_review_issue(
             checker=checker,
             severity=severity,
@@ -447,6 +448,24 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
             scene_id=scene_id or None,
         )
         return RedirectResponse(f"/teams/{team_id}/story/review", status_code=302)
+
+    @app.post("/teams/{team_id}/story/export")
+    async def team_story_export(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        fmt: str = Form("epub"),
+    ):
+        require_team_write(team_id, user)
+        from bot.story.export import StoryExportError, export_story
+
+        try:
+            path = export_story(root_path, team_id, fmt)
+        except StoryExportError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return RedirectResponse(
+            f"/teams/{team_id}/story?exported={path.name}", status_code=302
+        )
 
     @app.get("/teams/{team_id}/media", response_class=HTMLResponse)
     async def team_media_page(request: Request, team_id: str, user: CurrentUser):
@@ -464,7 +483,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
         user: CurrentUser,
         prompt: str = Form(...),
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         from bot.media import MediaService, MediaServiceError
 
         result = None
@@ -476,7 +495,95 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
         return templates.TemplateResponse(
             request,
             "team_media.html",
-            {"user": user, "team_id": team_id, "result": result, "error": error},
+            {
+                "user": user,
+                "team_id": team_id,
+                "result": result,
+                "error": error,
+                "stt_text": None,
+                "tts_path": None,
+            },
+        )
+
+    @app.post("/teams/{team_id}/media/voice/stt")
+    async def team_media_voice_stt(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+    ):
+        require_team_write(team_id, user)
+        from bot.media import MediaService, MediaServiceError
+
+        form = await request.form()
+        upload = form.get("audio")
+        if not upload or not hasattr(upload, "read"):
+            raise HTTPException(status_code=400, detail="Audio-Datei fehlt")
+        audio_dir = root_path / "data" / team_id / "media_uploads"
+        audio_dir.mkdir(parents=True, exist_ok=True)
+        dest = audio_dir / f"upload-{user.username}.webm"
+        dest.write_bytes(await upload.read())  # type: ignore[union-attr]
+        stt_text = None
+        error = None
+        try:
+            stt_text = MediaService.for_team(root_path, team_id).speech_to_text(dest)
+        except MediaServiceError as exc:
+            error = str(exc)
+        return templates.TemplateResponse(
+            request,
+            "team_media.html",
+            {
+                "user": user,
+                "team_id": team_id,
+                "result": None,
+                "error": error,
+                "stt_text": stt_text,
+                "tts_path": None,
+            },
+        )
+
+    @app.post("/teams/{team_id}/media/voice/tts")
+    async def team_media_voice_tts(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        text: str = Form(...),
+    ):
+        require_team_write(team_id, user)
+        from bot.media import MediaService, MediaServiceError
+
+        out = root_path / "data" / team_id / "media_uploads" / "tts-latest.bin"
+        error = None
+        tts_path = None
+        try:
+            MediaService.for_team(root_path, team_id).text_to_speech(text, out)
+            tts_path = str(out.relative_to(root_path))
+        except MediaServiceError as exc:
+            error = str(exc)
+        return templates.TemplateResponse(
+            request,
+            "team_media.html",
+            {
+                "user": user,
+                "team_id": team_id,
+                "result": None,
+                "error": error,
+                "stt_text": None,
+                "tts_path": tts_path,
+            },
+        )
+
+    @app.post("/teams/{team_id}/knowledge/reindex")
+    async def team_knowledge_reindex(
+        request: Request, team_id: str, user: CurrentUser
+    ):
+        require_team_write(team_id, user)
+        from bot.qdrant.indexer import index_crawl_snapshots, index_team_workspace
+
+        ws = index_team_workspace(root_path, team_id)
+        cr = index_crawl_snapshots(root_path, team_id)
+        return RedirectResponse(
+            f"/teams/{team_id}/knowledge?indexed={ws}+{cr}",
+            status_code=302,
         )
 
     @app.get("/teams/{team_id}/crawl", response_class=HTMLResponse)
@@ -490,7 +597,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
 
     @app.post("/teams/{team_id}/crawl/run")
     async def team_crawl_run(request: Request, team_id: str, user: CurrentUser):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         from bot.crawl import CrawlService, CrawlServiceError
 
         results = None

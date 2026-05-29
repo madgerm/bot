@@ -80,6 +80,7 @@ def create_app(root: Path | str) -> FastAPI:
         request.session[SESSION_USER_KEY] = user.username
         request.session[SESSION_ROLE_KEY] = user.role
         request.session[SESSION_TEAMS_KEY] = user.teams
+        request.session["team_access"] = dict(user.team_access)
         return RedirectResponse("/dashboard", status_code=302)
 
     @app.post("/logout")
@@ -144,6 +145,10 @@ def create_app(root: Path | str) -> FastAPI:
 
         store = ChatStore(root_path, team_id)
         messages = store.list_messages(agent_id=agent, search=q, limit=100)
+        audit = store.list_audit(limit=30)
+        from bot.web.team_access import team_access_level
+
+        access = team_access_level(user, team_id)
         return templates.TemplateResponse(
             request,
             "team_chat.html",
@@ -153,6 +158,8 @@ def create_app(root: Path | str) -> FastAPI:
                 "messages": messages,
                 "filter_agent": agent,
                 "filter_q": q,
+                "audit_log": audit,
+                "can_write": access in ("admin", "operator"),
             },
         )
 
@@ -165,11 +172,28 @@ def create_app(root: Path | str) -> FastAPI:
         role: str = Form("user"),
         agent_id: str | None = Form(None),
     ):
-        require_team_access(team_id, user)
+        from bot.web.team_access import require_team_write
+
+        require_team_write(team_id, user)
         from bot.chat import ChatStore
 
         store = ChatStore(root_path, team_id)
         store.add(role=role, content=content, agent_id=agent_id or None)  # type: ignore[arg-type]
+        return RedirectResponse(f"/teams/{team_id}/chat", status_code=302)
+
+    @app.post("/teams/{team_id}/chat/delete")
+    async def team_chat_delete(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        message_id: str = Form(...),
+    ):
+        from bot.web.team_access import require_team_write
+
+        require_team_write(team_id, user)
+        from bot.chat import ChatStore
+
+        ChatStore(root_path, team_id).delete_message(message_id, actor=user.username)
         return RedirectResponse(f"/teams/{team_id}/chat", status_code=302)
 
     @app.post("/teams/{team_id}/chat/clear")
@@ -179,12 +203,14 @@ def create_app(root: Path | str) -> FastAPI:
         user: CurrentUser,
         confirm: str = Form(""),
     ):
-        require_team_access(team_id, user)
+        from bot.web.team_access import require_team_write
+
+        require_team_write(team_id, user)
         if confirm != "CLEAR":
             raise HTTPException(status_code=400, detail="Bestätigung fehlt (CLEAR)")
         from bot.chat import ChatStore
 
-        ChatStore(root_path, team_id).clear_all()
+        ChatStore(root_path, team_id).clear_all(actor=user.username)
         return RedirectResponse(f"/teams/{team_id}/chat", status_code=302)
 
     @app.get("/teams/{team_id}/knowledge", response_class=HTMLResponse)

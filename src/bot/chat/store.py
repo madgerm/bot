@@ -41,8 +41,26 @@ class ChatMessage:
         }
 
 
+@dataclass
+class ChatAuditEntry:
+    id: str
+    action: str
+    actor: str
+    details: dict[str, Any]
+    created_at: datetime
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "action": self.action,
+            "actor": self.actor,
+            "details": self.details,
+            "created_at": self.created_at.isoformat(),
+        }
+
+
 class ChatStore:
-    SCHEMA_VERSION = 1
+    SCHEMA_VERSION = 2
 
     def __init__(self, root: Path, team_id: str) -> None:
         self.root = root.resolve()
@@ -87,6 +105,20 @@ class ChatStore:
             )
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_messages_thread ON messages(thread_id)"
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS chat_audit (
+                    id TEXT PRIMARY KEY,
+                    action TEXT NOT NULL,
+                    actor TEXT NOT NULL,
+                    details TEXT NOT NULL DEFAULT '{}',
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_chat_audit_created ON chat_audit(created_at)"
             )
             conn.execute(
                 "INSERT OR REPLACE INTO schema_meta(key, value) VALUES (?, ?)",
@@ -163,17 +195,59 @@ class ChatStore:
             messages.append(self._row_to_message(row))
         return list(reversed(messages))
 
-    def delete_message(self, message_id: str) -> bool:
+    def _audit(self, action: str, actor: str, details: dict[str, Any]) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO chat_audit (id, action, actor, details, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    str(uuid.uuid4()),
+                    action,
+                    actor,
+                    json.dumps(details, ensure_ascii=False),
+                    datetime.now(UTC).isoformat(),
+                ),
+            )
+            conn.commit()
+
+    def list_audit(self, *, limit: int = 50) -> list[ChatAuditEntry]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM chat_audit ORDER BY created_at DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        entries: list[ChatAuditEntry] = []
+        for row in rows:
+            entries.append(
+                ChatAuditEntry(
+                    id=row["id"],
+                    action=row["action"],
+                    actor=row["actor"],
+                    details=json.loads(row["details"] or "{}"),
+                    created_at=datetime.fromisoformat(row["created_at"]),
+                )
+            )
+        return list(reversed(entries))
+
+    def delete_message(self, message_id: str, *, actor: str | None = None) -> bool:
         with self._connect() as conn:
             cur = conn.execute("DELETE FROM messages WHERE id = ?", (message_id,))
             conn.commit()
-            return cur.rowcount > 0
+            deleted = cur.rowcount > 0
+        if deleted and actor:
+            self._audit("delete_message", actor, {"message_id": message_id})
+        return deleted
 
-    def clear_all(self) -> int:
+    def clear_all(self, *, actor: str | None = None) -> int:
         with self._connect() as conn:
-            cur = conn.execute("DELETE FROM messages")
+            count = conn.execute("SELECT COUNT(*) FROM messages").fetchone()[0]
+            conn.execute("DELETE FROM messages")
             conn.commit()
-            return cur.rowcount
+        if actor and count:
+            self._audit("clear_all", actor, {"deleted_count": count})
+        return int(count)
 
     def _row_to_message(self, row: sqlite3.Row) -> ChatMessage:
         return ChatMessage(

@@ -1,0 +1,8 @@
+{
+  "agent": {
+    "id": "coder",
+    "role": "coder",
+    "enabled": true,
+    "interval_seconds": 5
+  }
+}
