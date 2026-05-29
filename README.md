@@ -251,19 +251,24 @@ Agents versenden **nicht** selbst; Versand nur nach Status `approved`.
 
 ---
 
-## Öffnungszeiten (Website ↔ Google)
+## Öffnungszeiten (Agent liest Website)
 
-Master-Datei ist die Wahrheit; Abgleich erzeugt einen Diff; Publish nur nach Freigabe.
+Der **hours_checker**-Agent lädt die konfigurierte URL, extrahiert Öffnungszeiten per LLM und vergleicht mit dem **Master**. Keine zweite JSON-Datei manuell pflegen.
 
 ```bash
 cp teams/demo/hours.json.example teams/mein-team/hours.json
 cp teams/demo/hours.master.json.example teams/mein-team/hours.master.json
+
 bot hours check --team mein-team
+bot hours queue --team mein-team   # Auftrag → bot run
 bot hours approve --team mein-team --diff <uuid> --approved-by max
 bot hours publish --team mein-team --diff <uuid>
 ```
 
-Web-Panel: `/teams/<id>/hours` — Abgleich, Freigabe, **PUBLISH** bestätigen.
+`hours.json`: `website.type: "page"` + URL; `publish` für Ziel nach Freigabe (file/http).  
+Legacy: `website.type: file|http` ohne Seitenlesen.
+
+Web-Panel: `/teams/<id>/hours`
 
 ---
 

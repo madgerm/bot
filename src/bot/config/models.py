@@ -182,6 +182,7 @@ class AgentBlock(BaseModel):
         "story_reviewer",
         "coder",
         "tester",
+        "hours_checker",
     ] = "worker"
     enabled: bool = True
     interval_seconds: float | None = None

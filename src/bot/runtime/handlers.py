@@ -156,6 +156,49 @@ class ReviewerHandler(AgentHandler):
         )
 
 
+
+class HoursCheckerHandler(AgentHandler):
+    role = "hours_checker"
+    default_category = "review"
+
+    def handle(self, message: Message, ctx: HandlerContext) -> HandlerResult:
+        from bot.hours.service import HoursService, HoursServiceError
+
+        try:
+            service = HoursService.for_team(ctx.root, ctx.team_id)
+            record = service.check(llm_stack=ctx.llm_stack)
+            summary = service.format_check_summary(record)
+        except HoursServiceError as exc:
+            return HandlerResult(complete=True, error=str(exc))
+
+        body = (
+            f"{message.content.rstrip()}\n\n--- Öffnungszeiten-Prüfung ---\n{summary}"
+            if message.content.strip()
+            else summary
+        )
+        orch = _orchestrator_for_team(ctx)
+        if orch:
+            return HandlerResult(
+                complete=True,
+                delegates=[
+                    DelegateRequest(
+                        to_agent=orch,
+                        subject=f"Öffnungszeiten: {message.subject or 'Abgleich'}",
+                        content=body,
+                        type="hours_check_result",
+                    )
+                ],
+            )
+        return HandlerResult(complete=True)
+
+
+def _orchestrator_for_team(ctx: HandlerContext) -> str | None:
+    from bot.config.loader import discover_teams
+
+    teams = discover_teams(ctx.root / "teams")
+    bundle = teams.get(ctx.team_id)
+    return bundle.team.team.orchestrator_id if bundle else None
+
 def handler_for_role(role: str) -> AgentHandler:
     mapping: dict[str, AgentHandler] = {
         "orchestrator": OrchestratorHandler(),
@@ -165,6 +208,7 @@ def handler_for_role(role: str) -> AgentHandler:
         "story_reviewer": ReviewerHandler(),
         "coder": WorkerExecHandler(),
         "tester": ReviewerHandler(),
+        "hours_checker": HoursCheckerHandler(),
     }
     if role not in mapping:
         raise ValueError(f"Kein Handler für Rolle '{role}'")
