@@ -1,0 +1,9 @@
+{
+  "agent": {
+    "id": "hours-checker",
+    "role": "hours_checker",
+    "enabled": true,
+    "interval_seconds": 10,
+    "display_name": "Öffnungszeiten-Prüfer"
+  }
+}

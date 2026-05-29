@@ -399,7 +399,11 @@ def create_app(root: Path | str) -> FastAPI:
         from bot.hours import HoursService, HoursServiceError
 
         try:
-            HoursService.for_team(root_path, team_id).check()
+            from bot.config import ConfigStore
+            from bot.llm import build_llm_stack
+
+            stack = build_llm_stack(ConfigStore(root_path).get())
+            HoursService.for_team(root_path, team_id).check(llm_stack=stack)
         except HoursServiceError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return RedirectResponse(f"/teams/{team_id}/hours", status_code=302)

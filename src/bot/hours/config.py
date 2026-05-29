@@ -25,11 +25,24 @@ class WebsiteHttpConfig(BaseModel):
     secret_ref: str | None = None
 
 
+class WebsitePageConfig(BaseModel):
+    """Webseite laden, Öffnungszeiten per Agent (LLM) extrahieren."""
+
+    type: Literal["page"] = "page"
+    url: str
+    crawl_engine: Literal["auto", "httpx", "crawl4ai"] = "auto"
+
+
+WebsiteSourceConfig = WebsiteFileConfig | WebsiteHttpConfig | WebsitePageConfig
+PublishTargetConfig = WebsiteFileConfig | WebsiteHttpConfig
+
+
 class GoogleBusinessConfig(BaseModel):
     enabled: bool = False
     account_id: str | None = None
     location_id: str | None = None
     secret_ref: str | None = None
+    page_url: str | None = None
 
 
 class HoursSchedule(BaseModel):
@@ -40,10 +53,12 @@ class HoursSchedule(BaseModel):
 class HoursTeamConfig(BaseModel):
     enabled: bool = True
     master_file: str = "teams/{team_id}/hours.master.json"
-    website: WebsiteFileConfig | WebsiteHttpConfig
+    website: WebsiteSourceConfig
+    publish: PublishTargetConfig | None = None
     google_business: GoogleBusinessConfig = Field(default_factory=GoogleBusinessConfig)
     schedule: HoursSchedule = Field(default_factory=HoursSchedule)
     require_approval: bool = True
+    checker_agent_id: str = "hours-checker"
 
 
 class HoursConfig(BaseModel):
@@ -70,3 +85,13 @@ def resolve_secret(secret_ref: str | None) -> str | None:
     if not value:
         raise HoursConfigError(f"Secret '{secret_ref}' nicht gesetzt")
     return value
+
+
+def publish_target(cfg: HoursTeamConfig) -> PublishTargetConfig:
+    if cfg.publish is not None:
+        return cfg.publish
+    if isinstance(cfg.website, (WebsiteFileConfig, WebsiteHttpConfig)):
+        return cfg.website
+    raise HoursConfigError(
+        "Bei website.type=page muss 'publish' (file oder http) gesetzt sein."
+    )
