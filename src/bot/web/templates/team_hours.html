@@ -2,25 +2,25 @@
 {% block title %}Öffnungszeiten — {{ team_id }}{% endblock %}
 {% block content %}
 <div class="mb-6 flex flex-wrap gap-4 items-center">
-  <a href="/teams/{{ team_id }}" class="text-sm text-indigo-400">← Team</a>
+  <a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
   <h1 class="text-2xl font-bold">Öffnungszeiten</h1>
 </div>
 
 {% if hours_error %}
-<p class="text-amber-400 text-sm mb-4">Hinweis: {{ hours_error }}</p>
+<p class="p-status-warn text-sm mb-4">Hinweis: {{ hours_error }}</p>
 {% else %}
-<p class="text-slate-400 text-sm mb-4 max-w-2xl">
+<p class="p-faint text-sm mb-4 max-w-2xl">
   Der Agent lädt die Website-URL, liest die Öffnungszeiten und vergleicht sie mit dem Master.
 </p>
 {% endif %}
 
 <form method="post" action="/teams/{{ team_id }}/hours/check" class="mb-6">
-  <button type="submit" class="px-4 py-2 rounded bg-indigo-600 text-sm">Agent-Abgleich starten</button>
+  <button type="submit" class="p-btn p-btn-primary text-sm">Agent-Abgleich starten</button>
 </form>
 
 {% if master_json %}
-<section class="mb-8 p-4 rounded-lg border border-slate-800 bg-slate-900">
-  <h2 class="text-sm text-slate-500 uppercase mb-2">Master</h2>
+<section class="mb-8 p-4 p-card">
+  <h2 class="text-sm p-faint uppercase mb-2">Master (Single Source of Truth)</h2>
   <pre class="text-xs overflow-auto">{{ master_json }}</pre>
 </section>
 {% endif %}
@@ -28,42 +28,45 @@
 <h2 class="text-lg font-semibold mb-3">Letzte Abgleiche</h2>
 <div class="space-y-4">
   {% for record in diffs %}
-  <article class="p-4 rounded-lg border border-slate-800 bg-slate-900/80">
-    <div class="text-xs text-slate-500 mb-2">
-      {{ record.created_at }} · {{ record.status }}
+  <article class="p-4 p-card-muted">
+    <div class="text-xs p-faint mb-2">
+      {{ record.created_at }} · Status: <span class="p-secondary">{{ record.status }}</span>
       {% if record.diff_json.check_mode %} · {{ record.diff_json.check_mode }}{% endif %}
+      {% if record.approved_by %} · {{ record.approved_by }}{% endif %}
     </div>
     {% if record.diff_json.agent_report %}
-    <p class="text-slate-400 text-xs mb-2">
+    <p class="p-muted text-xs mb-2">
       {{ record.diff_json.agent_report.source_url or '' }}
       · {{ record.diff_json.agent_report.extraction_method or '' }}
       {% if record.diff_json.agent_report.agent_note %}<br>{{ record.diff_json.agent_report.agent_note }}{% endif %}
     </p>
     {% endif %}
     {% if record.diff_json.has_diff %}
-    <p class="text-amber-300 text-sm mb-2">{{ record.diff_json.change_count }} Abweichung(en)</p>
-    <ul class="text-xs text-slate-400 space-y-1 mb-3 max-h-40 overflow-auto">
+    <p class="p-status-warn text-sm mb-2">{{ record.diff_json.change_count }} Abweichung(en)</p>
+    <ul class="text-xs p-muted space-y-1 mb-3 max-h-40 overflow-auto">
       {% for c in record.diff_json.changes[:15] %}
       <li>{{ c.kind }}: {{ c.field }}</li>
       {% endfor %}
     </ul>
     {% else %}
-    <p class="text-emerald-400 text-sm mb-2">Keine Abweichungen.</p>
+    <p class="p-status-ok text-sm mb-2">Keine Abweichungen</p>
     {% endif %}
     {% if record.status == 'awaiting_approval' and record.diff_json.has_diff %}
-    <form method="post" action="/teams/{{ team_id }}/hours/diff/{{ record.id }}/approve">
-      <button type="submit" class="px-3 py-1 rounded bg-emerald-800 text-sm">Freigeben</button>
-    </form>
+    <div class="flex flex-wrap gap-2">
+      <form method="post" action="/teams/{{ team_id }}/hours/diff/{{ record.id }}/approve">
+        <button type="submit" class="p-btn p-btn-success text-sm">Freigeben</button>
+      </form>
+    </div>
     {% endif %}
     {% if record.status == 'approved' %}
     <form method="post" action="/teams/{{ team_id }}/hours/diff/{{ record.id }}/publish" class="flex gap-2 mt-2">
-      <input name="confirm" placeholder="PUBLISH" class="rounded bg-slate-800 border border-slate-700 px-2 py-1 text-sm w-28">
-      <button type="submit" class="px-3 py-1 rounded bg-indigo-600 text-sm">Veröffentlichen</button>
+      <input name="confirm" placeholder="PUBLISH" class="p-input">
+      <button type="submit" class="p-btn p-btn-primary text-sm">Veröffentlichen</button>
     </form>
     {% endif %}
   </article>
   {% else %}
-  <p class="text-slate-500 text-sm">Noch kein Abgleich.</p>
+  <p class="p-faint text-sm">Noch kein Abgleich — Button oben nutzen.</p>
   {% endfor %}
 </div>
 {% endblock %}

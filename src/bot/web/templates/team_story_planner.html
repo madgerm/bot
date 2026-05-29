@@ -1,28 +1,28 @@
 {% extends "base.html" %}
 {% block title %}Story Planner — {{ team_id }}{% endblock %}
 {% block content %}
-<a href="/teams/{{ team_id }}/story" class="text-sm text-indigo-400">← Story Studio</a>
+<a href="/teams/{{ team_id }}/story" class="text-sm p-link">← Story Studio</a>
 <h1 class="text-2xl font-bold mt-4 mb-6">Story Planner</h1>
 <form method="post" class="space-y-4 max-w-xl">
   <div>
-    <label class="text-sm text-slate-400">Titel</label>
-    <input name="title" value="{{ meta.title or '' }}" required class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 mt-1">
+    <label class="text-sm p-muted">Titel</label>
+    <input name="title" value="{{ meta.title or '' }}" required class="w-full p-input mt-1">
   </div>
   <div>
-    <label class="text-sm text-slate-400">Genre</label>
-    <input name="genre" value="{{ meta.genre or '' }}" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 mt-1">
+    <label class="text-sm p-muted">Genre</label>
+    <input name="genre" value="{{ meta.genre or '' }}" class="w-full p-input mt-1">
   </div>
   <div>
-    <label class="text-sm text-slate-400">Setting</label>
-    <input name="setting" value="{{ meta.setting or '' }}" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 mt-1">
+    <label class="text-sm p-muted">Setting</label>
+    <input name="setting" value="{{ meta.setting or '' }}" class="w-full p-input mt-1">
   </div>
   <div>
-    <label class="text-sm text-slate-400">Ton</label>
-    <input name="tone" value="{{ meta.tone or '' }}" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 mt-1">
+    <label class="text-sm p-muted">Ton</label>
+    <input name="tone" value="{{ meta.tone or '' }}" class="w-full p-input mt-1">
   </div>
   <div>
-    <label class="text-sm text-slate-400">Hauptcharaktere (kommagetrennt)</label>
-    <input name="main_characters" value="{{ meta.main_characters | join(', ') if meta.main_characters else '' }}" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 mt-1">
+    <label class="text-sm p-muted">Hauptcharaktere (kommagetrennt)</label>
+    <input name="main_characters" value="{{ meta.main_characters | join(', ') if meta.main_characters else '' }}" class="w-full p-input mt-1">
   </div>
   <button type="submit" class="bg-indigo-600 px-4 py-2 rounded">Speichern → erzeugt AGENTS.md + meta.json</button>
 </form>

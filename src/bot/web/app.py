@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -26,6 +27,7 @@ from bot.hosts import HostRegistry, TeamHostError
 from bot.web.services import build_team_dashboard
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
+STATIC_DIR = Path(__file__).parent / "static"
 
 
 def create_app(root: Path | str) -> FastAPI:
@@ -33,6 +35,7 @@ def create_app(root: Path | str) -> FastAPI:
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
     app = FastAPI(title="Bot Panel", docs_url="/api/docs", redoc_url=None)
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     app.add_middleware(
         SessionMiddleware,
         secret_key=session_secret(),
