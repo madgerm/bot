@@ -171,7 +171,9 @@ bot browser open --team demo --url https://example.com
 | `bot tasks …` | Task Board (SQLite) |
 | `bot git …` | Git pro Team-Workspace |
 | `bot crawl …` | Domain-Crawl + Qdrant |
-| `bot story …` | Story (Charaktere, Welten, Szenen) |
+| `bot story …` | Story (Charaktere, Welten, Szenen, Export EPUB/PDF) |
+| `bot qdrant reindex` | Workspace + Crawl in Qdrant indexieren |
+| `bot run` + `qdrant_global.reindex` | Periodischer Reindex + Workspace-Watch während der Laufzeit |
 | `bot media …` | Vision, STT, TTS, Bilder |
 | `bot deploy …` | systemd + Provision (Linux-User/Team) |
 | `bot llm test` | LLM-Verbindung testen |

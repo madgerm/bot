@@ -2,10 +2,20 @@
 
 from __future__ import annotations
 
+import uuid
 from pathlib import Path
 
 from bot.files.service import FileService
 from bot.qdrant.service import QdrantService, QdrantServiceError
+
+def _is_indexable(path: Path) -> bool:
+    return path.suffix.lower() in _INDEXABLE
+
+
+def _stable_point_id(namespace: str, key: str) -> str:
+    """Deterministische UUID für Qdrant (Upsert/Update derselben Datei)."""
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"{namespace}/{key}"))
+
 
 _INDEXABLE = {
     ".py",
@@ -63,12 +73,67 @@ def index_team_workspace(
         qdrant.upsert(
             team_id,
             "project",
-            text,
+            text=text,
             payload={"path": rel, "source": "workspace"},
-            point_id=f"ws:{rel}",
+            point_id=_stable_point_id("workspace", rel),
         )
         count += 1
     return count
+
+
+def workspace_snapshot(root: Path | str, team_id: str) -> dict[str, float]:
+    """mtime-Snapshot aller indexierbaren Workspace-Dateien (für Watch)."""
+    root_path = Path(root).resolve()
+    fs = FileService.for_team(root_path, team_id)
+    workspace = fs.workspace
+    if not workspace.is_dir():
+        return {}
+    snap: dict[str, float] = {}
+    for path in workspace.rglob("*"):
+        if path.is_file() and _is_indexable(path):
+            try:
+                rel = str(path.relative_to(workspace))
+                snap[rel] = path.stat().st_mtime
+            except OSError:
+                continue
+    return snap
+
+
+def index_workspace_file(
+    root: Path | str,
+    team_id: str,
+    rel_path: str,
+    *,
+    max_file_bytes: int = 80_000,
+) -> bool:
+    """Hook: eine geänderte Datei in team_*__project upserten."""
+    root_path = Path(root).resolve()
+    try:
+        qdrant = QdrantService.from_root(root_path)
+    except QdrantServiceError:
+        return False
+    qdrant.ensure_team_collections(team_id)
+    fs = FileService.for_team(root_path, team_id)
+    try:
+        target = fs._resolve(rel_path)
+    except Exception:
+        return False
+    if not target.is_file() or not _is_indexable(target):
+        return False
+    if target.stat().st_size > max_file_bytes:
+        return False
+    text = target.read_text(encoding="utf-8", errors="replace")
+    if not text.strip():
+        return False
+    rel = str(target.relative_to(fs.workspace))
+    qdrant.upsert(
+        team_id,
+        "project",
+        text=text,
+        payload={"path": rel, "source": "workspace"},
+        point_id=_stable_point_id("workspace", rel),
+    )
+    return True
 
 
 def index_crawl_snapshots(root: Path | str, team_id: str) -> int:
@@ -94,9 +159,9 @@ def index_crawl_snapshots(root: Path | str, team_id: str) -> int:
         qdrant.upsert(
             team_id,
             "background",
-            text[:80_000] if len(text) > 80_000 else text,
+            text=text[:80_000] if len(text) > 80_000 else text,
             payload={"path": rel, "source": "crawl"},
-            point_id=f"crawl:{rel}",
+            point_id=_stable_point_id("crawl", rel),
         )
         count += 1
     return count

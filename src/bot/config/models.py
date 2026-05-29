@@ -60,12 +60,25 @@ class EmbeddingConfig(BaseModel):
     vector_size: int = Field(default=384, ge=8)
 
 
+class QdrantReindexConfig(BaseModel):
+    """Automatischer Qdrant-Index: periodisch + Workspace-Watch (Hook bei Dateiänderung)."""
+
+    enabled: bool = False
+    """Vollständiger Reindex aller Teams in diesem Intervall (0 = nur Watch/Hooks)."""
+    interval_seconds: float = Field(default=3600.0, ge=0)
+    watch_workspace: bool = True
+    watch_interval_seconds: float = Field(default=30.0, ge=1)
+    debounce_seconds: float = Field(default=90.0, ge=1)
+    include_crawl: bool = True
+
+
 class QdrantGlobalConfig(BaseModel):
     enabled: bool = False
     url: str = "http://127.0.0.1:6333"
     secret_ref: str | None = None
     embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
     timeout_seconds: float = Field(default=30.0, gt=0)
+    reindex: QdrantReindexConfig = Field(default_factory=QdrantReindexConfig)
 
 
 class PlaywrightGlobalConfig(BaseModel):

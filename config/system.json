@@ -35,7 +35,15 @@
       "provider": "hash",
       "vector_size": 384
     },
-    "timeout_seconds": 30
+    "timeout_seconds": 30,
+    "reindex": {
+      "enabled": false,
+      "interval_seconds": 3600,
+      "watch_workspace": true,
+      "watch_interval_seconds": 30,
+      "debounce_seconds": 90,
+      "include_crawl": true
+    }
   },
   "playwright_global": {
     "mode": "local",

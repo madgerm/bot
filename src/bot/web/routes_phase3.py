@@ -155,6 +155,9 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
             FileService.for_team(root_path, team_id).write_file(file_path, content)
         except FileServiceError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+        from bot.qdrant.indexer import index_workspace_file
+
+        index_workspace_file(root_path, team_id, file_path)
         return RedirectResponse(
             f"/teams/{team_id}/files?edit={file_path}", status_code=302
         )
