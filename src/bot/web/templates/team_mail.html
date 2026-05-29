@@ -2,13 +2,13 @@
 {% block title %}E-Mail — {{ team_id }}{% endblock %}
 {% block content %}
 <div class="mb-6 flex flex-wrap gap-4 items-center">
-  <a href="/teams/{{ team_id }}" class="text-sm text-indigo-400">← Team</a>
+  <a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
   <h1 class="text-2xl font-bold">E-Mail</h1>
-  <code class="text-slate-500 text-sm">data/{{ team_id }}/email.sqlite</code>
+  <code class="p-faint text-sm">data/{{ team_id }}/email.sqlite</code>
 </div>
 
 {% if mail_error %}
-<p class="text-red-400 text-sm mb-4">{{ mail_error }}</p>
+<p class="p-status-bad text-sm mb-4">{{ mail_error }}</p>
 {% endif %}
 
 <h2 class="text-lg font-semibold mb-2">Wartet auf Freigabe</h2>
@@ -16,23 +16,23 @@
   {% for d in drafts %}
   <div class="p-3 rounded border border-amber-900/50 bg-amber-950/20 text-sm">
     <span class="text-amber-200">{{ d.status }}</span> · {{ d.subject }}
-    <span class="text-slate-500">→ {{ d.to_addrs|join(', ') }}</span>
-    <a href="/teams/{{ team_id }}/mail/{{ d.thread_id }}" class="text-indigo-400 ml-2">Öffnen</a>
+    <span class="p-faint">→ {{ d.to_addrs|join(', ') }}</span>
+    <a href="/teams/{{ team_id }}/mail/{{ d.thread_id }}" class="p-link ml-2">Öffnen</a>
   </div>
   {% else %}
-  <p class="text-slate-500 text-sm">Keine offenen Entwürfe.</p>
+  <p class="p-faint text-sm">Keine offenen Entwürfe.</p>
   {% endfor %}
 </div>
 
 <h2 class="text-lg font-semibold mb-2">Threads</h2>
 <div class="space-y-2">
   {% for t in threads %}
-  <a href="/teams/{{ team_id }}/mail/{{ t.id }}" class="block p-4 rounded-lg border border-slate-800 bg-slate-900/80 hover:border-indigo-800">
+  <a href="/teams/{{ team_id }}/mail/{{ t.id }}" class="block p-4 p-card-muted hover:border-indigo-800">
     <div class="font-medium">{{ t.subject }}</div>
-    <div class="text-xs text-slate-500 mt-1">von {{ t.from_addr }} · {{ t.received_at }}</div>
+    <div class="text-xs p-faint mt-1">von {{ t.from_addr }} · {{ t.received_at }}</div>
   </a>
   {% else %}
-  <p class="text-slate-500">Noch keine Mails — <code>bot mail poll</code> oder Demo importieren.</p>
+  <p class="p-faint">Noch keine Mails — <code>bot mail poll</code> oder Demo importieren.</p>
   {% endfor %}
 </div>
 {% endblock %}

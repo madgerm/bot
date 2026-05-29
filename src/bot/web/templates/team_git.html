@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Git — {{ team_id }}{% endblock %}
 {% block content %}
-<a href="/teams/{{ team_id }}" class="text-sm text-indigo-400">← Team</a>
+<a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
 <h1 class="text-2xl font-bold mt-4">Git</h1>
-{% if git_error %}<p class="text-amber-400 text-sm">{{ git_error }}</p>{% endif %}
-<pre class="bg-slate-900 border border-slate-800 rounded p-4 text-sm overflow-x-auto mb-4">{{ status }}</pre>
+{% if git_error %}<p class="p-status-warn text-sm">{{ git_error }}</p>{% endif %}
+<pre class="p-pre overflow-x-auto mb-4">{{ status }}</pre>
 <form method="post" action="/teams/{{ team_id }}/git/commit" class="mb-6 flex gap-2">
-  <input name="message" required placeholder="Commit-Nachricht" class="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2">
+  <input name="message" required placeholder="Commit-Nachricht" class="flex-1 p-input">
   <button type="submit" class="bg-indigo-600 px-4 py-2 rounded">Commit</button>
 </form>
-<h2 class="text-sm text-slate-500 uppercase mb-2">Log</h2>
-<pre class="bg-slate-900 border border-slate-800 rounded p-4 text-sm">{{ log }}</pre>
+<h2 class="text-sm p-faint uppercase mb-2">Log</h2>
+<pre class="p-pre">{{ log }}</pre>
 {% endblock %}

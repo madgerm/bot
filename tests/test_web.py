@@ -73,3 +73,21 @@ def test_admin_requires_admin(client: TestClient) -> None:
 
 def test_health(client: TestClient) -> None:
     assert client.get("/health").json() == {"status": "ok"}
+
+
+def test_static_theme_assets(client: TestClient) -> None:
+    css = client.get("/static/panel.css")
+    js = client.get("/static/theme.js")
+    assert css.status_code == 200
+    assert js.status_code == 200
+    assert "--p-bg" in css.text
+    assert "bot-theme" in js.text
+
+
+def test_dashboard_includes_theme_toggle(client: TestClient) -> None:
+    client.post("/login", data={"username": "admin", "password": "secret"})
+    r = client.get("/dashboard")
+    assert r.status_code == 200
+    assert "theme-toggle" in r.text
+    assert "panel.css" in r.text
+    assert "data-theme" in r.text
