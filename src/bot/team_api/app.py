@@ -9,6 +9,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from bot.config import ConfigLoadError, load_runtime_config
 from bot.hosts.client import LocalTeamHost
 from bot.team_api.auth import auth_dependency
+from bot.health import collect_health
 from bot.team_api.serialize import dashboard_to_dict
 
 
@@ -26,7 +27,7 @@ def create_team_api_app(root: Path | str) -> FastAPI:
 
     @app.get("/api/v1/health")
     def health(_: None = Depends(require_auth)):
-        return {"status": "ok"}
+        return collect_health(root_path)
 
     @app.get("/api/v1/info")
     def info(_: None = Depends(require_auth)):

@@ -41,8 +41,20 @@ class Supervisor:
             self.start()
         return config
 
+    def status(self) -> dict:
+        """Laufzeitstatus für Health-Endpoints."""
+        with self._lock:
+            return {
+                "running": self._running,
+                "teams": len(self._teams),
+                "agents": sum(len(t.agents) for t in self._teams.values()),
+            }
+
     def _build_teams(self, config: RuntimeConfig, team_filter: set[str] | None = None) -> None:
-        interval = config.system.system.polling.interval_seconds
+        polling = config.system.system.polling
+        interval = polling.interval_seconds
+        watch = polling.inbox_watch_seconds
+        inbox_template = config.system.system.communication.inbox_base
         self._llm_stack = build_llm_stack(config)
         teams: dict[str, TeamRuntime] = {}
         for team_id, bundle in config.teams.items():
@@ -55,6 +67,8 @@ class Supervisor:
                 team_id=team_id,
                 bundle=bundle,
                 default_interval=interval,
+                inbox_watch_seconds=watch,
+                inbox_template=inbox_template,
                 llm_stack=self._llm_stack,
             )
         self._teams = teams

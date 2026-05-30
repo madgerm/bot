@@ -7,6 +7,7 @@
   <div class="mb-4 p-3 rounded p-alert-error">{{ error }}</div>
   {% endif %}
   <form method="post" action="/login" class="space-y-4 p-card p-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <div>
       <label class="p-label" for="username">Benutzer</label>
       <input id="username" name="username" type="text" required

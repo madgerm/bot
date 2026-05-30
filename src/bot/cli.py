@@ -24,6 +24,7 @@ from bot.cli_qdrant import register_qdrant_commands
 from bot.cli_run import register_run_commands
 from bot.cli_team import register_team_commands
 from bot.cli_web import register_web_commands
+from bot.cli_auth import register_auth_commands
 from bot.config import ConfigLoadError, ConfigStore, load_runtime_config
 
 
@@ -152,6 +153,7 @@ def build_parser() -> argparse.ArgumentParser:
     register_story_commands(sub, add_root)
     register_media_commands(sub, add_root)
     register_deploy_commands(sub, add_root)
+    register_auth_commands(sub, add_root)
     return parser
 
 
@@ -184,6 +186,7 @@ def main(argv: list[str] | None = None) -> None:
         "story",
         "media",
         "deploy",
+        "auth",
     ):
         raise SystemExit(args.func(args))
 

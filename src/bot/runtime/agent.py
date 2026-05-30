@@ -9,6 +9,8 @@ from pathlib import Path
 from bot.config.models import AgentConfig
 from bot.llm import LlmStack
 from bot.messages import Message, MessageError, MessageService
+from bot.messages.inbox_watch import inbox_pending_snapshot
+from bot.messages.paths import agent_inbox
 from bot.runtime.context import HandlerContext
 from bot.runtime.handlers import AgentHandler, HandlerResult, handler_for_role
 
@@ -25,8 +27,10 @@ class AgentRunner:
         team_id: str,
         agent_cfg: AgentConfig,
         default_interval: float,
+        inbox_watch_seconds: float = 0.5,
         llm_stack: LlmStack,
         handler: AgentHandler | None = None,
+        inbox_template: str = "teams/{team_id}/agents/{agent_id}/inbox",
     ) -> None:
         self.root = root
         self.team_id = team_id
@@ -34,6 +38,8 @@ class AgentRunner:
         self.role = agent_cfg.agent.role
         self.enabled = agent_cfg.agent.enabled
         self.interval = agent_cfg.agent.interval_seconds or default_interval
+        self._watch_interval = inbox_watch_seconds
+        self._inbox_template = inbox_template
         self._llm_stack = llm_stack
         self._handler = handler or handler_for_role(self.role)
         self._stop = threading.Event()
@@ -121,7 +127,14 @@ class AgentRunner:
         if self._thread:
             self._thread.join(timeout=self.interval * 3)
 
+    def _inbox_dir(self) -> Path:
+        return agent_inbox(
+            self.root, self.team_id, self.agent_id, self._inbox_template
+        )
+
     def _run_loop(self) -> None:
+        inbox = self._inbox_dir()
+        last_snap = inbox_pending_snapshot(inbox)
         while not self._stop.is_set():
             try:
                 self.tick()
@@ -129,4 +142,11 @@ class AgentRunner:
                 logger.warning("Message-Fehler: %s", exc)
             except Exception:
                 logger.exception("Unerwarteter Fehler im Agent-Loop")
-            self._stop.wait(self.interval)
+            current = inbox_pending_snapshot(inbox)
+            if current != last_snap:
+                last_snap = current
+                wait = min(self._watch_interval, self.interval)
+            else:
+                last_snap = current
+                wait = self.interval
+            self._stop.wait(wait)

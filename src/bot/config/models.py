@@ -33,6 +33,9 @@ class CommunicationConfig(BaseModel):
 
 class PollingConfig(BaseModel):
     interval_seconds: float = Field(default=5.0, gt=0)
+    """Fallback-Intervall wenn die Inbox unverändert ist."""
+    inbox_watch_seconds: float = Field(default=0.5, gt=0)
+    """mtime-Polling der Inbox für schnelle Reaktion auf neue Messages."""
 
 
 class LlmConfig(BaseModel):

@@ -335,4 +335,9 @@ pytest
 
 - Web-Panel: `BOT_SESSION_SECRET` setzen, HTTPS in Produktion (`bot web --ssl-cert …`).
 - Team-API: langer Zufallstoken (`bot team token`), nur VPN/Firewall oder TLS.
-- `config/users.json` / Tokens **nicht** committen — Passwörter in Produktion hashen (bcrypt `$2…`).
+- `config/users.json` / Tokens **nicht** committen — Passwörter in Produktion hashen:
+  ```bash
+  bot auth hash-password   # bcrypt-Hash in users.json eintragen
+  ```
+- Umgebungsvariablen: siehe `.env.example` (CSRF, Rate-Limits, Secrets).
+- `/health` liefert Queue-Tiefen (pending/processing) pro Agent — für Monitoring.

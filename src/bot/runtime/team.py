@@ -17,6 +17,8 @@ class TeamRuntime:
         team_id: str,
         bundle: TeamBundle,
         default_interval: float,
+        inbox_watch_seconds: float,
+        inbox_template: str,
         llm_stack: LlmStack,
     ) -> None:
         self.team_id = team_id
@@ -41,6 +43,8 @@ class TeamRuntime:
                     team_id=team_id,
                     agent_cfg=agent_cfg,
                     default_interval=default_interval,
+                    inbox_watch_seconds=inbox_watch_seconds,
+                    inbox_template=inbox_template,
                     llm_stack=llm_stack,
                 )
             )
