@@ -85,6 +85,8 @@ bot run --team demo --once   # oder bot run dauerhaft
 
 Pipeline (konfigurierbar pro Team): z. B. Demo `orchestrator` → `worker-exec` → `worker-review`; Coding `coder` → `tester` → `doku`; Story `drehbuch-autor` → `logik-pruefer`. Agents nutzen **Tools** (Dateien, Git, Qdrant, Browser, Story-Szenen) im LLM-Loop.
 
+**Agent-Loop:** Jeder Agent hat einen **Inbox-Watch-Thread** (`inbox_watch_seconds`, Standard 0,5s) — neue Dateien in `inbox/` wecken den Loop sofort. Ohne Änderung gilt `interval_seconds` als Idle-Polling. Standardmäßig läuft jeder Agent in einem **eigenen OS-Prozess** (`worker_mode: "process"` in `config/system.json`); für Tests/Cron nutzt `bot run --once` intern Threads.
+
 Fertige Team-Presets: `teams/demo/`, `teams/coding/`, `teams/story/`.
 
 ---

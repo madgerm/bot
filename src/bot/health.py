@@ -60,6 +60,7 @@ def collect_health(
     running: bool | None = None,
     teams_active: int | None = None,
     agents_active: int | None = None,
+    workers: list[dict] | None = None,
 ) -> dict[str, Any]:
     """Aggregiert Status für /health Endpoints."""
     root_path = Path(root).resolve()
@@ -69,15 +70,20 @@ def collect_health(
         "queues": queues,
     }
     if running is not None:
-        payload["supervisor"] = {
+        sup: dict[str, Any] = {
             "running": running,
             "teams": teams_active,
             "agents": agents_active,
         }
+        if workers is not None:
+            sup["workers"] = workers
+        payload["supervisor"] = sup
     try:
         config = load_runtime_config(root_path)
         payload["system"] = config.system.system.name
         payload["llm_enabled"] = config.system.system.llm.enabled
+        payload["worker_mode"] = config.system.system.polling.worker_mode
+        payload["inbox_watch_seconds"] = config.system.system.polling.inbox_watch_seconds
     except ConfigLoadError:
         pass
     return payload

@@ -41,7 +41,10 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     supervisor.start(team_ids=team_ids)
     teams = ", ".join(supervisor._teams) or "(keine)"
+    mode = supervisor.config.system.system.polling.worker_mode
+    watch = supervisor.config.system.system.polling.inbox_watch_seconds
     print(f"Supervisor läuft — Teams: {teams}")
+    print(f"Agent-Worker: {mode} · Inbox-Watch: {watch}s · Idle-Poll: {supervisor.config.system.system.polling.interval_seconds}s")
     print("Strg+C zum Beenden.")
 
     try:
