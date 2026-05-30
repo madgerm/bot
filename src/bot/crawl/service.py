@@ -31,7 +31,7 @@ def _markdown_from_result(result: Any) -> str:
     return str(md)
 
 
-async def _crawl_url_crawl4ai(url: str, *, prune_threshold: float = 0.48) -> dict[str, Any]:
+async def _async_crawl_page(url: str, *, prune_threshold: float = 0.48) -> dict[str, Any]:
     try:
         from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig
         from crawl4ai.content_filter_strategy import PruningContentFilter
@@ -75,7 +75,7 @@ async def _crawl_url_crawl4ai(url: str, *, prune_threshold: float = 0.48) -> dic
 
 
 def crawl_url_sync(url: str, *, prune_threshold: float = 0.48) -> dict[str, Any]:
-    return asyncio.run(_crawl_url_crawl4ai(url, prune_threshold=prune_threshold))
+    return asyncio.run(_async_crawl_page(url, prune_threshold=prune_threshold))
 
 
 class CrawlService:
@@ -145,7 +145,7 @@ class CrawlService:
             service = QdrantService.from_root(self.root)
         except QdrantServiceError as exc:
             raise CrawlServiceError(str(exc)) from exc
-        collection = self.cfg.qdrant_collection if self.cfg else "web"
+        collection = self.cfg.qdrant_collection if self.cfg else "background"
         count = 0
         for page in pages:
             text = page.get("markdown") or ""

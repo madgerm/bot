@@ -3,6 +3,7 @@
     "id": "demo",
     "name": "Demo-Team (MVP)",
     "orchestrator_id": "orchestrator",
-    "enabled": true
+    "enabled": true,
+    "preset": "demo"
   }
 }

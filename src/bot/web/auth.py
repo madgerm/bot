@@ -18,11 +18,17 @@ SESSION_ROLE_KEY = "role"
 SESSION_TEAMS_KEY = "teams"
 
 
+class TeamAccessRecord(BaseModel):
+    team_id: str
+    access: Literal["reader", "operator"] = "operator"
+
+
 class UserRecord(BaseModel):
     username: str
     password: str
     role: Literal["admin", "user"] = "user"
     teams: list[str] = Field(default_factory=list)
+    team_access: list[TeamAccessRecord] = Field(default_factory=list)
 
 
 class UsersConfig(BaseModel):
@@ -34,11 +40,21 @@ class SessionUser:
     username: str
     role: Literal["admin", "user"]
     teams: list[str]
+    team_access: dict[str, Literal["reader", "operator"]]
 
     def can_access_team(self, team_id: str) -> bool:
         if self.role == "admin":
             return True
-        return team_id in self.teams
+        return team_id in self.teams or team_id in self.team_access
+
+    def access_for_team(self, team_id: str) -> Literal["admin", "reader", "operator"]:
+        if self.role == "admin":
+            return "admin"
+        if team_id in self.team_access:
+            return self.team_access[team_id]
+        if team_id in self.teams:
+            return "operator"
+        return "reader"
 
 
 def load_users_config(root: Path) -> UsersConfig:
@@ -59,14 +75,26 @@ def hash_password(plain: str) -> str:
     return bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
+def _team_access_map(record: UserRecord) -> dict[str, Literal["reader", "operator"]]:
+    access: dict[str, Literal["reader", "operator"]] = {}
+    for team_id in record.teams:
+        access.setdefault(team_id, "operator")
+    for entry in record.team_access:
+        access[entry.team_id] = entry.access
+    return access
+
+
 def authenticate(root: Path, username: str, password: str) -> SessionUser | None:
     cfg = load_users_config(root)
     for record in cfg.users:
         if record.username == username and verify_password(password, record.password):
+            access = _team_access_map(record)
+            teams = sorted(set(record.teams) | set(access.keys()))
             return SessionUser(
                 username=record.username,
                 role=record.role,
-                teams=list(record.teams),
+                teams=teams,
+                team_access=access,
             )
     return None
 
@@ -87,7 +115,14 @@ def get_current_user(request: Request) -> SessionUser:
         )
     role = request.session.get(SESSION_ROLE_KEY, "user")
     teams = request.session.get(SESSION_TEAMS_KEY, [])
-    return SessionUser(username=username, role=role, teams=teams)  # type: ignore[arg-type]
+    raw_access = request.session.get("team_access", {})
+    team_access = dict(raw_access) if isinstance(raw_access, dict) else {}
+    return SessionUser(
+        username=username,
+        role=role,  # type: ignore[arg-type]
+        teams=list(teams),
+        team_access=team_access,  # type: ignore[arg-type]
+    )
 
 
 def get_optional_user(request: Request) -> SessionUser | None:

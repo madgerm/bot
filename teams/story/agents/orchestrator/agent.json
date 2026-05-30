@@ -1,0 +1,8 @@
+{
+  "agent": {
+    "id": "orchestrator",
+    "role": "orchestrator",
+    "enabled": true,
+    "interval_seconds": 5
+  }
+}

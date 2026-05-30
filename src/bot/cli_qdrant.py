@@ -81,3 +81,19 @@ def register_qdrant_commands(sub, add_root) -> None:
     search.add_argument("--query", required=True)
     search.add_argument("--limit", type=int, default=5)
     search.set_defaults(func=cmd_qdrant_search)
+
+    reindex = qdrant_sub.add_parser(
+        "reindex", help="Workspace + Crawl-Snapshots in Qdrant indexieren"
+    )
+    add_root(reindex)
+    reindex.add_argument("--team", required=True)
+    reindex.set_defaults(func=cmd_qdrant_reindex)
+
+
+def cmd_qdrant_reindex(args: argparse.Namespace) -> int:
+    from bot.qdrant.indexer import index_crawl_snapshots, index_team_workspace
+
+    ws = index_team_workspace(args.root, args.team)
+    cr = index_crawl_snapshots(args.root, args.team)
+    print(f"Indexiert: workspace={ws}, crawl={cr}")
+    return 0

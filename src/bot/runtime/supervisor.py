@@ -9,6 +9,7 @@ from pathlib import Path
 from bot.config import ConfigLoadError, ConfigStore
 from bot.config.models import RuntimeConfig
 from bot.llm import LlmStack, build_llm_stack
+from bot.qdrant.scheduler import QdrantReindexScheduler
 from bot.runtime.team import TeamRuntime
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ class Supervisor:
         self._llm_stack: LlmStack | None = None
         self._lock = threading.RLock()
         self._running = False
+        self._qdrant_scheduler: QdrantReindexScheduler | None = None
 
     @property
     def config(self) -> RuntimeConfig:
@@ -64,6 +66,7 @@ class Supervisor:
             self._build_teams(config, team_filter)
             for team in self._teams.values():
                 team.start()
+            self._start_qdrant_reindex(config, list(self._teams.keys()))
             self._running = True
             logger.info(
                 "Supervisor gestartet",
@@ -75,10 +78,26 @@ class Supervisor:
 
     def stop(self) -> None:
         with self._lock:
+            if self._qdrant_scheduler:
+                self._qdrant_scheduler.stop()
+                self._qdrant_scheduler = None
             for team in self._teams.values():
                 team.stop()
             self._running = False
             logger.info("Supervisor gestoppt")
+
+    def _start_qdrant_reindex(self, config: RuntimeConfig, team_ids: list[str]) -> None:
+        qdrant = config.system.qdrant_global
+        if not qdrant or not qdrant.enabled or not qdrant.reindex.enabled:
+            return
+        from bot.qdrant.scheduler import QdrantReindexScheduler
+
+        self._qdrant_scheduler = QdrantReindexScheduler(
+            self.root,
+            qdrant_cfg=qdrant,
+            team_ids=team_ids,
+        )
+        self._qdrant_scheduler.start()
 
     def run_until_idle(
         self,

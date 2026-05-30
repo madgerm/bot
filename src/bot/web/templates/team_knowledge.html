@@ -16,6 +16,10 @@
 
 <p class="text-sm p-muted mb-4">Collections: {% for k,v in collections.items() %}<code class="p-secondary">{{ k }}={{ v }}</code> {% endfor %}</p>
 
+<form method="post" action="/teams/{{ team_id }}/knowledge/reindex" class="mb-4">
+  <button type="submit" class="px-4 py-2 rounded bg-slate-700 text-sm">Workspace + Crawl neu indexieren</button>
+</form>
+
 <form method="post" action="/teams/{{ team_id }}/knowledge/search" class="mb-6 flex flex-wrap gap-2">
   <input name="query" value="{{ query }}" required placeholder="Suchanfrage…"
     class="p-input flex-1 min-w-[200px]">

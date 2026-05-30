@@ -1,5 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Dateien — {{ team_id }}{% endblock %}
+{% block head_extra %}
+{% if edit_path %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/meta.min.js"></script>
+{% endif %}
+{% endblock %}
 {% block content %}
 <a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
 <h1 class="text-2xl font-bold mt-4">Datei-Browser</h1>
@@ -17,10 +28,32 @@
   {% endfor %}
 </ul>
 {% if edit_path %}
-<form method="post" action="/teams/{{ team_id }}/files/save">
+<form method="post" action="/teams/{{ team_id }}/files/save" id="file-edit-form">
   <input type="hidden" name="file_path" value="{{ edit_path }}">
-  <textarea name="content" rows="20" class="p-input w-full font-mono text-sm">{{ content }}</textarea>
-  <button type="submit" class="mt-2 bg-indigo-600 px-4 py-2 rounded">Speichern</button>
+  <textarea name="content" id="file-editor" rows="20" class="p-input w-full font-mono text-sm">{{ content }}</textarea>
+  <button type="submit" class="mt-2 p-btn p-btn-primary">Speichern</button>
 </form>
+<script>
+(function() {
+  var ta = document.getElementById('file-editor');
+  if (!ta || typeof CodeMirror === 'undefined') return;
+  var path = {{ edit_path|tojson }};
+  var editor = CodeMirror.fromTextArea(ta, {
+    lineNumbers: true,
+    theme: 'material-darker',
+    lineWrapping: true,
+  });
+  CodeMirror.modeURL = 'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/%N/%N.min.js';
+  var mode = CodeMirror.findModeByFileName(path);
+  if (mode && mode.mode) {
+    CodeMirror.requireMode(mode.mode, function() {
+      editor.setOption('mode', mode.mode);
+    });
+  }
+  document.getElementById('file-edit-form').addEventListener('submit', function() {
+    ta.value = editor.getValue();
+  });
+})();
+</script>
 {% endif %}
 {% endblock %}

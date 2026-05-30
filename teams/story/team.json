@@ -1,0 +1,14 @@
+{
+  "team": {
+    "id": "story",
+    "name": "Story-Team",
+    "orchestrator_id": "orchestrator",
+    "enabled": true,
+    "preset": "story"
+  },
+  "pipeline": {
+    "execute": "drehbuch-autor",
+    "review": "logik-pruefer",
+    "document": "literatur-review"
+  }
+}

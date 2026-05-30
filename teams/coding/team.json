@@ -1,0 +1,14 @@
+{
+  "team": {
+    "id": "coding",
+    "name": "Coding-Team",
+    "orchestrator_id": "orchestrator",
+    "enabled": true,
+    "preset": "coding"
+  },
+  "pipeline": {
+    "execute": "coder",
+    "review": "tester",
+    "document": "doku"
+  }
+}

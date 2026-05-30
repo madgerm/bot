@@ -16,4 +16,14 @@
   <a href="/teams/{{ team_id }}/story/scenes" class="p-nav-chip">Szenen-Editor ({{ chapter_count }} Kapitel)</a>
   <a href="/teams/{{ team_id }}/story/review" class="p-nav-chip">Review Panel</a>
 </nav>
+<form method="post" action="/teams/{{ team_id }}/story/export" class="flex flex-wrap gap-2 items-center p-4 rounded-lg border border-slate-800">
+  <span class="text-sm text-slate-400">Export:</span>
+  <select name="fmt" class="rounded bg-slate-800 border border-slate-700 px-2 py-1 text-sm">
+    <option value="epub">EPUB</option>
+    <option value="pdf">PDF</option>
+    <option value="mdzip">Markdown (ZIP)</option>
+  </select>
+  <button type="submit" class="px-3 py-2 rounded bg-indigo-600 text-sm">Herunterladen vorbereiten</button>
+  <span class="text-xs text-slate-500">→ data/{{ team_id }}/exports/</span>
+</form>
 {% endblock %}

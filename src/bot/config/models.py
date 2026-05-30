@@ -60,12 +60,25 @@ class EmbeddingConfig(BaseModel):
     vector_size: int = Field(default=384, ge=8)
 
 
+class QdrantReindexConfig(BaseModel):
+    """Automatischer Qdrant-Index: periodisch + Workspace-Watch (Hook bei Dateiänderung)."""
+
+    enabled: bool = False
+    """Vollständiger Reindex aller Teams in diesem Intervall (0 = nur Watch/Hooks)."""
+    interval_seconds: float = Field(default=3600.0, ge=0)
+    watch_workspace: bool = True
+    watch_interval_seconds: float = Field(default=30.0, ge=1)
+    debounce_seconds: float = Field(default=90.0, ge=1)
+    include_crawl: bool = True
+
+
 class QdrantGlobalConfig(BaseModel):
     enabled: bool = False
     url: str = "http://127.0.0.1:6333"
     secret_ref: str | None = None
     embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
     timeout_seconds: float = Field(default=30.0, gt=0)
+    reindex: QdrantReindexConfig = Field(default_factory=QdrantReindexConfig)
 
 
 class PlaywrightGlobalConfig(BaseModel):
@@ -149,11 +162,20 @@ class TaskModelsConfig(BaseModel):
         return value
 
 
+class PipelineConfig(BaseModel):
+    """Agent-IDs für die Standard-Pipeline (überschreibt Preset-Defaults)."""
+
+    execute: str | None = None
+    review: str | None = None
+    document: str | None = None
+
+
 class TeamBlock(BaseModel):
     id: str
     name: str
     orchestrator_id: str
     enabled: bool = True
+    preset: Literal["generic", "demo", "coding", "story"] = "generic"
 
     @field_validator("id")
     @classmethod
@@ -170,6 +192,7 @@ class TeamConfig(BaseModel):
     """Inhalt von teams/<slug>/team.json."""
 
     team: TeamBlock
+    pipeline: PipelineConfig | None = None
 
 
 class AgentBlock(BaseModel):
@@ -182,6 +205,7 @@ class AgentBlock(BaseModel):
         "story_reviewer",
         "coder",
         "tester",
+        "documenter",
         "hours_checker",
     ] = "worker"
     enabled: bool = True

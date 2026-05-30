@@ -6,7 +6,7 @@ import json
 import re
 from pathlib import Path
 
-COLLECTION_SUFFIXES = ("project", "background")
+COLLECTION_SUFFIXES = ("project", "background", "web")
 
 
 def team_slug(team_id: str) -> str:

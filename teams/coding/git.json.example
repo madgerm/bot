@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "repo_path": "data/coding/workspace",
+  "remote_name": "origin",
+  "default_branch": "main",
+  "user_name": "Bot Coding",
+  "user_email": "coding@bot.local"
+}
