@@ -1,36 +1,36 @@
 {% extends "base.html" %}
 {% block title %}Medien — {{ team_id }}{% endblock %}
 {% block content %}
-<a href="/teams/{{ team_id }}" class="text-sm text-indigo-400">← Team</a>
+<a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
 <h1 class="text-2xl font-bold mt-4">Medien</h1>
-<p class="text-sm text-slate-500 mb-4">Vision, STT, TTS, Bildgenerierung — <code>config/system.json</code> / <code>teams/{{ team_id }}/media.json</code></p>
+<p class="text-sm p-faint mb-4">Vision, STT, TTS, Bildgenerierung — <code>config/system.json</code> / <code>teams/{{ team_id }}/media.json</code></p>
 
-<section class="mb-8 p-4 rounded-lg border border-slate-800">
+<section class="mb-8 p-4 p-card">
   <h2 class="font-semibold mb-3">Sprach-Chat (STT / TTS)</h2>
   <form method="post" action="/teams/{{ team_id }}/media/voice/stt" enctype="multipart/form-data" class="mb-4 flex flex-wrap gap-2 items-center">
-    <input type="file" name="audio" accept="audio/*" required class="text-sm">
-    <button type="submit" class="bg-slate-700 px-3 py-2 rounded text-sm">Audio → Text</button>
+    <input type="file" name="audio" accept="audio/*" required class="text-sm p-input">
+    <button type="submit" class="p-btn p-btn-muted text-sm">Audio → Text</button>
   </form>
   {% if stt_text %}
-  <p class="text-sm bg-slate-900 p-3 rounded mb-4 whitespace-pre-wrap">{{ stt_text }}</p>
+  <p class="text-sm p-pre mb-4 whitespace-pre-wrap">{{ stt_text }}</p>
   {% endif %}
   <form method="post" action="/teams/{{ team_id }}/media/voice/tts" class="flex flex-wrap gap-2">
-    <input name="text" required placeholder="Text für Sprachausgabe" class="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm">
-    <button type="submit" class="bg-slate-700 px-3 py-2 rounded text-sm">Text → Audio</button>
+    <input name="text" required placeholder="Text für Sprachausgabe" class="flex-1 p-input text-sm">
+    <button type="submit" class="p-btn p-btn-muted text-sm">Text → Audio</button>
   </form>
   {% if tts_path %}
-  <p class="text-xs text-slate-500 mt-2">Audio gespeichert: <code>{{ tts_path }}</code></p>
+  <p class="text-xs p-faint mt-2">Audio gespeichert: <code>{{ tts_path }}</code></p>
   {% endif %}
 </section>
 
 <section class="mb-6">
   <h2 class="font-semibold mb-3">Bildgenerierung</h2>
   <form method="post" action="/teams/{{ team_id }}/media/image" class="flex gap-2">
-    <input name="prompt" required placeholder="Bild-Prompt" class="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2">
-    <button type="submit" class="bg-indigo-600 px-4 py-2 rounded">Generieren</button>
+    <input name="prompt" required placeholder="Bild-Prompt" class="flex-1 p-input">
+    <button type="submit" class="p-btn p-btn-primary">Generieren</button>
   </form>
 </section>
 
-{% if error %}<p class="text-amber-400">{{ error }}</p>{% endif %}
-{% if result %}<pre class="bg-slate-900 border border-slate-800 rounded p-4 text-sm overflow-x-auto">{{ result }}</pre>{% endif %}
+{% if error %}<p class="p-status-warn">{{ error }}</p>{% endif %}
+{% if result %}<pre class="p-pre overflow-x-auto">{{ result }}</pre>{% endif %}
 {% endblock %}

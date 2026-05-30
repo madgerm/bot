@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 {% block title %}Crawl — {{ team_id }}{% endblock %}
 {% block content %}
-<a href="/teams/{{ team_id }}" class="text-sm text-indigo-400">← Team</a>
+<a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
 <h1 class="text-2xl font-bold mt-4">Domain-Crawl</h1>
-<p class="text-sm text-slate-500 mb-4">
+<p class="text-sm p-faint mb-4">
   <strong>Crawl4AI</strong> — sauberes Markdown (<code>fit_markdown</code>, ohne Menü/Nav).
   Config: <code>teams/{{ team_id }}/crawl.json</code> · Snapshots: <code>data/{{ team_id }}/crawl/</code>
 </p>
 <form method="post" action="/teams/{{ team_id }}/crawl/run">
   <button type="submit" class="bg-indigo-600 px-4 py-2 rounded">Crawl starten + Qdrant indexieren</button>
 </form>
-{% if error %}<p class="text-amber-400 mt-4">{{ error }}</p>{% endif %}
+{% if error %}<p class="p-status-warn mt-4">{{ error }}</p>{% endif %}
 {% if results %}
-<pre class="mt-4 bg-slate-900 border border-slate-800 rounded p-4 text-sm">{{ results }}</pre>
+<pre class="mt-4 p-pre">{{ results }}</pre>
 {% endif %}
 {% endblock %}

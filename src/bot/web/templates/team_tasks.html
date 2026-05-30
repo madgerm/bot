@@ -1,32 +1,32 @@
 {% extends "base.html" %}
 {% block title %}Tasks — {{ team_id }}{% endblock %}
 {% block content %}
-<a href="/teams/{{ team_id }}" class="text-sm text-indigo-400">← Team</a>
+<a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
 <h1 class="text-2xl font-bold mt-4 mb-6">Task Board</h1>
 <form method="post" action="/teams/{{ team_id }}/tasks/create" class="mb-8 flex flex-wrap gap-2">
-  <input name="title" required placeholder="Titel" class="bg-slate-800 border border-slate-700 rounded px-3 py-2 flex-1 min-w-[200px]">
-  <input name="description" placeholder="Beschreibung" class="bg-slate-800 border border-slate-700 rounded px-3 py-2 flex-1 min-w-[200px]">
-  <input name="assignee_agent" placeholder="Agent-ID" class="bg-slate-800 border border-slate-700 rounded px-3 py-2 w-40">
+  <input name="title" required placeholder="Titel" class="p-input flex-1 min-w-[200px]">
+  <input name="description" placeholder="Beschreibung" class="p-input flex-1 min-w-[200px]">
+  <input name="assignee_agent" placeholder="Agent-ID" class="p-input w-40">
   <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded">Anlegen</button>
 </form>
 <div class="grid md:grid-cols-3 gap-4">
   {% for status, label in [('todo','To Do'),('in_progress','In Progress'),('done','Done')] %}
-  <section class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+  <section class="p-card p-4">
     <h2 class="font-semibold mb-3">{{ label }}</h2>
     <ul class="space-y-2 text-sm">
       {% for t in grouped[status] %}
-      <li class="p-3 bg-slate-800 rounded border border-slate-700">
+      <li class="p-list-item">
         <div class="font-medium">{{ t.title }}</div>
-        <p class="text-slate-400 text-xs mt-1">{{ t.description[:80] }}</p>
+        <p class="p-muted text-xs mt-1">{{ t.description[:80] }}</p>
         {% if status != 'done' %}
         <form method="post" action="/teams/{{ team_id }}/tasks/{{ t.id }}/status" class="mt-2">
           <input type="hidden" name="status" value="{% if status == 'todo' %}in_progress{% else %}done{% endif %}">
-          <button type="submit" class="text-xs text-indigo-400">→ {% if status == 'todo' %}Start{% else %}Erledigt{% endif %}</button>
+          <button type="submit" class="text-xs p-link">→ {% if status == 'todo' %}Start{% else %}Erledigt{% endif %}</button>
         </form>
         {% endif %}
       </li>
       {% else %}
-      <li class="text-slate-500">Leer</li>
+      <li class="p-faint">Leer</li>
       {% endfor %}
     </ul>
   </section>

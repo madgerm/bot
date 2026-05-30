@@ -1,31 +1,31 @@
 {% extends "base.html" %}
 {% block title %}Review — {{ team_id }}{% endblock %}
 {% block content %}
-<a href="/teams/{{ team_id }}/story" class="text-sm text-indigo-400">← Story Studio</a>
+<a href="/teams/{{ team_id }}/story" class="text-sm p-link">← Story Studio</a>
 <h1 class="text-2xl font-bold mt-4 mb-6">Review Panel</h1>
 <form method="post" class="mb-8 space-y-2 max-w-xl">
-  <input name="checker" placeholder="Prüfer (logik-pruefer…)" required class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2">
-  <select name="severity" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2">
+  <input name="checker" placeholder="Prüfer (logik-pruefer…)" required class="w-full p-input">
+  <select name="severity" class="w-full p-input">
     <option value="info">info</option>
     <option value="warning">warning</option>
     <option value="error">error</option>
   </select>
-  <textarea name="message" required placeholder="Issue" rows="3" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2"></textarea>
+  <textarea name="message" required placeholder="Issue" rows="3" class="w-full p-input"></textarea>
   <div class="flex gap-2">
-    <input name="chapter_id" placeholder="Kapitel (optional)" class="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2">
-    <input name="scene_id" placeholder="Szene (optional)" class="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2">
+    <input name="chapter_id" placeholder="Kapitel (optional)" class="flex-1 p-input">
+    <input name="scene_id" placeholder="Szene (optional)" class="flex-1 p-input">
   </div>
   <button type="submit" class="bg-indigo-600 px-4 py-2 rounded text-sm">Issue erfassen</button>
 </form>
 <ul class="space-y-2 text-sm">
   {% for i in issues | reverse %}
-  <li class="p-3 rounded border border-slate-800 bg-slate-900">
-    <span class="text-xs uppercase text-amber-400">{{ i.severity }}</span>
+  <li class="p-list-item">
+    <span class="text-xs uppercase p-status-warn">{{ i.severity }}</span>
     <strong>{{ i.checker }}</strong>: {{ i.message }}
-    {% if i.chapter_id %}<span class="text-slate-500"> · {{ i.chapter_id }}/{{ i.scene_id or '' }}</span>{% endif %}
+    {% if i.chapter_id %}<span class="p-faint"> · {{ i.chapter_id }}/{{ i.scene_id or '' }}</span>{% endif %}
   </li>
   {% else %}
-  <li class="text-slate-500">Keine offenen Issues.</li>
+  <li class="p-faint">Keine offenen Issues.</li>
   {% endfor %}
 </ul>
 {% endblock %}
