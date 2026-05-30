@@ -29,7 +29,7 @@ dependencies = [
 playwright = ["playwright>=1.49"]
 crawl = ["crawl4ai>=0.4"]
 dev = [
-    "pytest>=8.0",
+    "pytest>=9.0.3",
     "ruff>=0.8",
     "mypy>=1.13",
     "playwright>=1.49",
