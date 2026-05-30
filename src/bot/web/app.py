@@ -24,6 +24,7 @@ from bot.web.auth import (
     require_team_access,
     session_secret,
 )
+from bot.web.team_access import require_team_write
 from bot.web.csrf import CsrfMiddleware, csrf_enabled, ensure_csrf_token
 from bot.web.audit_middleware import PanelAuditMiddleware
 from bot.web.rate_limit import client_key, login_rate_limiter, webhook_rate_limiter
@@ -354,7 +355,7 @@ def create_app(root: Path | str) -> FastAPI:
         to_addrs: str = Form(""),
         subject: str = Form(""),
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         from bot.mail import MailService, MailServiceError
 
         recipients = [a.strip() for a in to_addrs.split(",") if a.strip()] or None
@@ -378,7 +379,7 @@ def create_app(root: Path | str) -> FastAPI:
         draft_id: str,
         user: CurrentUser,
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         from bot.mail import MailService, MailServiceError
 
         try:
@@ -395,7 +396,7 @@ def create_app(root: Path | str) -> FastAPI:
         user: CurrentUser,
         confirm: str = Form(""),
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         if confirm != "SEND":
             raise HTTPException(status_code=400, detail="Bestätigung SEND fehlt")
         from bot.mail import MailService, MailServiceError
@@ -441,7 +442,7 @@ def create_app(root: Path | str) -> FastAPI:
 
     @app.post("/teams/{team_id}/hours/check")
     async def team_hours_check(request: Request, team_id: str, user: CurrentUser):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         from bot.hours import HoursService, HoursServiceError
 
         try:
@@ -458,7 +459,7 @@ def create_app(root: Path | str) -> FastAPI:
     async def team_hours_approve(
         request: Request, team_id: str, diff_id: str, user: CurrentUser
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         from bot.hours import HoursService, HoursServiceError
 
         try:
@@ -475,7 +476,7 @@ def create_app(root: Path | str) -> FastAPI:
         user: CurrentUser,
         confirm: str = Form(""),
     ):
-        require_team_access(team_id, user)
+        require_team_write(team_id, user)
         if confirm != "PUBLISH":
             raise HTTPException(status_code=400, detail="Bestätigung PUBLISH fehlt")
         from bot.hours import HoursService, HoursServiceError
