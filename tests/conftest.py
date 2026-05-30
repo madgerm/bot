@@ -62,3 +62,47 @@ def runtime_project(tmp_path: Path) -> Path:
             encoding="utf-8",
         )
     return tmp_path
+
+
+@pytest.fixture
+def web_project(runtime_project: Path) -> Path:
+    import json
+
+    (runtime_project / "config" / "users.json").write_text(
+        json.dumps(
+            {
+                "users": [
+                    {
+                        "username": "admin",
+                        "password": "secret",
+                        "role": "admin",
+                        "teams": ["alpha"],
+                    },
+                    {
+                        "username": "viewer",
+                        "password": "secret",
+                        "role": "user",
+                        "teams": ["alpha"],
+                    },
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    hosts = runtime_project / "config" / "team_hosts.json"
+    hosts.write_text(
+        json.dumps(
+            {
+                "hosts": [
+                    {
+                        "id": "local",
+                        "label": "Lokal",
+                        "mode": "local",
+                        "teams": ["alpha"],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    return runtime_project

@@ -77,12 +77,21 @@ HTTPS: `deploy/Caddyfile` vor den Containern (Reverse Proxy).
 - `GET /health` — Queue-Tiefen, `worker_mode`, `inbox_watch_seconds`
 - Logs: strukturierte Zeilen mit `team_id`, `agent_id`, `message_id`
 
-## 7. Entwicklung & CI
+## 7. Medien (Produktion)
+
+- Beispiel-JSON: `config/media.production.example.json`
+- Im Panel (Admin): `/admin/media` — globale STT/TTS/Bild-URLs in `config/system.json` pflegen
+- Team-Overrides: `teams/<id>/media.json` oder Formular auf derselben Seite
+- Status stub/live: Team-Seite `/teams/<id>/media` und Admin-Übersicht
+
+## 8. Entwicklung & CI
 
 ```bash
 pytest
 ruff check src tests
 mypy src/bot
+pip install -r requirements-lock.txt && pip install -e . --no-deps
 ```
 
-Siehe `.github/workflows/ci.yml`.
+Lockfile aktualisieren: `./scripts/lock-deps.sh`  
+CI prüft, dass `requirements-lock.txt` zum `pyproject.toml` passt.

@@ -21,6 +21,8 @@ Multi-Agent-Runtime (`bot`): Team-Runner (file-Inbox, Agent-Subprozesse), Web-Pa
 | Runner | `bot run` / `bot run --once` |
 | Web | `bot web` |
 | Backup | `bot backup create` / `bot backup list` |
+| Medien (Admin) | Panel `/admin/media` |
+| Audit | Automatisch bei POST (`data/audit.sqlite`) |
 | Tests | `pytest` |
 | Lint | `ruff check src tests` |
 | Types | `mypy src/bot` |
@@ -40,3 +42,5 @@ Multi-Agent-Runtime (`bot`): Team-Runner (file-Inbox, Agent-Subprozesse), Web-Pa
 - Web-Tests: zuerst `GET /login` (CSRF-Cookie)
 - `bot run --once` erzwingt `worker_mode: thread`; Dauerbetrieb nutzt `process` aus `system.json`
 - Qdrant-Reindex importiert Crawl **ohne** crawl4ai-Modul (nur `crawl.json` + Markdown-Dateien)
+- CI: `requirements-lock.txt` + `pip install -e . --no-deps`; Lock aktualisieren: `./scripts/lock-deps.sh`
+- Panel-Audit: alle erfolgreichen POSTs → `data/audit.sqlite` (Middleware)
