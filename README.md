@@ -32,8 +32,17 @@ Alles auf einem Rechner: mode "local" in team_hosts.json — kein API-Token nöt
 ```bash
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
+pip install -e ".[dev]"     # Runtime + pytest/ruff/mypy
 ```
+
+**Optionale Extras** (nicht für jedes Deployment nötig):
+
+| Extra | Befehl | Zweck |
+|-------|--------|--------|
+| `playwright` | `pip install -e ".[playwright]"` | `bot browser` |
+| `crawl` | `pip install -e ".[crawl]"` | Crawl4AI → Qdrant |
+
+Betrieb: siehe `docs/OPERATIONS.md` · Docker: `deploy/docker-compose.yml` · HTTPS: `deploy/Caddyfile`
 
 ---
 

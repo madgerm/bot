@@ -381,6 +381,16 @@ def create_app(root: Path | str) -> FastAPI:
 
         try:
             MailService.for_team(root_path, team_id).approve(draft_id, user.username)
+            from bot.web.audit_helper import log_panel_action
+
+            log_panel_action(
+                root_path,
+                category="mail",
+                action="approve_draft",
+                actor=user.username,
+                team_id=team_id,
+                details={"draft_id": draft_id},
+            )
         except MailServiceError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return RedirectResponse(request.headers.get("referer", f"/teams/{team_id}/mail"), status_code=302)
@@ -461,6 +471,16 @@ def create_app(root: Path | str) -> FastAPI:
 
         try:
             HoursService.for_team(root_path, team_id).approve(diff_id, user.username)
+            from bot.web.audit_helper import log_panel_action
+
+            log_panel_action(
+                root_path,
+                category="hours",
+                action="approve_diff",
+                actor=user.username,
+                team_id=team_id,
+                details={"diff_id": diff_id},
+            )
         except HoursServiceError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return RedirectResponse(f"/teams/{team_id}/hours", status_code=302)
@@ -487,6 +507,9 @@ def create_app(root: Path | str) -> FastAPI:
     @app.get("/admin", response_class=HTMLResponse)
     async def admin_page(request: Request, user: CurrentUser):
         require_admin(user)
+        from bot.audit import AuditStore
+        from bot.media import MediaService
+
         users_cfg = load_users_config(root_path)
         registry: HostRegistry = app.state.hosts
         try:
@@ -498,6 +521,15 @@ def create_app(root: Path | str) -> FastAPI:
             {"username": u.username, "role": u.role, "teams": u.teams}
             for u in users_cfg.users
         ]
+        media_status: dict[str, dict[str, str]] = {}
+        if teams:
+            try:
+                media_status = MediaService.for_team(
+                    root_path, teams[0]["id"]
+                ).channel_status()
+            except Exception:
+                pass
+        audit_log = AuditStore(root_path).list_entries(limit=40)
         return templates.TemplateResponse(
             request,
             "admin.html",
@@ -506,6 +538,9 @@ def create_app(root: Path | str) -> FastAPI:
                 "users": safe_users,
                 "teams": teams,
                 "hosts": registry.list_hosts(),
+                "audit_log": audit_log,
+                "media_status": media_status,
+                "media_status_team": teams[0]["id"] if teams else None,
             },
         )
 

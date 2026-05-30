@@ -138,7 +138,7 @@ def index_workspace_file(
 
 def index_crawl_snapshots(root: Path | str, team_id: str) -> int:
     """Indexiert gespeicherte Crawl-Markdown-Dateien nach team_*__background."""
-    from bot.crawl.service import CrawlService
+    from bot.crawl.config import load_crawl_config
 
     root_path = Path(root).resolve()
     try:
@@ -146,8 +146,13 @@ def index_crawl_snapshots(root: Path | str, team_id: str) -> int:
     except QdrantServiceError:
         return 0
     qdrant.ensure_team_collections(team_id)
-    crawl = CrawlService.for_team(root_path, team_id)
-    snap_dir = crawl.snapshot_dir
+    crawl_cfg = load_crawl_config(root_path, team_id)
+    if crawl_cfg is not None:
+        snap_dir = Path(crawl_cfg.snapshot_dir)
+        if not snap_dir.is_absolute():
+            snap_dir = root_path / snap_dir
+    else:
+        snap_dir = root_path / "data" / team_id / "crawl"
     if not snap_dir.is_dir():
         return 0
     count = 0

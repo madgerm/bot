@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -112,14 +113,19 @@ def test_crawl4ai_markdown_extracted() -> None:
 
 @patch("bot.crawl.service.asyncio.run")
 def test_crawl_url_uses_crawl4ai(mock_run: MagicMock, root: Path, tmp_path: Path) -> None:
-    mock_run.return_value = {
-        "url": "https://example.com",
-        "title": "Example",
-        "markdown": "# Example Domain\n\nContent only.",
-        "crawled_at": "2026-01-01T00:00:00+00:00",
-        "content_hash": "abc",
-        "engine": "crawl4ai",
-    }
+    def _run_mock(coro):
+        if asyncio.iscoroutine(coro):
+            coro.close()
+        return {
+            "url": "https://example.com",
+            "title": "Example",
+            "markdown": "# Example Domain\n\nContent only.",
+            "crawled_at": "2026-01-01T00:00:00+00:00",
+            "content_hash": "abc",
+            "engine": "crawl4ai",
+        }
+
+    mock_run.side_effect = _run_mock
     crawl_json = tmp_path / "teams" / "demo" / "crawl.json"
     crawl_json.parent.mkdir(parents=True, exist_ok=True)
     crawl_json.write_text(

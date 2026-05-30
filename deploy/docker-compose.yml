@@ -1,0 +1,57 @@
+# Beispiel-Stack: Team-Runner + Web-Panel + optional Qdrant
+# Anpassen: BOT_SESSION_SECRET, BOT_TEAM_API_TOKEN, Volumes auf euer Projektroot
+
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.12.5
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    profiles:
+      - qdrant
+
+  team-runner:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    working_dir: /app
+    volumes:
+      - ../:/app
+    environment:
+      BOT_TEAM_API_TOKEN: ${BOT_TEAM_API_TOKEN:-change-me}
+      LITELLM_API_KEY: ${LITELLM_API_KEY:-}
+    command: ["bot", "run"]
+    restart: unless-stopped
+
+  team-api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    working_dir: /app
+    volumes:
+      - ../:/app
+    environment:
+      BOT_TEAM_API_TOKEN: ${BOT_TEAM_API_TOKEN:-change-me}
+    command: ["bot", "team", "serve", "--host", "0.0.0.0", "--port", "8443"]
+    ports:
+      - "8443:8443"
+    restart: unless-stopped
+
+  web-panel:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    working_dir: /app
+    volumes:
+      - ../:/app
+    environment:
+      BOT_SESSION_SECRET: ${BOT_SESSION_SECRET:-change-me}
+      BOT_TEAM_API_TOKEN: ${BOT_TEAM_API_TOKEN:-change-me}
+    command: ["bot", "web", "--host", "0.0.0.0", "--port", "8080"]
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  qdrant_storage:
