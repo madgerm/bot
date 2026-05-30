@@ -14,7 +14,7 @@ from bot.web.audit_helper import log_panel_action
 from bot.web.auth import SESSION_USER_KEY
 
 _SKIP_PREFIXES = ("/static", "/api/docs", "/health")
-_SKIP_EXACT = {"/login"}
+_SKIP_EXACT: set[str] = set()
 
 
 def _parse_post_action(path: str) -> tuple[str, str, str | None, dict[str, Any]] | None:
@@ -127,6 +127,8 @@ def _parse_post_action(path: str) -> tuple[str, str, str | None, dict[str, Any]]
     m = re.match(r"^/api/v1/integrations/([^/]+)/matrix$", path)
     if m:
         return ("integration", "matrix", m.group(1), {})
+    if path == "/login":
+        return ("auth", "login", None, {})
     if path == "/logout":
         return ("auth", "logout", None, {})
     return None

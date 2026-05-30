@@ -48,6 +48,7 @@ def create_app(root: Path | str) -> FastAPI:
     app = FastAPI(title="Bot Panel", docs_url="/api/docs", redoc_url=None)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     app.add_middleware(CsrfMiddleware)
+    app.add_middleware(PanelAuditMiddleware, root=root_path)
     app.add_middleware(
         SessionMiddleware,
         secret_key=session_secret(),
@@ -55,7 +56,6 @@ def create_app(root: Path | str) -> FastAPI:
         https_only=False,
         same_site="lax",
     )
-    app.add_middleware(PanelAuditMiddleware, root=root_path)
     app.state.login_limiter = login_rate_limiter()
     app.state.webhook_limiter = webhook_rate_limiter()
     app.state.root = root_path

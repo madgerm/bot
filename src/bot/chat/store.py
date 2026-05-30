@@ -211,6 +211,18 @@ class ChatStore:
                 ),
             )
             conn.commit()
+        try:
+            from bot.audit import AuditStore
+
+            AuditStore(self.root).log(
+                category="chat",
+                action=action,
+                actor=actor,
+                team_id=self.team_id,
+                details=details,
+            )
+        except Exception:
+            pass
 
     def list_audit(self, *, limit: int = 50) -> list[ChatAuditEntry]:
         with self._connect() as conn:
