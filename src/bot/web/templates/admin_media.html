@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Medien-Konfiguration — Admin{% endblock %}
+{% block content %}
+<a href="/admin" class="text-sm p-link">← Admin</a>
+<h1 class="text-2xl font-bold mt-4 mb-2">Medien (Produktion)</h1>
+<p class="text-sm p-muted mb-6">
+  Globale Endpunkte in <code>config/system.json</code> (<code>media_global</code>).
+  Teams können in <code>teams/&lt;id&gt;/media.json</code> überschreiben (<code>source: custom</code>).
+</p>
+
+{% if saved %}
+<p class="p-status-ok mb-4">Gespeichert.</p>
+{% endif %}
+
+<section class="mb-10 p-card p-6">
+  <h2 class="text-lg font-semibold mb-4">Global (alle Teams mit source: global)</h2>
+  <form method="post" action="/admin/media/global" class="space-y-4 max-w-2xl">
+    <div>
+      <label class="block text-sm p-muted mb-1">Vision-Modell</label>
+      <input name="vision_model" value="{{ media.vision.model or 'gpt-4o-mini' }}" class="w-full p-input">
+    </div>
+    <div>
+      <label class="block text-sm p-muted mb-1">STT-Endpoint (HTTP)</label>
+      <input name="stt_endpoint" value="{{ media.stt.endpoint or '' }}" placeholder="http://127.0.0.1:9100/transcribe" class="w-full p-input">
+    </div>
+    <div>
+      <label class="block text-sm p-muted mb-1">TTS-Endpoint</label>
+      <input name="tts_endpoint" value="{{ media.tts.endpoint or '' }}" placeholder="http://127.0.0.1:9101/synthesize" class="w-full p-input">
+    </div>
+    <div>
+      <label class="block text-sm p-muted mb-1">TTS voice_id</label>
+      <input name="tts_voice_id" value="{{ media.tts.voice_id or 'de_DE_neural' }}" class="w-full p-input">
+    </div>
+    <div class="flex gap-4 flex-wrap">
+      <div>
+        <label class="block text-sm p-muted mb-1">Bild-Typ</label>
+        <select name="image_type" class="p-input">
+          <option value="webhook" {% if media.image_generation.type == 'webhook' %}selected{% endif %}>webhook</option>
+          <option value="selfhosted" {% if media.image_generation.type == 'selfhosted' %}selected{% endif %}>selfhosted</option>
+          <option value="minimax" {% if media.image_generation.type == 'minimax' %}selected{% endif %}>minimax</option>
+        </select>
+      </div>
+      <div class="flex-1 min-w-[200px]">
+        <label class="block text-sm p-muted mb-1">Bild-URL / API</label>
+        <input name="image_url" value="{{ media.image_generation.url or media.image_generation.api_base or '' }}" class="w-full p-input">
+      </div>
+    </div>
+    <button type="submit" class="p-btn p-btn-primary">Global speichern</button>
+  </form>
+</section>
+
+<section class="mb-10">
+  <h2 class="text-lg font-semibold mb-3">Status pro Team</h2>
+  <div class="overflow-x-auto p-card">
+    <table class="w-full text-sm">
+      <thead class="p-muted text-left">
+        <tr><th class="px-3 py-2">Team</th><th class="px-3 py-2">vision</th><th class="px-3 py-2">stt</th><th class="px-3 py-2">tts</th><th class="px-3 py-2">image</th><th class="px-3 py-2"></th></tr>
+      </thead>
+      <tbody>
+        {% for row in team_rows %}
+        <tr class="border-t border-[var(--p-border)]">
+          <td class="px-3 py-2">{{ row.team_id }}</td>
+          {% for ch in ['vision','stt','tts','image_generation'] %}
+          <td class="px-3 py-2 text-xs">{% set st = row.status[ch] %}{% if st.mode == 'live' %}live{% else %}stub{% endif %}</td>
+          {% endfor %}
+          <td class="px-3 py-2"><a href="/teams/{{ row.team_id }}/media" class="p-link text-xs">Panel</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="p-card p-6 max-w-2xl">
+  <h2 class="text-lg font-semibold mb-3">Team-Override (custom Bild-Webhook)</h2>
+  {% for row in team_rows %}
+  <form method="post" action="/admin/media/team/{{ row.team_id }}" class="flex flex-wrap gap-2 items-end mb-3 border-b border-[var(--p-border)] pb-3">
+    <span class="text-sm font-medium w-24">{{ row.team_id }}</span>
+    <input name="image_url" placeholder="Webhook-URL" class="flex-1 p-input text-sm min-w-[200px]">
+    <button type="submit" class="p-btn p-btn-muted text-sm">Speichern</button>
+  </form>
+  {% endfor %}
+</section>
+{% endblock %}

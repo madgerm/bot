@@ -19,12 +19,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install venv support
         run: sudo apt-get update && sudo apt-get install -y python3-venv
-      - name: Install package
+      - name: Install from lockfile
         run: |
           python -m venv .venv
           . .venv/bin/activate
           pip install -U pip
-          pip install -e ".[dev]"
+          pip install -r requirements-lock.txt
+          pip install -e . --no-deps
       - name: Config validate (smoke)
         run: |
           . .venv/bin/activate
@@ -33,6 +34,19 @@ jobs:
         run: |
           . .venv/bin/activate
           pytest -q
+
+  lockfile-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify requirements-lock.txt is current
+        run: |
+          pip install pip-tools
+          pip-compile pyproject.toml --extra dev -o requirements-lock.txt --quiet
+          git diff --exit-code requirements-lock.txt
 
   lint:
     runs-on: ubuntu-latest
@@ -55,6 +69,6 @@ jobs:
           python-version: "3.12"
       - name: Mypy
         run: |
-          pip install -e .
-          pip install mypy types-requests
+          pip install -r requirements-lock.txt
+          pip install -e . --no-deps
           mypy src/bot --config-file pyproject.toml

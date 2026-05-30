@@ -1,0 +1,29 @@
+{
+  "comment": "Auszug für config/system.json → media_global. Im Panel: /admin/media",
+  "media_global": {
+    "vision": {
+      "source": "global",
+      "provider": "litellm",
+      "model": "gpt-4o-mini",
+      "secret_ref": "LITELLM_API_KEY"
+    },
+    "stt": {
+      "source": "global",
+      "endpoint": "https://stt.intern/v1/transcribe",
+      "secret_ref": "STT_API_KEY"
+    },
+    "tts": {
+      "source": "global",
+      "endpoint": "https://tts.intern/v1/synthesize",
+      "voice_id": "de_DE_neural",
+      "secret_ref": "TTS_API_KEY"
+    },
+    "image_generation": {
+      "source": "global",
+      "type": "webhook",
+      "url": "https://bild-bridge.intern/generate",
+      "default_aspect": "16:9",
+      "timeout_seconds": 180
+    }
+  }
+}

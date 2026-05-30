@@ -25,6 +25,7 @@ from bot.web.auth import (
     session_secret,
 )
 from bot.web.csrf import CsrfMiddleware, csrf_enabled, ensure_csrf_token
+from bot.web.audit_middleware import PanelAuditMiddleware
 from bot.web.rate_limit import client_key, login_rate_limiter, webhook_rate_limiter
 from bot.hosts import HostRegistry, TeamHostError
 from bot.web.services import build_team_dashboard
@@ -54,6 +55,7 @@ def create_app(root: Path | str) -> FastAPI:
         https_only=False,
         same_site="lax",
     )
+    app.add_middleware(PanelAuditMiddleware, root=root_path)
     app.state.login_limiter = login_rate_limiter()
     app.state.webhook_limiter = webhook_rate_limiter()
     app.state.root = root_path
@@ -381,16 +383,6 @@ def create_app(root: Path | str) -> FastAPI:
 
         try:
             MailService.for_team(root_path, team_id).approve(draft_id, user.username)
-            from bot.web.audit_helper import log_panel_action
-
-            log_panel_action(
-                root_path,
-                category="mail",
-                action="approve_draft",
-                actor=user.username,
-                team_id=team_id,
-                details={"draft_id": draft_id},
-            )
         except MailServiceError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return RedirectResponse(request.headers.get("referer", f"/teams/{team_id}/mail"), status_code=302)
@@ -471,16 +463,6 @@ def create_app(root: Path | str) -> FastAPI:
 
         try:
             HoursService.for_team(root_path, team_id).approve(diff_id, user.username)
-            from bot.web.audit_helper import log_panel_action
-
-            log_panel_action(
-                root_path,
-                category="hours",
-                action="approve_diff",
-                actor=user.username,
-                team_id=team_id,
-                details={"diff_id": diff_id},
-            )
         except HoursServiceError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return RedirectResponse(f"/teams/{team_id}/hours", status_code=302)
@@ -504,11 +486,97 @@ def create_app(root: Path | str) -> FastAPI:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return RedirectResponse(f"/teams/{team_id}/hours", status_code=302)
 
+    @app.get("/admin/media", response_class=HTMLResponse)
+    async def admin_media_page(request: Request, user: CurrentUser, saved: str | None = None):
+        require_admin(user)
+        from bot.config.media_admin import MediaAdminError, load_media_global
+        from bot.media import MediaService
+
+        try:
+            media = load_media_global(root_path)
+        except MediaAdminError as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+        registry: HostRegistry = app.state.hosts
+        teams = registry.list_teams_for_user(None, is_admin=True)
+        team_rows = []
+        for t in teams:
+            tid = t["id"]
+            try:
+                status = MediaService.for_team(root_path, tid).channel_status()
+            except Exception:
+                status = {
+                    ch: {"mode": "stub", "source": "?", "detail": "—"}
+                    for ch in ("vision", "stt", "tts", "image_generation")
+                }
+            team_rows.append({"team_id": tid, "status": status})
+        return templates.TemplateResponse(
+            request,
+            "admin_media.html",
+            {
+                "user": user,
+                "media": media,
+                "team_rows": team_rows,
+                "saved": saved == "1",
+            },
+        )
+
+    @app.post("/admin/media/global")
+    async def admin_media_global_save(
+        request: Request,
+        user: CurrentUser,
+        vision_model: str = Form("gpt-4o-mini"),
+        stt_endpoint: str = Form(""),
+        tts_endpoint: str = Form(""),
+        tts_voice_id: str = Form("de_DE_neural"),
+        image_type: str = Form("webhook"),
+        image_url: str = Form(""),
+    ):
+        require_admin(user)
+        from bot.config.media_admin import MediaAdminError, media_global_from_form, save_media_global
+
+        try:
+            media = media_global_from_form(
+                stt_endpoint=stt_endpoint,
+                tts_endpoint=tts_endpoint,
+                tts_voice_id=tts_voice_id,
+                image_type=image_type,
+                image_url=image_url,
+                vision_model=vision_model,
+            )
+            save_media_global(root_path, media)
+        except MediaAdminError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return RedirectResponse("/admin/media?saved=1", status_code=302)
+
+    @app.post("/admin/media/team/{team_id}")
+    async def admin_media_team_save(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        image_url: str = Form(""),
+    ):
+        require_admin(user)
+        from bot.config.media_admin import save_team_media_file
+        from bot.config.models import ImageGenerationConfig
+        from bot.media.config import MediaChannelConfig, TeamMediaConfig
+
+        media = TeamMediaConfig(
+            vision=MediaChannelConfig(source="global"),
+            stt=MediaChannelConfig(source="global"),
+            tts=MediaChannelConfig(source="global"),
+            image_generation=ImageGenerationConfig(
+                source="custom",
+                type="webhook",
+                url=image_url or None,
+            ),
+        )
+        save_team_media_file(root_path, team_id, media)
+        return RedirectResponse("/admin/media?saved=1", status_code=302)
+
     @app.get("/admin", response_class=HTMLResponse)
     async def admin_page(request: Request, user: CurrentUser):
         require_admin(user)
         from bot.audit import AuditStore
-        from bot.media import MediaService
 
         users_cfg = load_users_config(root_path)
         registry: HostRegistry = app.state.hosts
