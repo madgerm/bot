@@ -15,7 +15,9 @@
       }
     },
     "polling": {
-      "interval_seconds": 5
+      "interval_seconds": 5,
+      "inbox_watch_seconds": 0.5,
+      "worker_mode": "process"
     },
     "llm": {
       "enabled": false,

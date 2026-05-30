@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "bot"
 version = "0.1.0"
-description = "Python-Projekt (Skeleton)"
+description = "Multi-Agent-Runtime mit Team-Runner und Web-Panel"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -30,6 +30,7 @@ playwright = ["playwright>=1.49"]
 crawl = ["crawl4ai>=0.4"]
 dev = [
     "pytest>=8.0",
+    "ruff>=0.8",
     "playwright>=1.49",
     "crawl4ai>=0.4",
 ]
@@ -43,3 +44,15 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+filterwarnings = [
+    "ignore:coroutine '_async_crawl_page' was never awaited:RuntimeWarning",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]

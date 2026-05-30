@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
 from bot.config import ConfigLoadError, load_runtime_config
+from bot.health import collect_health
 from bot.web.auth import (
     SESSION_ROLE_KEY,
     SESSION_TEAMS_KEY,
@@ -23,6 +24,8 @@ from bot.web.auth import (
     require_team_access,
     session_secret,
 )
+from bot.web.csrf import CsrfMiddleware, csrf_enabled, ensure_csrf_token
+from bot.web.rate_limit import client_key, login_rate_limiter, webhook_rate_limiter
 from bot.hosts import HostRegistry, TeamHostError
 from bot.web.services import build_team_dashboard
 
@@ -34,8 +37,16 @@ def create_app(root: Path | str) -> FastAPI:
     root_path = Path(root).resolve()
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
+    def _csrf_for_request(request: Request) -> str:
+        if not csrf_enabled():
+            return ""
+        return ensure_csrf_token(request)
+
+    templates.env.globals["csrf_token_for"] = _csrf_for_request
+
     app = FastAPI(title="Bot Panel", docs_url="/api/docs", redoc_url=None)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    app.add_middleware(CsrfMiddleware)
     app.add_middleware(
         SessionMiddleware,
         secret_key=session_secret(),
@@ -43,6 +54,8 @@ def create_app(root: Path | str) -> FastAPI:
         https_only=False,
         same_site="lax",
     )
+    app.state.login_limiter = login_rate_limiter()
+    app.state.webhook_limiter = webhook_rate_limiter()
     app.state.root = root_path
     try:
         app.state.hosts = HostRegistry(root_path)
@@ -63,7 +76,11 @@ def create_app(root: Path | str) -> FastAPI:
         return templates.TemplateResponse(
             request,
             "login.html",
-            {"user": None, "error": error},
+            {
+                "user": None,
+                "error": error,
+                "csrf_token": ensure_csrf_token(request),
+            },
         )
 
     @app.post("/login")
@@ -72,6 +89,7 @@ def create_app(root: Path | str) -> FastAPI:
         username: str = Form(...),
         password: str = Form(...),
     ):
+        app.state.login_limiter.check(client_key(request, "login"))
         user = authenticate(root_path, username.strip(), password)
         if user is None:
             return templates.TemplateResponse(
@@ -493,7 +511,7 @@ def create_app(root: Path | str) -> FastAPI:
 
     @app.get("/health")
     async def health():
-        return {"status": "ok"}
+        return collect_health(root_path)
 
     # Phase 3: Webhooks API
     from bot.webhooks import WebhookService, WebhookServiceError
@@ -506,6 +524,7 @@ def create_app(root: Path | str) -> FastAPI:
     ):
         import json as _json
 
+        app.state.webhook_limiter.check(client_key(request, f"webhook:{team_id}"))
         body = await request.body()
         wh = WebhookService(root_path)
         token = request.headers.get("X-Webhook-Token")

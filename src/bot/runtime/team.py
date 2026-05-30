@@ -6,7 +6,8 @@ from pathlib import Path
 
 from bot.config.models import TeamBundle
 from bot.llm import LlmStack
-from bot.runtime.agent import AgentRunner
+from bot.runtime.handlers import AgentHandler
+from bot.runtime.worker import AgentWorker, WorkerMode, create_agent_worker
 
 
 class TeamRuntime:
@@ -17,10 +18,15 @@ class TeamRuntime:
         team_id: str,
         bundle: TeamBundle,
         default_interval: float,
+        inbox_watch_seconds: float,
+        inbox_template: str,
         llm_stack: LlmStack,
+        worker_mode: WorkerMode,
+        handler: AgentHandler | None = None,
     ) -> None:
         self.team_id = team_id
-        self._runners: list[AgentRunner] = []
+        self.worker_mode = worker_mode
+        self._runners: list[AgentWorker] = []
 
         orch_id = bundle.team.team.orchestrator_id
         agent_items = list(bundle.agents.items())
@@ -36,17 +42,21 @@ class TeamRuntime:
             if not agent_cfg.agent.enabled:
                 continue
             self._runners.append(
-                AgentRunner(
+                create_agent_worker(
                     root=root,
                     team_id=team_id,
                     agent_cfg=agent_cfg,
                     default_interval=default_interval,
+                    inbox_watch_seconds=inbox_watch_seconds,
+                    inbox_template=inbox_template,
                     llm_stack=llm_stack,
+                    worker_mode=worker_mode,
+                    handler=handler,
                 )
             )
 
     @property
-    def agents(self) -> list[AgentRunner]:
+    def agents(self) -> list[AgentWorker]:
         return list(self._runners)
 
     def start(self) -> None:
@@ -58,7 +68,7 @@ class TeamRuntime:
             runner.stop()
 
     def tick_round(self) -> int:
-        """Ein Durchlauf: jeder Agent einmal. Gibt Anzahl verarbeiteter Messages zurück."""
+        """Ein Durchlauf: jeder Agent einmal (nur thread-Modus)."""
         processed = 0
         for runner in self._runners:
             if runner.tick():
@@ -73,3 +83,14 @@ class TeamRuntime:
             if count == 0:
                 break
         return total
+
+    def workers_status(self) -> list[dict]:
+        return [
+            {
+                "team_id": self.team_id,
+                "agent_id": r.agent_id,
+                "worker_kind": r.worker_kind,
+                "alive": r.is_alive(),
+            }
+            for r in self._runners
+        ]

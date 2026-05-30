@@ -85,6 +85,8 @@ bot run --team demo --once   # oder bot run dauerhaft
 
 Pipeline (konfigurierbar pro Team): z. B. Demo `orchestrator` → `worker-exec` → `worker-review`; Coding `coder` → `tester` → `doku`; Story `drehbuch-autor` → `logik-pruefer`. Agents nutzen **Tools** (Dateien, Git, Qdrant, Browser, Story-Szenen) im LLM-Loop.
 
+**Agent-Loop:** Jeder Agent hat einen **Inbox-Watch-Thread** (`inbox_watch_seconds`, Standard 0,5s) — neue Dateien in `inbox/` wecken den Loop sofort. Ohne Änderung gilt `interval_seconds` als Idle-Polling. Standardmäßig läuft jeder Agent in einem **eigenen OS-Prozess** (`worker_mode: "process"` in `config/system.json`); für Tests/Cron nutzt `bot run --once` intern Threads.
+
 Fertige Team-Presets: `teams/demo/`, `teams/coding/`, `teams/story/`.
 
 ---
@@ -335,4 +337,9 @@ pytest
 
 - Web-Panel: `BOT_SESSION_SECRET` setzen, HTTPS in Produktion (`bot web --ssl-cert …`).
 - Team-API: langer Zufallstoken (`bot team token`), nur VPN/Firewall oder TLS.
-- `config/users.json` / Tokens **nicht** committen — Passwörter in Produktion hashen (bcrypt `$2…`).
+- `config/users.json` / Tokens **nicht** committen — Passwörter in Produktion hashen:
+  ```bash
+  bot auth hash-password   # bcrypt-Hash in users.json eintragen
+  ```
+- Umgebungsvariablen: siehe `.env.example` (CSRF, Rate-Limits, Secrets).
+- `/health` liefert Queue-Tiefen (pending/processing) pro Agent — für Monitoring.

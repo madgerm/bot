@@ -19,7 +19,9 @@ def api_client(runtime_project, monkeypatch: pytest.MonkeyPatch):
 
 
 def test_team_api_health(api_client: TestClient) -> None:
-    assert api_client.get("/api/v1/health").json() == {"status": "ok"}
+    data = api_client.get("/api/v1/health").json()
+    assert data["status"] == "ok"
+    assert "queues" in data
 
 
 def test_team_api_dashboard(api_client: TestClient) -> None:

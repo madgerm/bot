@@ -33,6 +33,11 @@ class CommunicationConfig(BaseModel):
 
 class PollingConfig(BaseModel):
     interval_seconds: float = Field(default=5.0, gt=0)
+    """Fallback-Intervall wenn die Inbox unverändert ist (Idle-Gesundheitscheck)."""
+    inbox_watch_seconds: float = Field(default=0.5, gt=0)
+    """Intervall des Inbox-Watch-Threads (mtime); weckt den Loop bei neuer Datei."""
+    worker_mode: Literal["thread", "process"] = "process"
+    """thread = ein Thread pro Agent; process = eigener OS-Prozess (empfohlen)."""
 
 
 class LlmConfig(BaseModel):

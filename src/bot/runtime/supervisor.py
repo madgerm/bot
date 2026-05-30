@@ -11,12 +11,13 @@ from bot.config.models import RuntimeConfig
 from bot.llm import LlmStack, build_llm_stack
 from bot.qdrant.scheduler import QdrantReindexScheduler
 from bot.runtime.team import TeamRuntime
+from bot.runtime.worker import WorkerMode
 
 logger = logging.getLogger(__name__)
 
 
 class Supervisor:
-    """Zentrale Runtime — startet alle Teams und überwacht Worker-Threads."""
+    """Zentrale Runtime — startet Teams mit Agent-Workern (Thread oder Subprozess)."""
 
     def __init__(self, root: Path | str) -> None:
         self.root = Path(root).resolve()
@@ -41,8 +42,31 @@ class Supervisor:
             self.start()
         return config
 
-    def _build_teams(self, config: RuntimeConfig, team_filter: set[str] | None = None) -> None:
-        interval = config.system.system.polling.interval_seconds
+    def status(self) -> dict:
+        """Laufzeitstatus für Health-Endpoints."""
+        with self._lock:
+            workers: list[dict] = []
+            for team in self._teams.values():
+                workers.extend(team.workers_status())
+            return {
+                "running": self._running,
+                "teams": len(self._teams),
+                "agents": sum(len(t.agents) for t in self._teams.values()),
+                "workers": workers,
+            }
+
+    def _build_teams(
+        self,
+        config: RuntimeConfig,
+        team_filter: set[str] | None = None,
+        *,
+        worker_mode: WorkerMode | None = None,
+    ) -> None:
+        polling = config.system.system.polling
+        interval = polling.interval_seconds
+        watch = polling.inbox_watch_seconds
+        mode: WorkerMode = worker_mode or polling.worker_mode
+        inbox_template = config.system.system.communication.inbox_base
         self._llm_stack = build_llm_stack(config)
         teams: dict[str, TeamRuntime] = {}
         for team_id, bundle in config.teams.items():
@@ -55,7 +79,10 @@ class Supervisor:
                 team_id=team_id,
                 bundle=bundle,
                 default_interval=interval,
+                inbox_watch_seconds=watch,
+                inbox_template=inbox_template,
                 llm_stack=self._llm_stack,
+                worker_mode=mode,
             )
         self._teams = teams
 
@@ -105,10 +132,10 @@ class Supervisor:
         team_ids: list[str] | None = None,
         max_rounds: int = 20,
     ) -> int:
-        """Synchroner Modus für Tests: verarbeitet alle pending Messages."""
+        """Synchroner Modus für Tests/Cron — verarbeitet pending Messages im Thread-Modus."""
         config = self._store.get()
         team_filter = set(team_ids) if team_ids else None
-        self._build_teams(config, team_filter)
+        self._build_teams(config, team_filter, worker_mode="thread")
         total = 0
         for team in self._teams.values():
             total += team.run_until_idle(max_rounds=max_rounds)
