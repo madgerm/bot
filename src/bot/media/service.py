@@ -30,6 +30,54 @@ class MediaService:
         self._global = runtime.system.media_global
         self._team = load_team_media(self.root, team_id)
 
+    def channel_status(self) -> dict[str, dict[str, str]]:
+        """Stub vs. live pro Kanal (für Admin-UI)."""
+        channels: dict[str, dict[str, str]] = {}
+        for name in ("vision", "stt", "tts", "image_generation"):
+            try:
+                cfg = resolve_channel(self._global, self._team, name)
+            except MediaConfigError:
+                channels[name] = {"mode": "unconfigured", "detail": "Konfiguration fehlt"}
+                continue
+            source = getattr(cfg, "source", "global")
+            if name == "stt":
+                if isinstance(cfg, MediaChannelConfig) and cfg.endpoint:
+                    mode = "live"
+                    detail = cfg.endpoint
+                else:
+                    mode = "stub"
+                    detail = "Kein STT-Endpoint — LiteLLM oder Stub"
+            elif name == "tts":
+                if isinstance(cfg, MediaChannelConfig) and cfg.endpoint:
+                    mode = "live"
+                    detail = cfg.endpoint
+                else:
+                    mode = "stub"
+                    detail = "Kein TTS-Endpoint"
+            elif name == "vision":
+                if isinstance(cfg, MediaChannelConfig) and (cfg.api_base or cfg.model):
+                    mode = "live"
+                    detail = cfg.model or cfg.api_base or "litellm"
+                else:
+                    mode = "stub"
+                    detail = "Vision nicht konfiguriert"
+            else:
+                img = cfg if isinstance(cfg, ImageGenerationConfig) else None
+                if img and img.type == "webhook" and img.url:
+                    mode = "live"
+                    detail = f"webhook {img.url}"
+                elif img and img.type == "minimax" and img.api_base:
+                    mode = "live"
+                    detail = "minimax"
+                elif img and (img.url or img.api_base):
+                    mode = "live"
+                    detail = img.type
+                else:
+                    mode = "stub"
+                    detail = "selfhosted ohne URL — Stub-Antwort"
+            channels[name] = {"mode": mode, "source": source, "detail": detail}
+        return channels
+
     @classmethod
     def for_team(cls, root: Path | str, team_id: str) -> MediaService:
         return cls(Path(root), team_id)

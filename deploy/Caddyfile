@@ -1,0 +1,19 @@
+# Ein HTTPS-Einstieg für Panel (+ optional Team-API hinter Pfaden)
+# Anpassen: agents.example.com, Pfade, Upstreams
+
+agents.example.com {
+    encode gzip
+
+    # Web-Panel
+    reverse_proxy web-panel:8080
+
+    # Team-Runner API (optional, gleiche Origin)
+    handle_path /api/v1/* {
+        reverse_proxy team-api:8443
+    }
+}
+
+# Nur API auf separatem Host:
+# runner.example.com {
+#     reverse_proxy team-api:8443
+# }

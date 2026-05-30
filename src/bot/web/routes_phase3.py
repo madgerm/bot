@@ -470,13 +470,28 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
             f"/teams/{team_id}/story?exported={path.name}", status_code=302
         )
 
+    def _media_context(team_id: str, user: CurrentUser, **extra):
+        from bot.media import MediaService
+
+        base = {
+            "user": user,
+            "team_id": team_id,
+            "result": None,
+            "error": None,
+            "stt_text": None,
+            "tts_path": None,
+            "channel_status": MediaService.for_team(root_path, team_id).channel_status(),
+        }
+        base.update(extra)
+        return base
+
     @app.get("/teams/{team_id}/media", response_class=HTMLResponse)
     async def team_media_page(request: Request, team_id: str, user: CurrentUser):
         require_team_access(team_id, user)
         return templates.TemplateResponse(
             request,
             "team_media.html",
-            {"user": user, "team_id": team_id, "result": None, "error": None},
+            _media_context(team_id, user),
         )
 
     @app.post("/teams/{team_id}/media/image")
@@ -498,14 +513,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
         return templates.TemplateResponse(
             request,
             "team_media.html",
-            {
-                "user": user,
-                "team_id": team_id,
-                "result": result,
-                "error": error,
-                "stt_text": None,
-                "tts_path": None,
-            },
+            _media_context(team_id, user, result=result, error=error),
         )
 
     @app.post("/teams/{team_id}/media/voice/stt")
@@ -534,14 +542,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
         return templates.TemplateResponse(
             request,
             "team_media.html",
-            {
-                "user": user,
-                "team_id": team_id,
-                "result": None,
-                "error": error,
-                "stt_text": stt_text,
-                "tts_path": None,
-            },
+            _media_context(team_id, user, error=error, stt_text=stt_text),
         )
 
     @app.post("/teams/{team_id}/media/voice/tts")
@@ -565,14 +566,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
         return templates.TemplateResponse(
             request,
             "team_media.html",
-            {
-                "user": user,
-                "team_id": team_id,
-                "result": None,
-                "error": error,
-                "stt_text": None,
-                "tts_path": tts_path,
-            },
+            _media_context(team_id, user, error=error, tts_path=tts_path),
         )
 
     @app.post("/teams/{team_id}/knowledge/reindex")

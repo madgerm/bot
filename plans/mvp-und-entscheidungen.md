@@ -2,6 +2,26 @@
 
 Ergänzung zu `runtime-teams.md` und den domänen-Plänen. **Ziel:** umsetzbare Defaults mit **maximalem Sinn** für Betrieb, Sicherheit und spätere Skalierung — nicht „minimalster Prototyp um jeden Preis“.
 
+## Umsetzungsstand (Ist, 2026-05)
+
+| Bereich | Status |
+|---------|--------|
+| Runtime / Supervisor, Hot-Reload | erledigt |
+| Message-JSON, Inbox/Outbox, Idempotenz | erledigt |
+| LLM + Model-Routing, Stub | erledigt |
+| Web-Panel, Auth, Team-Scoping, Theme | erledigt |
+| Inbox-Watch + Agent-Subprozesse (`worker_mode`) | erledigt |
+| Team-Chat SQLite + GUI + Chat-Audit | erledigt |
+| Webhooks, Qdrant-Reindex, Agent-Tools | erledigt |
+| E-Mail/Hours mit Freigabe + Audit (Panel) | erledigt |
+| Story-Szenen optimistic lock (Web-Editor) | erledigt |
+| CI (pytest), Ruff, mypy (graduell) | erledigt |
+| `bot backup`, Docker/Caddy-Beispiel, `docs/OPERATIONS.md` | erledigt |
+| Zentrales Audit (`data/audit.sqlite`) | erledigt (Mail/Hours; erweiterbar) |
+| Medien Stub/Live-Anzeige im Panel | erledigt |
+| Multi-Machine Broker / Redis | offen (nur Shared-FS) |
+| Feinere In-Team-Rollen überall | teilweise (`reader`/`operator`) |
+
 ---
 
 ## Was *wirklich* zuerst drin sein muss (MVP-Kern)

@@ -31,9 +31,12 @@ crawl = ["crawl4ai>=0.4"]
 dev = [
     "pytest>=8.0",
     "ruff>=0.8",
+    "mypy>=1.13",
     "playwright>=1.49",
     "crawl4ai>=0.4",
 ]
+
+# Optionale Extras: playwright/crawl nicht im Standard-Deploy (siehe README, docs/OPERATIONS.md).
 
 [project.scripts]
 bot = "bot.cli:main"
@@ -44,9 +47,13 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-filterwarnings = [
-    "ignore:coroutine '_async_crawl_page' was never awaited:RuntimeWarning",
-]
+[tool.mypy]
+python_version = "3.11"
+files = ["src/bot"]
+ignore_missing_imports = true
+warn_return_any = false
+check_untyped_defs = false
+disable_error_code = ["misc", "arg-type", "attr-defined", "assignment", "union-attr", "var-annotated"]
 
 [tool.ruff]
 target-version = "py311"
