@@ -7,6 +7,13 @@
   <a href="/teams/{{ team_id }}/settings/general" class="p-link{% if settings_active == 'general' %} font-semibold{% endif %}">Allgemein</a>
   <a href="/teams/{{ team_id }}/settings/pipeline" class="p-link{% if settings_active == 'pipeline' %} font-semibold{% endif %}">Pipeline</a>
   <a href="/teams/{{ team_id }}/settings/agents" class="p-link{% if settings_active == 'agents' %} font-semibold{% endif %}">Agents</a>
+  <span class="p-faint">|</span>
+  <a href="/teams/{{ team_id }}/settings/crawl" class="p-link{% if settings_active == 'crawl' %} font-semibold{% endif %}">Crawl</a>
+  <a href="/teams/{{ team_id }}/settings/email" class="p-link{% if settings_active == 'email' %} font-semibold{% endif %}">E-Mail</a>
+  <a href="/teams/{{ team_id }}/settings/hours" class="p-link{% if settings_active == 'hours' %} font-semibold{% endif %}">Hours</a>
+  <a href="/teams/{{ team_id }}/settings/integrations" class="p-link{% if settings_active == 'integrations' %} font-semibold{% endif %}">Integrationen</a>
+  <a href="/teams/{{ team_id }}/settings/git" class="p-link{% if settings_active == 'git' %} font-semibold{% endif %}">Git</a>
+  <a href="/teams/{{ team_id }}/settings/playwright" class="p-link{% if settings_active == 'playwright' %} font-semibold{% endif %}">Playwright</a>
 </nav>
 {% block team_settings_content %}{% endblock %}
 {% endblock %}

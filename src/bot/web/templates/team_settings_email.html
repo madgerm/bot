@@ -1,0 +1,35 @@
+{% extends "team_settings_base.html" %}
+{% block title %}E-Mail — {{ team_id }}{% endblock %}
+{% block team_settings_content %}
+<h1 class="text-2xl font-bold mb-2">E-Mail</h1>
+<p class="text-sm p-muted mb-4"><code>teams/{{ team_id }}/email.json</code> · Bedienung: <a href="/teams/{{ team_id }}/mail" class="p-link">Mail</a></p>
+{% if request.query_params.get('saved') %}<p class="p-status-ok mb-4">Gespeichert.</p>{% endif %}
+{% if error %}<p class="p-status-bad mb-4 text-sm">{{ error }}</p>{% endif %}
+{% if secret_status %}
+<div class="text-xs p-faint mb-4">{% for ref, ok in secret_status.items() %}<span class="mr-3"><code>{{ ref }}</code>: {% if ok %}✓{% else %}✗{% endif %}</span>{% endfor %}</div>
+{% endif %}
+<form method="post" class="space-y-6 max-w-2xl">
+  <label class="flex gap-2 text-sm"><input type="checkbox" name="email_enabled" value="on" {% if not email or email.enabled %}checked{% endif %}> aktiv</label>
+  <section class="p-card p-4 space-y-3">
+    <h2 class="font-semibold">IMAP</h2>
+    <input name="imap_host" class="w-full p-input" value="{{ email.imap.host if email else '' }}" placeholder="imap.…">
+    <div class="grid grid-cols-2 gap-2">
+      <input name="imap_port" type="number" class="p-input" value="{{ email.imap.port if email else 993 }}">
+      <input name="imap_user" class="p-input" value="{{ email.imap.username if email else '' }}">
+    </div>
+    <input name="imap_secret_ref" class="w-full p-input" value="{{ email.imap.secret_ref if email else 'FIRMA_IMAP_PASSWORD' }}">
+  </section>
+  <section class="p-card p-4 space-y-3">
+    <h2 class="font-semibold">SMTP</h2>
+    <input name="smtp_host" class="w-full p-input" value="{{ email.smtp.host if email else '' }}">
+    <div class="grid grid-cols-2 gap-2">
+      <input name="smtp_port" type="number" class="p-input" value="{{ email.smtp.port if email else 587 }}">
+      <input name="smtp_user" class="p-input" value="{{ email.smtp.username if email else '' }}">
+    </div>
+    <input name="smtp_secret_ref" class="w-full p-input" value="{{ email.smtp.secret_ref if email else 'FIRMA_SMTP_PASSWORD' }}">
+  </section>
+  <input name="allowed_domains" class="w-full p-input" placeholder="erlaubte Domains, kommagetrennt" value="{% if email %}{{ email.rules.allowed_recipient_domains | join(', ') }}{% endif %}">
+  <label class="flex gap-2 text-sm"><input type="checkbox" name="require_approval" value="on" {% if not email or email.rules.require_approval %}checked{% endif %}> Freigabe vor Senden</label>
+  <button type="submit" formaction="/teams/{{ team_id }}/settings/email" class="px-4 py-2 rounded bg-[var(--p-accent)] text-white text-sm">Speichern</button>
+</form>
+{% endblock %}

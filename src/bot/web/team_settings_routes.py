@@ -364,3 +364,7 @@ def register_team_settings_routes(
         return RedirectResponse(
             f"/teams/{team_id}/settings/agents?saved=deleted", status_code=302
         )
+
+    from bot.web.team_services_settings_routes import register_team_services_settings_routes
+
+    register_team_services_settings_routes(app, templates, root_path)

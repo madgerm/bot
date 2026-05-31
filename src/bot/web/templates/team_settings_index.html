@@ -24,4 +24,14 @@
     <p class="text-sm p-muted mt-1">{{ agents | length }} Agent(s) · Orchestrator: {{ team.orchestrator_id }}</p>
   </a>
 </div>
+
+<h2 class="text-lg font-semibold mb-3 mt-8">Dienste & Integrationen</h2>
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  <a href="/teams/{{ team_id }}/settings/crawl" class="p-card p-4 block hover:opacity-90"><h3 class="font-medium">Crawl4AI</h3><p class="text-xs p-muted">Domains → Qdrant</p></a>
+  <a href="/teams/{{ team_id }}/settings/email" class="p-card p-4 block hover:opacity-90"><h3 class="font-medium">E-Mail</h3><p class="text-xs p-muted">IMAP/SMTP</p></a>
+  <a href="/teams/{{ team_id }}/settings/hours" class="p-card p-4 block hover:opacity-90"><h3 class="font-medium">Öffnungszeiten</h3><p class="text-xs p-muted">Website, Master</p></a>
+  <a href="/teams/{{ team_id }}/settings/integrations" class="p-card p-4 block hover:opacity-90"><h3 class="font-medium">Telegram/Matrix</h3></a>
+  <a href="/teams/{{ team_id }}/settings/git" class="p-card p-4 block hover:opacity-90"><h3 class="font-medium">Git</h3></a>
+  <a href="/teams/{{ team_id }}/settings/playwright" class="p-card p-4 block hover:opacity-90"><h3 class="font-medium">Playwright</h3><p class="text-xs p-muted">Team-Override</p></a>
+</div>
 {% endblock %}

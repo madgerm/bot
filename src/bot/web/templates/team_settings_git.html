@@ -1,0 +1,14 @@
+{% extends "team_settings_base.html" %}
+{% block title %}Git — {{ team_id }}{% endblock %}
+{% block team_settings_content %}
+<h1 class="text-2xl font-bold mb-2">Git</h1>
+<p class="text-sm p-muted mb-4"><code>teams/{{ team_id }}/git.json</code></p>
+{% if request.query_params.get('saved') %}<p class="p-status-ok mb-4">Gespeichert.</p>{% endif %}
+<form method="post" action="/teams/{{ team_id }}/settings/git" class="p-card p-5 space-y-3 max-w-xl">
+  <label class="flex gap-2 text-sm"><input type="checkbox" name="git_enabled" value="on" {% if git.enabled %}checked{% endif %}> aktiv</label>
+  <input name="repo_path" class="w-full p-input font-mono text-sm" value="{{ git.repo_path }}">
+  <input name="remote_name" class="w-full p-input" value="{{ git.remote_name }}">
+  <input name="default_branch" class="w-full p-input" value="{{ git.default_branch }}">
+  <button type="submit" class="px-4 py-2 rounded bg-[var(--p-accent)] text-white text-sm">Speichern</button>
+</form>
+{% endblock %}

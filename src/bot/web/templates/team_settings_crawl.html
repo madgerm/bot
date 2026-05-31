@@ -1,0 +1,36 @@
+{% extends "team_settings_base.html" %}
+{% block title %}Crawl — {{ team_id }}{% endblock %}
+{% block team_settings_content %}
+<h1 class="text-2xl font-bold mb-2">Crawl4AI</h1>
+<p class="text-sm p-muted mb-4"><code>teams/{{ team_id }}/crawl.json</code> · Ausführen unter <a href="/teams/{{ team_id }}/crawl" class="p-link">Crawl (Run)</a></p>
+{% if request.query_params.get('saved') %}<p class="p-status-ok mb-4">Gespeichert.</p>{% endif %}
+{% if error %}<p class="p-status-bad mb-4 text-sm">{{ error }}</p>{% endif %}
+<form method="post" action="/teams/{{ team_id }}/settings/crawl" class="space-y-6 max-w-3xl">
+  <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="crawl_enabled" value="on" {% if crawl.enabled %}checked{% endif %}> Crawl aktiv</label>
+  <div class="p-card p-4 space-y-3">
+    <h2 class="font-semibold text-sm">Domains</h2>
+    {% for d in domains %}
+    {% set i = loop.index0 %}
+    <div class="flex flex-wrap gap-2 items-end border-b border-[var(--p-border)] pb-3">
+      <input type="hidden" name="domain_idx_{{ i }}" value="1">
+      <div class="flex-1 min-w-[200px]"><input name="domain_url_{{ i }}" class="w-full p-input text-sm" value="{{ d.url }}" placeholder="https://…"></div>
+      <input name="domain_max_{{ i }}" type="number" min="1" class="w-20 p-input text-sm" value="{{ d.max_pages }}">
+      <label class="text-xs"><input type="checkbox" name="domain_enabled_{{ i }}" value="on" {% if d.enabled %}checked{% endif %}> aktiv</label>
+    </div>
+    {% endfor %}
+    {% for j in range(extra_slots) %}
+    {% set i = domains|length + j %}
+    <div class="flex flex-wrap gap-2 items-end pb-2">
+      <div class="flex-1 min-w-[200px]"><input name="domain_url_{{ i }}" class="w-full p-input text-sm" placeholder="Neue URL"></div>
+      <input name="domain_max_{{ i }}" type="number" min="1" class="w-20 p-input text-sm" value="10">
+      <label class="text-xs"><input type="checkbox" name="domain_enabled_{{ i }}" value="on" checked> aktiv</label>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="grid grid-cols-2 gap-3 max-w-xl">
+    <input name="qdrant_collection" class="p-input text-sm" value="{{ crawl.qdrant_collection }}" placeholder="web">
+    <input name="prune_threshold" step="0.01" class="p-input text-sm" value="{{ crawl.prune_threshold }}">
+  </div>
+  <button type="submit" class="px-4 py-2 rounded bg-[var(--p-accent)] text-white text-sm">Speichern</button>
+</form>
+{% endblock %}

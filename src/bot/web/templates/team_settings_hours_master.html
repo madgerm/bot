@@ -1,0 +1,23 @@
+{% extends "team_settings_base.html" %}
+{% block title %}Master-Öffnungszeiten — {{ team_id }}{% endblock %}
+{% block team_settings_content %}
+<h1 class="text-2xl font-bold mb-2">Master-Öffnungszeiten</h1>
+<p class="text-sm p-muted mb-4"><code>{{ master_file }}</code></p>
+{% if request.query_params.get('saved') %}<p class="p-status-ok mb-4">Gespeichert.</p>{% endif %}
+<form method="post" action="/teams/{{ team_id }}/settings/hours/master" class="max-w-2xl">
+  <input name="timezone" class="w-full p-input mb-4" value="{{ master.timezone }}">
+  <table class="w-full text-sm p-card">
+    {% for day in days %}
+    {% set dh = master.weekly.get(day) %}
+    <tr class="border-t border-[var(--p-border)]">
+      <td class="py-2 pr-4 font-medium">{{ day }}</td>
+      <td class="py-2"><input name="{{ day }}_open" class="p-input w-24" value="{{ dh.open if dh and dh.open else '' }}" placeholder="09:00"></td>
+      <td class="py-2"><input name="{{ day }}_close" class="p-input w-24" value="{{ dh.close if dh and dh.close else '' }}" placeholder="18:00"></td>
+      <td class="py-2"><label class="text-xs"><input type="checkbox" name="{{ day }}_closed" value="on" {% if dh and dh.closed %}checked{% endif %}> geschlossen</label></td>
+    </tr>
+    {% endfor %}
+  </table>
+  <textarea name="note" rows="2" class="w-full p-input mt-4">{{ master.note or '' }}</textarea>
+  <button type="submit" class="mt-4 px-4 py-2 rounded bg-[var(--p-accent)] text-white text-sm">Master speichern</button>
+</form>
+{% endblock %}
