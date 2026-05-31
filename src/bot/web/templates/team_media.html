@@ -1,8 +1,9 @@
-{% extends "base.html" %}
+{% extends "team_layout.html" %}
 {% block title %}Medien — {{ team_id }}{% endblock %}
-{% block content %}
-<a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
-<h1 class="text-2xl font-bold mt-4">Medien</h1>
+{% block team_content %}
+<header class="p-page-header mb-6">
+  <h1 class="text-2xl font-bold">Medien</h1>
+</header>
 <p class="text-sm p-faint mb-4">Vision, STT, TTS, Bildgenerierung — <code>config/system.json</code> / <code>teams/{{ team_id }}/media.json</code></p>
 
 {% if channel_status %}

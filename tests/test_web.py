@@ -64,6 +64,8 @@ def test_team_page_scoped(client: TestClient) -> None:
     r = client.get("/teams/alpha")
     assert r.status_code == 200
     assert "orchestrator" in r.text
+    assert "p-team-sidebar" in r.text
+    assert "p-hub-card" in r.text
 
 
 def test_team_forbidden_for_unknown(client: TestClient) -> None:

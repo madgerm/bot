@@ -1,8 +1,9 @@
-{% extends "base.html" %}
+{% extends "team_layout.html" %}
 {% block title %}Crawl — {{ team_id }}{% endblock %}
-{% block content %}
-<a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
-<h1 class="text-2xl font-bold mt-4">Domain-Crawl</h1>
+{% block team_content %}
+<header class="p-page-header mb-6">
+  <h1 class="text-2xl font-bold">Domain-Crawl</h1>
+</header>
 <p class="text-sm p-faint mb-4">
   <strong>Crawl4AI</strong> — sauberes Markdown (<code>fit_markdown</code>, ohne Menü/Nav).
   Config: <code>teams/{{ team_id }}/crawl.json</code> · Snapshots: <code>data/{{ team_id }}/crawl/</code>

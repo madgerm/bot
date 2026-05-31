@@ -1,0 +1,43 @@
+<nav class="p-settings-subnav" aria-label="Team-Einstellungen">
+  <a href="/teams/{{ team_id }}/settings"
+    class="p-settings-subnav__link{% if settings_active == 'index' %} is-active{% endif %}">
+    Übersicht
+  </a>
+  <a href="/teams/{{ team_id }}/settings/general"
+    class="p-settings-subnav__link{% if settings_active == 'general' %} is-active{% endif %}">
+    Allgemein
+  </a>
+  <a href="/teams/{{ team_id }}/settings/pipeline"
+    class="p-settings-subnav__link{% if settings_active == 'pipeline' %} is-active{% endif %}">
+    Pipeline
+  </a>
+  <a href="/teams/{{ team_id }}/settings/agents"
+    class="p-settings-subnav__link{% if settings_active == 'agents' %} is-active{% endif %}">
+    Agents
+  </a>
+  <p class="p-settings-subnav__group">Dienste</p>
+  <a href="/teams/{{ team_id }}/settings/crawl"
+    class="p-settings-subnav__link{% if settings_active == 'crawl' %} is-active{% endif %}">
+    Crawl
+  </a>
+  <a href="/teams/{{ team_id }}/settings/email"
+    class="p-settings-subnav__link{% if settings_active == 'email' %} is-active{% endif %}">
+    E-Mail
+  </a>
+  <a href="/teams/{{ team_id }}/settings/hours"
+    class="p-settings-subnav__link{% if settings_active == 'hours' %} is-active{% endif %}">
+    Öffnungszeiten
+  </a>
+  <a href="/teams/{{ team_id }}/settings/integrations"
+    class="p-settings-subnav__link{% if settings_active == 'integrations' %} is-active{% endif %}">
+    Integrationen
+  </a>
+  <a href="/teams/{{ team_id }}/settings/git"
+    class="p-settings-subnav__link{% if settings_active == 'git' %} is-active{% endif %}">
+    Git
+  </a>
+  <a href="/teams/{{ team_id }}/settings/playwright"
+    class="p-settings-subnav__link{% if settings_active == 'playwright' %} is-active{% endif %}">
+    Playwright
+  </a>
+</nav>

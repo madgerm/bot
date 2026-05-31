@@ -1,8 +1,10 @@
-{% extends "base.html" %}
+{% extends "team_layout.html" %}
 {% block title %}Agents — {{ team_id }}{% endblock %}
-{% block content %}
-<a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
-<h1 class="text-2xl font-bold mt-4 mb-6">Agent Manager</h1>
+{% block team_content %}
+<header class="p-page-header mb-6">
+  <h1 class="text-2xl font-bold">Agent Manager</h1>
+  <p class="text-sm p-muted mt-1">Kurzansicht — ausführliche Verwaltung unter <a href="/teams/{{ team_id }}/settings/agents" class="p-link">Einstellungen → Agents</a>.</p>
+</header>
 <form method="post" action="/teams/{{ team_id }}/agents/create" class="mb-6 flex gap-2 flex-wrap">
   <input name="agent_id" required placeholder="agent-id" class="p-input">
   <select name="role" class="p-input">

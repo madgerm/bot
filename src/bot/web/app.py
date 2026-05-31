@@ -30,6 +30,7 @@ from bot.web.auth import (
 from bot.web.csrf import CsrfMiddleware, csrf_enabled, ensure_csrf_token
 from bot.web.rate_limit import client_key, login_rate_limiter, webhook_rate_limiter
 from bot.web.team_access import require_team_write
+from bot.web.template_helpers import register_template_globals, with_team_page
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
@@ -91,6 +92,7 @@ def create_app(root: Path | str) -> FastAPI:
         return ensure_csrf_token(request)
 
     templates.env.globals["csrf_token_for"] = _csrf_for_request
+    register_template_globals(templates, root_path)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -203,13 +205,17 @@ def create_app(root: Path | str) -> FastAPI:
         return templates.TemplateResponse(
             request,
             "team.html",
-            {
-                "user": user,
-                "dashboard": dashboard,
-                "team_id": team_id,
-                "connection": client.connection_display(),
-                "host_label": client.label,
-            },
+            with_team_page(
+                root_path,
+                team_id,
+                {
+                    "user": user,
+                    "dashboard": dashboard,
+                    "connection": client.connection_display(),
+                    "host_label": client.label,
+                },
+                page="Übersicht",
+            ),
         )
 
     def _team_chat_context(
@@ -275,7 +281,12 @@ def create_app(root: Path | str) -> FastAPI:
         ctx = _team_chat_context(
             team_id, user, direct=direct, q=q, show_internal=show_internal, agent=agent
         )
-        return templates.TemplateResponse(request, "team_chat.html", ctx)
+        page = f"Direkt · {ctx['direct_agent']}" if ctx.get("direct_agent") else "Chat"
+        return templates.TemplateResponse(
+            request,
+            "team_chat.html",
+            with_team_page(root_path, team_id, ctx, page=page),
+        )
 
     @app.get("/teams/{team_id}/chat/fragment", response_class=HTMLResponse)
     async def team_chat_feed_fragment(

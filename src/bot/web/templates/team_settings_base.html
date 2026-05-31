@@ -1,19 +1,9 @@
-{% extends "base.html" %}
-{% block content %}
-<nav class="text-sm mb-6 flex flex-wrap gap-x-4 gap-y-2 items-center">
-  <a href="/teams/{{ team_id }}" class="p-link">← Team</a>
-  <span class="p-faint">|</span>
-  <a href="/teams/{{ team_id }}/settings" class="p-link{% if settings_active == 'index' %} font-semibold{% endif %}">Einstellungen</a>
-  <a href="/teams/{{ team_id }}/settings/general" class="p-link{% if settings_active == 'general' %} font-semibold{% endif %}">Allgemein</a>
-  <a href="/teams/{{ team_id }}/settings/pipeline" class="p-link{% if settings_active == 'pipeline' %} font-semibold{% endif %}">Pipeline</a>
-  <a href="/teams/{{ team_id }}/settings/agents" class="p-link{% if settings_active == 'agents' %} font-semibold{% endif %}">Agents</a>
-  <span class="p-faint">|</span>
-  <a href="/teams/{{ team_id }}/settings/crawl" class="p-link{% if settings_active == 'crawl' %} font-semibold{% endif %}">Crawl</a>
-  <a href="/teams/{{ team_id }}/settings/email" class="p-link{% if settings_active == 'email' %} font-semibold{% endif %}">E-Mail</a>
-  <a href="/teams/{{ team_id }}/settings/hours" class="p-link{% if settings_active == 'hours' %} font-semibold{% endif %}">Hours</a>
-  <a href="/teams/{{ team_id }}/settings/integrations" class="p-link{% if settings_active == 'integrations' %} font-semibold{% endif %}">Integrationen</a>
-  <a href="/teams/{{ team_id }}/settings/git" class="p-link{% if settings_active == 'git' %} font-semibold{% endif %}">Git</a>
-  <a href="/teams/{{ team_id }}/settings/playwright" class="p-link{% if settings_active == 'playwright' %} font-semibold{% endif %}">Playwright</a>
-</nav>
-{% block team_settings_content %}{% endblock %}
+{% extends "team_layout.html" %}
+{% block team_content %}
+<div class="p-settings-layout">
+  {% include "partials/team_settings_subnav.html" %}
+  <div class="p-settings-body">
+    {% block team_settings_content %}{% endblock %}
+  </div>
+</div>
 {% endblock %}

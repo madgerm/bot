@@ -1,8 +1,9 @@
-{% extends "base.html" %}
+{% extends "team_layout.html" %}
 {% block title %}Git — {{ team_id }}{% endblock %}
-{% block content %}
-<a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
-<h1 class="text-2xl font-bold mt-4">Git</h1>
+{% block team_content %}
+<header class="p-page-header mb-6">
+  <h1 class="text-2xl font-bold">Git</h1>
+</header>
 {% if git_error %}<p class="p-status-warn text-sm">{{ git_error }}</p>{% endif %}
 <pre class="p-pre overflow-x-auto mb-4">{{ status }}</pre>
 <form method="post" action="/teams/{{ team_id }}/git/commit" class="mb-6 flex gap-2">

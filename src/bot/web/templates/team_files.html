@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "team_layout.html" %}
 {% block title %}Dateien — {{ team_id }}{% endblock %}
 {% block head_extra %}
 {% if edit_path %}
@@ -11,9 +11,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/meta.min.js"></script>
 {% endif %}
 {% endblock %}
-{% block content %}
-<a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
-<h1 class="text-2xl font-bold mt-4">Datei-Browser</h1>
+{% block team_content %}
+<header class="p-page-header mb-6">
+  <h1 class="text-2xl font-bold">Datei-Browser</h1>
+</header>
 <p class="text-sm p-faint mb-4">Workspace: <code>data/{{ team_id }}/workspace{% if path %}/{{ path }}{% endif %}</code></p>
 <ul class="mb-6 space-y-1 text-sm">
   {% if path %}<li><a href="/teams/{{ team_id }}/files" class="p-link">..</a></li>{% endif %}
