@@ -38,7 +38,7 @@ class TeamRuntime:
             role_order = {"worker": 1, "reviewer": 2, "orchestrator": 0}
             return (role_order.get(cfg.agent.role, 9), agent_id)
 
-        for agent_id, agent_cfg in sorted(agent_items, key=sort_key):
+        for _agent_id, agent_cfg in sorted(agent_items, key=sort_key):
             if not agent_cfg.agent.enabled:
                 continue
             self._runners.append(

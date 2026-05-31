@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from bot.crawl.config import CrawlConfig, CrawlConfigError, load_crawl_config
+from bot.crawl.config import CrawlConfigError, load_crawl_config
 
 
 class CrawlServiceError(Exception):

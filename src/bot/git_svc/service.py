@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from bot.git_svc.config import GitConfig, GitConfigError, load_git_config
+from bot.git_svc.config import load_git_config
 
 
 class GitServiceError(Exception):
@@ -27,7 +27,6 @@ class GitService:
         if not self.cfg.enabled:
             raise GitServiceError("Git ist deaktiviert")
         self.repo_dir.mkdir(parents=True, exist_ok=True)
-        env = None
         cmd = ["git", "-C", str(self.repo_dir), *args]
         try:
             return subprocess.run(

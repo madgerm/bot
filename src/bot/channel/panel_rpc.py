@@ -10,7 +10,7 @@ from bot.crawl.config import CrawlConfigError
 
 def execute_panel_rpc(panel_root: Path, kind: str, payload: dict[str, Any]) -> dict[str, Any]:
     if kind == "qdrant.search":
-        from bot.qdrant.service import QdrantService, QdrantServiceError
+        from bot.qdrant.service import QdrantService
 
         team_id = str(payload["team_id"])
         collection = str(payload.get("collection", "project"))

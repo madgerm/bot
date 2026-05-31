@@ -13,11 +13,11 @@ from websockets.asyncio.client import connect as ws_connect
 from websockets.exceptions import ConnectionClosed
 
 from bot.channel.hub_config import panel_ws_url
+from bot.channel.panel_rpc import execute_panel_rpc
 from bot.channel.protocol import decode_message, encode_message
 from bot.config import load_runtime_config
 from bot.hosts.models import TeamHostEntry
 from bot.hosts.registry import load_team_hosts_config
-from bot.channel.panel_rpc import execute_panel_rpc
 from bot.llm.proxy_service import complete_via_local_llm
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,6 @@ async def _session_loop(panel_root: Path, entry: TeamHostEntry) -> None:
                 logger.info("Kanal verbunden: %s (%s)", entry.label, entry.id)
                 await ws.send(encode_message({"type": "channel.hello", "role": "panel"}))
                 backoff = 2.0
-                ping_n = 0
                 async for raw in ws:
                     msg = decode_message(raw)
                     mtype = msg.get("type")

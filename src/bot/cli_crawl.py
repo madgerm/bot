@@ -37,7 +37,7 @@ def _satellite_crawl_rpc(
 
 def _cmd_run(args: argparse.Namespace) -> int:
     from bot.channel.satellite import is_satellite_root
-    from bot.crawl import CrawlService, CrawlServiceError
+    from bot.crawl import CrawlService
 
     try:
         if is_satellite_root(args.root):
@@ -65,7 +65,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
 
 def _cmd_fetch(args: argparse.Namespace) -> int:
     from bot.channel.satellite import is_satellite_root
-    from bot.crawl import CrawlService, CrawlServiceError
+    from bot.crawl import CrawlService
 
     try:
         if is_satellite_root(args.root):

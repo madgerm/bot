@@ -8,7 +8,6 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from bot.config.models import MediaGlobalConfig
 from bot.config.media_admin import load_media_global, save_media_global
 from bot.web import create_app
 

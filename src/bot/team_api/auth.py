@@ -47,7 +47,9 @@ def verify_bearer(root: Path, credentials: HTTPAuthorizationCredentials | None) 
 
 
 def auth_dependency(root: Path):
-    def _dep(credentials: HTTPAuthorizationCredentials | None = Depends(security)) -> None:
+    def _dep(
+        credentials: HTTPAuthorizationCredentials | None = Depends(security),  # noqa: B008
+    ) -> None:
         verify_bearer(root, credentials)
 
     return _dep

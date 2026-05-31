@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from pathlib import Path
 
 from bot.config import ConfigLoadError, load_runtime_config
 from bot.llm import LlmError, build_llm_stack

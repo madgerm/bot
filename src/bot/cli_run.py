@@ -6,7 +6,6 @@ import argparse
 import logging
 import sys
 import time
-from pathlib import Path
 
 from bot.config import ConfigLoadError
 from bot.runtime import Supervisor

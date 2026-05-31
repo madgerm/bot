@@ -61,10 +61,10 @@ def extract_hours_from_markdown(
     try:
         parsed = _parse_json_from_llm(raw)
         return HoursMaster.model_validate(parsed).normalized(), "llm"
-    except (HoursConfigError, ValueError):
+    except (HoursConfigError, ValueError) as exc:
         if heuristic is not None:
             return HoursMaster.model_validate(heuristic).normalized(), "heuristic_fallback"
-        raise HoursConfigError(f"Öffnungszeiten nicht parsebar: {raw[:400]}")
+        raise HoursConfigError(f"Öffnungszeiten nicht parsebar: {raw[:400]}") from exc
 
 
 def _parse_json_from_llm(text: str) -> dict[str, Any]:

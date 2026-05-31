@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import zipfile
 from datetime import UTC, datetime
-from io import BytesIO
 from pathlib import Path
 
 from bot.story.db import StoryDB

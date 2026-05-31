@@ -1,7 +1,7 @@
-import json
 
-import pytest
 
+from bot.config import load_runtime_config
+from bot.llm import build_llm_stack
 from bot.runtime.context import HandlerContext
 from bot.runtime.tools import (
     AgentToolkit,
@@ -9,8 +9,6 @@ from bot.runtime.tools import (
     run_tool_loop,
     tools_prompt_block,
 )
-from bot.llm import build_llm_stack
-from bot.config import load_runtime_config
 
 
 def test_parse_agent_response_json() -> None:

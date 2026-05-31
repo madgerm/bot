@@ -11,8 +11,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from bot.config import ConfigLoadError, load_runtime_config
+from bot.config import ConfigLoadError
 from bot.health import collect_health
+from bot.hosts import HostRegistry, TeamHostError
+from bot.web.audit_middleware import PanelAuditMiddleware
 from bot.web.auth import (
     SESSION_ROLE_KEY,
     SESSION_TEAMS_KEY,
@@ -25,12 +27,9 @@ from bot.web.auth import (
     require_team_access,
     session_secret,
 )
-from bot.web.team_access import require_team_write
 from bot.web.csrf import CsrfMiddleware, csrf_enabled, ensure_csrf_token
-from bot.web.audit_middleware import PanelAuditMiddleware
 from bot.web.rate_limit import client_key, login_rate_limiter, webhook_rate_limiter
-from bot.hosts import HostRegistry, TeamHostError
-from bot.web.services import build_team_dashboard
+from bot.web.team_access import require_team_write
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
@@ -544,7 +543,11 @@ def create_app(root: Path | str) -> FastAPI:
         image_url: str = Form(""),
     ):
         require_admin(user)
-        from bot.config.media_admin import MediaAdminError, media_global_from_form, save_media_global
+        from bot.config.media_admin import (
+            MediaAdminError,
+            media_global_from_form,
+            save_media_global,
+        )
 
         try:
             media = media_global_from_form(
@@ -601,6 +604,8 @@ def create_app(root: Path | str) -> FastAPI:
             {"username": u.username, "role": u.role, "teams": u.teams}
             for u in users_cfg.users
         ]
+        from bot.media import MediaService
+
         media_status: dict[str, dict[str, str]] = {}
         if teams:
             try:

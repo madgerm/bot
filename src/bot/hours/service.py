@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 
 from bot.approval.status import ApprovalError, assert_can_send
 from bot.hours.adapters.google import fetch_google_snapshot, google_agent_report

@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -134,7 +134,7 @@ def test_crawl_url_uses_crawl4ai(mock_run: MagicMock, root: Path, tmp_path: Path
                 "crawl": {
                     "enabled": True,
                     "domains": [{"url": "https://example.com", "max_pages": 1}],
-                    "snapshot_dir": f"data/demo/crawl",
+                    "snapshot_dir": "data/demo/crawl",
                 }
             }
         ),

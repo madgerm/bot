@@ -5,6 +5,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from bot.web import create_app
+
+
 @pytest.fixture
 def web_project(runtime_project: Path) -> Path:
     (runtime_project / "config" / "users.json").write_text(

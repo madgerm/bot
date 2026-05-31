@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import uuid
 from pathlib import Path
 from typing import Any
@@ -56,7 +55,7 @@ class QdrantService:
         client = self._get_client()
         names = all_collections(team_id)
         dim = self.cfg.embedding.vector_size
-        for suffix, name in names.items():
+        for _suffix, name in names.items():
             if not client.collection_exists(name):
                 client.create_collection(
                     collection_name=name,

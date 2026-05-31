@@ -6,10 +6,10 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException
 
-from bot.config import ConfigLoadError, load_runtime_config
+from bot.config import ConfigLoadError
+from bot.health import collect_health
 from bot.hosts.client import LocalTeamHost
 from bot.team_api.auth import auth_dependency
-from bot.health import collect_health
 from bot.team_api.channel_ws import router as channel_ws_router
 from bot.team_api.serialize import dashboard_to_dict
 

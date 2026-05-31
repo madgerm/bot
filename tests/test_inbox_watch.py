@@ -6,12 +6,12 @@ from pathlib import Path
 
 import pytest
 
+from bot.config.models import AgentBlock, AgentConfig
 from bot.messages.inbox_watch import InboxWatcher, inbox_pending_snapshot
 from bot.messages.paths import agent_inbox
 from bot.runtime.agent import AgentRunner
 from bot.runtime.agent_process import AgentProcessRunner
 from bot.runtime.handlers import AgentHandler, HandlerResult
-from bot.config.models import AgentBlock, AgentConfig
 
 
 def test_inbox_snapshot_detects_new_file(runtime_project: Path) -> None:
