@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 
 from bot.config.loader import discover_teams
@@ -119,6 +120,20 @@ class OrchestratorHandler(AgentHandler):
         if message.type in {"delegation_result", "hours_check_result"}:
             return HandlerResult(complete=True)
 
+        if message.type == "email.incoming":
+            return HandlerResult(
+                complete=True,
+                delegates=[
+                    DelegateRequest(
+                        to_agent=pipe.execute_id,
+                        subject=message.subject,
+                        content=message.content,
+                        type="email.compose",
+                        task_category="planning",
+                    )
+                ],
+            )
+
         if message.from_agent == pipe.review_id:
             return HandlerResult(complete=True)
 
@@ -155,7 +170,58 @@ class WorkerExecHandler(AgentHandler):
     default_category = "coding"
     tools = _TOOLS_EXEC
 
+    def _handle_email_compose(
+        self, message: Message, ctx: HandlerContext
+    ) -> HandlerResult:
+        from bot.mail import MailService, MailServiceError
+        from bot.mail.store import MailStore
+
+        try:
+            meta = json.loads(message.content)
+            thread_id = meta["thread_id"]
+        except (json.JSONDecodeError, KeyError) as exc:
+            return HandlerResult(complete=True, error=f"Ungültige Mail-Payload: {exc}")
+
+        store = MailStore(ctx.root, ctx.team_id)
+        incoming = store.get_incoming(thread_id)
+        thread = store.get_thread(thread_id)
+        if not thread or not incoming:
+            return HandlerResult(complete=True, error=f"Thread nicht gefunden: {thread_id}")
+
+        compose_msg = message.model_copy(
+            update={
+                "content": (
+                    f"Eingehende E-Mail von {thread.from_addr}\n"
+                    f"Betreff: {thread.subject}\n\n{incoming.body_text}\n\n"
+                    "Formuliere eine professionelle Antwort "
+                    "(nur der Antworttext, ohne Betreff)."
+                ),
+            }
+        )
+        try:
+            reply = self._run_with_tools(
+                ctx,
+                compose_msg,
+                system_prompt=(
+                    "Du bist ein E-Mail-Composer. Schreibe eine höfliche, sachliche Antwort "
+                    "auf Deutsch. Kein Versand — nur Entwurfstext für menschliche Freigabe."
+                ),
+                task_category="planning",
+                tools=frozenset({"read_file", "list_files", "qdrant_search"}),
+            )
+            MailService.for_team(ctx.root, ctx.team_id).create_reply_draft(
+                thread_id,
+                body_text=reply.strip(),
+                created_by=ctx.agent_id,
+            )
+        except (MailServiceError, RuntimeError) as exc:
+            return HandlerResult(complete=True, error=str(exc))
+        return HandlerResult(complete=True)
+
     def handle(self, message: Message, ctx: HandlerContext) -> HandlerResult:
+        if message.type == "email.compose":
+            return self._handle_email_compose(message, ctx)
+
         pipe = _pipeline(ctx)
         result = self._run_with_tools(
             ctx,

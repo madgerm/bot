@@ -25,12 +25,15 @@ def cmd_mail_poll(args: argparse.Namespace) -> int:
     from bot.mail import MailService, MailServiceError
 
     try:
+        from bot.mail.notify import notify_new_mail_threads
+
         service = MailService.for_team(args.root, args.team)
         threads = service.poll(limit=args.limit)
+        notify_new_mail_threads(args.root, args.team, threads)
     except MailServiceError as exc:
         print(f"Fehler: {exc}", file=sys.stderr)
         return 1
-    print(f"Neu/aktualisiert: {len(threads)} Thread(s)")
+    print(f"Neu: {len(threads)} Thread(s)")
     for thread in threads:
         print(json.dumps(thread.to_dict(), ensure_ascii=False))
     return 0

@@ -27,6 +27,7 @@ class Supervisor:
         self._lock = threading.RLock()
         self._running = False
         self._qdrant_scheduler: QdrantReindexScheduler | None = None
+        self._mail_scheduler: object | None = None
         self._channel_manager: object | None = None
 
     @property
@@ -95,6 +96,7 @@ class Supervisor:
             for team in self._teams.values():
                 team.start()
             self._start_qdrant_reindex(config, list(self._teams.keys()))
+            self._start_mail_poll(list(self._teams.keys()))
             self._start_channel_relay(config)
             self._running = True
             logger.info(
@@ -116,6 +118,12 @@ class Supervisor:
             if self._qdrant_scheduler:
                 self._qdrant_scheduler.stop()
                 self._qdrant_scheduler = None
+            if self._mail_scheduler is not None:
+                from bot.mail.scheduler import MailPollScheduler
+
+                if isinstance(self._mail_scheduler, MailPollScheduler):
+                    self._mail_scheduler.stop()
+                self._mail_scheduler = None
             for team in self._teams.values():
                 team.stop()
             self._running = False
@@ -147,6 +155,17 @@ class Supervisor:
             team_ids=team_ids,
         )
         self._qdrant_scheduler.start()
+
+    def _start_mail_poll(self, team_ids: list[str]) -> None:
+        from bot.channel.satellite import is_satellite_runner
+
+        config = self._store.get()
+        if is_satellite_runner(config):
+            return
+        from bot.mail.scheduler import MailPollScheduler
+
+        self._mail_scheduler = MailPollScheduler(self.root, team_ids)
+        self._mail_scheduler.start()
 
     def run_until_idle(
         self,

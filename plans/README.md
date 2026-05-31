@@ -19,3 +19,5 @@ Siehe `TEMPLATE.md` — kopieren und umbenennen.
 - [`2026-05-26-coding-agent-system.md`](2026-05-26-coding-agent-system.md) — verteiltes Multi-Agent-Coding-System (Vision, Architektur, Phasen).
 - [`2026-05-26-story-agent-system.md`](2026-05-26-story-agent-system.md) — Multi-Agent-Storytelling (80k+ Wörter, StoryDB, World/Character).
 - [`2026-05-30-web-panel-config-ui.md`](2026-05-30-web-panel-config-ui.md) — **Roadmap:** Konfiguration vollständig im Web-Panel (LLM, Qdrant, Agents, Crawl, Nutzer, …); Phasen 0–6.
+- [`2026-05-27-team-email-und-oeffnungszeiten.md`](2026-05-27-team-email-und-oeffnungszeiten.md) — **E-Mail (IMAP/SMTP, Freigabe)** und **Öffnungszeiten-Sync**; MVP umgesetzt.
+- [`2026-05-31-status-mail-task-assignee.md`](2026-05-31-status-mail-task-assignee.md) — Status Mail-Probe + Task-Assignee (umgesetzt).
