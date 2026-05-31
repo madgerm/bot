@@ -39,7 +39,7 @@ def _agent_worker_main(
 
     root_path = Path(root)
     config = load_runtime_config(root_path)
-    stack = build_llm_stack(config)
+    stack = build_llm_stack(config, root=root_path)
     agent_cfg = AgentCfg(agent=AgentBlock(id=agent_id, role=role, enabled=enabled))
 
     runner = AgentRunner(

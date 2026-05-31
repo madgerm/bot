@@ -84,6 +84,11 @@ def collect_health(
         llm = config.system.system.llm
         payload["llm_enabled"] = llm.enabled
         payload["llm_mode"] = llm.mode if llm.enabled else None
+        if llm.mode == "channel":
+            from bot.channel.queue import LlmChannelQueue
+
+            pending = len(LlmChannelQueue(root_path).list_pending())
+            payload["channel_llm_pending"] = pending
         payload["worker_mode"] = config.system.system.polling.worker_mode
         payload["inbox_watch_seconds"] = config.system.system.polling.inbox_watch_seconds
     except ConfigLoadError:

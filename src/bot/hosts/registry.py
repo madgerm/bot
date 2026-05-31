@@ -85,6 +85,7 @@ class HostRegistry:
                 "teams": h.teams,
                 "base_url": h.base_url,
                 "token_env": h.token_env,
+                "channel": h.channel,
             }
             for h in self.config.hosts
         ]
