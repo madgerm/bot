@@ -344,6 +344,24 @@ bot web
 
 Das Panel startet den Kanal-Connector automatisch beim `bot web`-Start.
 
+#### Satellit-Runner: was über den Kanal läuft (`llm.mode: channel`)
+
+| Dienst | Über Panel-Kanal | Nur am Panel (LAN) |
+|--------|------------------|---------------------|
+| **LLM / Ollama** | ja (gecached) | `qdrant_global`, Embeddings |
+| **Qdrant-Suche** (`qdrant_search` Tool) | ja | Qdrant-Server |
+| **Workspace → Qdrant** (`index_workspace` Tool) | ja | Index liest Panel-`data/…/workspace` |
+| **Bildgenerierung** (RPC `media.generate_image`) | ja (API, nicht Agent-Tool) | `media_global` / Webhook |
+| **Qdrant-Reindex im Runner** | nein (deaktiviert) | Reindex auf Panel oder Cron am Panel |
+
+**Noch nicht über den Kanal** (brauchen lokales `root` auf dem VPS oder gemeinsames Storage):
+
+- Agent-Dateien (`read_file`, `write_file`, Git)
+- Playwright (`browser_open`) — Browser läuft dort, wo das Tool ausgeführt wird
+- Team-Chat/Tasks-SQLite am Panel-`root`
+
+Für einen „echten“ Satelliten: Agents auf dem VPS, **Wissen (Qdrant) und LLM nur im LAN** — Panel mit `channel: true`, Qdrant und Ollama lokal. Workspace-Dateien für Indexing liegen unter `data/<team>/workspace` **am Panel**.
+
 ---
 
 ## Phase 2: Qdrant, Team-Chat, Playwright

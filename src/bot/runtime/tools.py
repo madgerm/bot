@@ -130,19 +130,34 @@ class AgentToolkit:
         return ToolResult(True, out)
 
     def _tool_qdrant_search(self, args: dict[str, Any]) -> ToolResult:
-        from bot.qdrant.service import QdrantService, QdrantServiceError
-
         query = str(args.get("query", ""))
         collection = str(args.get("collection", "project"))
         limit = int(args.get("limit", 5))
         if not query.strip():
             raise ToolExecutionError("query fehlt")
         try:
-            service = QdrantService.from_root(self.ctx.root)
-            hits = service.search(
-                self.ctx.team_id, collection, query, limit=limit
-            )
-        except QdrantServiceError as exc:
+            from bot.channel.satellite import channel_rpc, is_satellite_root
+
+            if is_satellite_root(self.ctx.root):
+                data = channel_rpc(
+                    self.ctx.root,
+                    "qdrant.search",
+                    {
+                        "team_id": self.ctx.team_id,
+                        "query": query,
+                        "collection": collection,
+                        "limit": limit,
+                    },
+                )
+                hits = data.get("hits", [])
+            else:
+                from bot.qdrant.service import QdrantService, QdrantServiceError
+
+                service = QdrantService.from_root(self.ctx.root)
+                hits = service.search(
+                    self.ctx.team_id, collection, query, limit=limit
+                )
+        except Exception as exc:
             raise ToolExecutionError(str(exc)) from exc
         lines = []
         for h in hits:
@@ -208,9 +223,22 @@ class AgentToolkit:
         )
 
     def _tool_index_workspace(self, args: dict[str, Any]) -> ToolResult:
-        from bot.qdrant.indexer import index_team_workspace
+        try:
+            from bot.channel.satellite import channel_rpc, is_satellite_root
 
-        count = index_team_workspace(self.ctx.root, self.ctx.team_id)
+            if is_satellite_root(self.ctx.root):
+                data = channel_rpc(
+                    self.ctx.root,
+                    "qdrant.index_workspace",
+                    {"team_id": self.ctx.team_id},
+                )
+                count = int(data.get("count", 0))
+            else:
+                from bot.qdrant.indexer import index_team_workspace
+
+                count = index_team_workspace(self.ctx.root, self.ctx.team_id)
+        except Exception as exc:
+            raise ToolExecutionError(str(exc)) from exc
         return ToolResult(True, f"{count} Datei(en) in Qdrant (project) indexiert", {"count": count})
 
 

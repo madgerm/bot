@@ -114,6 +114,10 @@ class Supervisor:
             logger.info("Supervisor gestoppt")
 
     def _start_qdrant_reindex(self, config: RuntimeConfig, team_ids: list[str]) -> None:
+        from bot.channel.satellite import is_satellite_runner
+
+        if is_satellite_runner(config):
+            return
         qdrant = config.system.qdrant_global
         if not qdrant or not qdrant.enabled or not qdrant.reindex.enabled:
             return

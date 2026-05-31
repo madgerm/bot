@@ -12,6 +12,9 @@ ChannelType = Literal[
     "llm.request",
     "llm.response",
     "llm.error",
+    "rpc.request",
+    "rpc.response",
+    "rpc.error",
 ]
 
 

@@ -11,6 +11,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 
 from bot.channel.protocol import decode_message, encode_message
 from bot.channel.queue import LlmChannelQueue
+from bot.channel.rpc_queue import ChannelRpcQueue
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,8 @@ class ChannelRelay:
 
     def __init__(self, root: Path | str) -> None:
         self._root = Path(root).resolve()
-        self._queue = LlmChannelQueue(self._root)
+        self._llm_queue = LlmChannelQueue(self._root)
+        self._rpc_queue = ChannelRpcQueue(self._root)
         self._ws: WebSocket | None = None
         self._send_lock = asyncio.Lock()
         self._flush_task: asyncio.Task | None = None
@@ -90,18 +92,32 @@ class ChannelRelay:
             req_id = msg.get("id")
             content = msg.get("content")
             if req_id and content is not None:
-                self._queue.complete(str(req_id), str(content))
+                self._llm_queue.complete(str(req_id), str(content))
             return
         if mtype == "llm.error":
             req_id = msg.get("id")
             detail = msg.get("detail", "LLM-Fehler")
             if req_id:
-                self._queue.fail(str(req_id), str(detail))
+                self._llm_queue.fail(str(req_id), str(detail))
+            return
+        if mtype == "rpc.response":
+            req_id = msg.get("id")
+            result = msg.get("result")
+            if req_id and isinstance(result, dict):
+                self._rpc_queue.complete(str(req_id), result)
+            return
+        if mtype == "rpc.error":
+            req_id = msg.get("id")
+            detail = msg.get("detail", "RPC-Fehler")
+            if req_id:
+                self._rpc_queue.fail(str(req_id), str(detail))
             return
 
     async def _push_pending(self) -> None:
-        for item in self._queue.list_pending():
+        for item in self._llm_queue.list_pending():
             await self._send_llm_request(item)
+        for item in self._rpc_queue.list_pending():
+            await self._send_rpc_request(item)
 
     async def _send_llm_request(self, item: dict) -> None:
         req_id = item["id"]
@@ -114,14 +130,28 @@ class ChannelRelay:
                 "fallbacks": item.get("fallbacks") or [],
             }
         )
-        self._queue.mark_sent(req_id)
+        self._llm_queue.mark_sent(req_id)
+
+    async def _send_rpc_request(self, item: dict) -> None:
+        req_id = item["id"]
+        await self.send_json(
+            {
+                "type": "rpc.request",
+                "id": req_id,
+                "kind": item["kind"],
+                "payload": item["payload"],
+            }
+        )
+        self._rpc_queue.mark_sent(req_id)
 
     async def _flush_loop(self) -> None:
         while self._ws is not None:
             try:
-                for item in self._queue.list_pending():
+                for item in self._llm_queue.list_pending():
                     if item["id"]:  # noqa: SIM114
                         await self._send_llm_request(item)
+                for item in self._rpc_queue.list_pending():
+                    await self._send_rpc_request(item)
                 await asyncio.sleep(0.5)
             except asyncio.CancelledError:
                 break

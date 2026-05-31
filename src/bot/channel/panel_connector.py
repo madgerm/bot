@@ -17,6 +17,7 @@ from bot.channel.relay import CHANNEL_WS_PATH, http_base_to_ws
 from bot.config import load_runtime_config
 from bot.hosts.models import TeamHostEntry
 from bot.hosts.registry import load_team_hosts_config
+from bot.channel.panel_rpc import execute_panel_rpc
 from bot.llm.proxy_service import complete_via_local_llm
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,19 @@ def _ws_url(entry: TeamHostEntry) -> str:
         scheme = "ws"
     token = os.environ.get(entry.token_env, "")
     return f"{scheme}://{host}{CHANNEL_WS_PATH}?token={token}"
+
+
+async def _handle_rpc_request(panel_root: Path, msg: dict[str, Any]) -> dict[str, Any]:
+    req_id = msg.get("id")
+    kind = str(msg.get("kind", ""))
+    payload = msg.get("payload") or {}
+    try:
+        result = await asyncio.to_thread(
+            execute_panel_rpc, panel_root, kind, payload
+        )
+        return {"type": "rpc.response", "id": req_id, "result": result}
+    except Exception as exc:
+        return {"type": "rpc.error", "id": req_id, "detail": str(exc)}
 
 
 async def _handle_llm_request(panel_root: Path, msg: dict[str, Any]) -> dict[str, Any]:
@@ -77,6 +91,10 @@ async def _session_loop(panel_root: Path, entry: TeamHostEntry) -> None:
                         continue
                     if mtype == "llm.request":
                         reply = await _handle_llm_request(panel_root, msg)
+                        await ws.send(encode_message(reply))
+                        continue
+                    if mtype == "rpc.request":
+                        reply = await _handle_rpc_request(panel_root, msg)
                         await ws.send(encode_message(reply))
                         continue
                     if mtype == "channel.hello":
