@@ -26,6 +26,7 @@ from bot.cli_run import register_run_commands
 from bot.cli_story import register_story_commands
 from bot.cli_tasks import register_tasks_commands
 from bot.cli_team import register_team_commands
+from bot.cli_up import register_up_commands
 from bot.cli_web import register_web_commands
 from bot.config import ConfigLoadError, ConfigStore, load_runtime_config
 
@@ -141,6 +142,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     register_msg_commands(sub, add_root)
     register_run_commands(sub, add_root)
+    register_up_commands(sub, add_root)
     register_llm_commands(sub, add_root)
     register_web_commands(sub, add_root)
     register_qdrant_commands(sub, add_root)

@@ -163,13 +163,13 @@ bot web
 # → http://127.0.0.1:8080
 ```
 
-**Beides auf einem Rechner** (Standard nach Install-Option „3“):
+**Beides auf einem Rechner** (Panel + Agents, ein Befehl):
 
 ```bash
-# Terminal 1
-set -a && source ~/.config/bot/env && set +a && bot run
-# Terminal 2
-set -a && source ~/.config/bot/env && set +a && bot web
+cd ~/bot && source .venv/bin/activate
+bot up
+# → http://0.0.0.0:8080  (im LAN: http://<IP>:8080)
+# Login: admin / changeme
 ```
 
 **systemd (falls beim Install gewählt):**
