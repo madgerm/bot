@@ -678,8 +678,10 @@ def create_app(root: Path | str) -> FastAPI:
         except IntegrationServiceError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    from bot.web.llm_proxy_routes import register_llm_proxy_routes
     from bot.web.routes_phase3 import register_phase3_routes
 
+    register_llm_proxy_routes(app, root_path)
     register_phase3_routes(app, templates, root_path)
 
     return app

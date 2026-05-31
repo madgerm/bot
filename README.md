@@ -64,21 +64,35 @@ git clone https://github.com/madgerm/bot.git && cd bot && bash scripts/install-d
 | `BOT_INSTALL_SCOPE` | `user`, `system` | Nur Ihr Login vs. `/opt/bot` + `bot`-User |
 | `BOT_INSTALL_DIR` | Pfad | Zielverzeichnis (Standard: `~/bot` oder `/opt/bot`) |
 | `BOT_REPO_URL` / `BOT_REPO_BRANCH` | | Quelle beim Download-Install |
+| `BOT_INSTALL_PLAYWRIGHT` | `0`/`1` | Playwright + Chromium (interaktiv: Rückfrage) |
+| `BOT_INSTALL_CRAWL` | `0`/`1` | Crawl4AI-Extra |
+| `BOT_INSTALL_QDRANT` | `0`/`1` | Qdrant-Container per Docker Compose |
+| `BOT_INSTALL_AUTOSTART` | `0`/`1` | systemd enable (nur mit `NONINTERACTIVE`) |
+
+**Vollständig inkl. Extras + Autostart (nicht-interaktiv):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/madgerm/bot/main/scripts/install-debian.sh | BOT_INSTALL_NONINTERACTIVE=1 BOT_INSTALL_MODE=both BOT_INSTALL_SCOPE=system BOT_INSTALL_PLAYWRIGHT=1 BOT_INSTALL_CRAWL=1 BOT_INSTALL_QDRANT=1 BOT_INSTALL_AUTOSTART=1 sudo -E bash -s --
+```
 
 Nach der Installation: `bot` liegt bei systemweiter Installation in `/usr/local/bin/bot`, sonst in `~/.local/bin/bot` (ggf. `export PATH="$HOME/.local/bin:$PATH"`).
 
 ### Was das Skript einrichtet
 
-| Komponente | Team-Runner | Web-Panel |
-|------------|-------------|-----------|
-| Python-venv + `pip install` | ja | ja |
-| `config/`, `teams/` (Demo-Teams) | ja | ja |
-| Umgebungsdatei mit Secrets | optional `BOT_TEAM_API_TOKEN` | `BOT_SESSION_SECRET` |
-| systemd (`bot-team-runner`, `bot-web-panel`) | auf Wunsch | auf Wunsch |
+| Komponente | Standard | Optional (Rückfrage im Installer) |
+|------------|----------|-------------------------------------|
+| Python-venv + Bot-Kern (`pip`) | ja | — |
+| Team-Runner / Web-Panel | nach Auswahl | — |
+| `config/`, Demo-Teams | ja | — |
+| Secrets (`BOT_SESSION_SECRET` …) | ja (Web) | — |
+| **Autostart nach Neustart** | nein | **ja** — `systemctl enable` + Start; bei Benutzer-Install zusätzlich `loginctl enable-linger` |
+| **Playwright** (`bot browser`) | nein | pip-Extra + `playwright install-deps` + Chromium |
+| **Crawl4AI** (`bot crawl`) | nein | pip-Extra |
+| **Qdrant** (Vektor-Wissen) | nein | Docker installieren/starten; danach `qdrant_global.enabled` in `config/system.json` |
 
 **Geprüfte Systempakete:** `python3` (≥3.11), `python3-venv`, `python3-dev`, `git`, `sqlite3`, `build-essential`, `curl`, `ca-certificates`.  
-**SQLite** für Chat/Tasks/E-Mail wird von Python mitgeliefert — kein separater Datenbank-Server nötig.  
-**Qdrant** (optional, Vektor-Wissen): separat starten, z. B. `docker compose --profile qdrant` in `deploy/`.
+**SQLite** für Chat/Tasks/E-Mail ist in Python enthalten — kein separater DB-Server.  
+**LLM/Ollama/LiteLLM** werden nicht mitinstalliert — nur Hinweis in `.env` / `config/system.json`.
 
 ### Initiale Web-Zugänge (Demo)
 
@@ -206,27 +220,75 @@ Fertige Team-Presets: `teams/demo/`, `teams/coding/`, `teams/story/`.
 
 ## Remote: Web-Panel ↔ Team-Runner auf anderem Rechner
 
-Wenn der **Team-Runner** auf Server B läuft und das **Web-Panel** auf Server A, brauchst du:
+Typisches Setup: **Team-Runner auf VPS** (Internet), **Web-Panel + Ollama im LAN** — du steuerst alles nur über das Panel; Ollama muss vom VPS aus **nicht** erreichbar sein.
+
+### 1. Panel steuert Runner (Dashboard)
 
 1. HTTP-API auf dem Team-Runner (`bot team serve`)
-2. Ein gemeinsames **API-Token** (`bot team token`)
-3. Eintrag in `config/team_hosts.json` auf dem Web-Panel-Rechner
+2. Gemeinsames **API-Token** (`bot team token`)
+3. `config/team_hosts.json` auf dem Panel mit `mode: "remote"`
 
 ```bash
 bot team token --write-config
-# → export BOT_TEAM_API_TOKEN=...
 
-# Server B:
+# VPS (Team-Runner):
 export BOT_TEAM_API_TOKEN=<token>
-bot run --team demo
+bot run
 bot team serve --host 0.0.0.0 --port 8443
 
-# Server A:
+# LAN (Web-Panel):
 export BOT_TEAM_API_TOKEN=<derselbe-token>
 bot web
 ```
 
-Details und `team_hosts.json`-Beispiele siehe oben in der Architektur-Tabelle.
+### 2. Runner nutzt Panel als LLM-Proxy (Ollama nur im LAN)
+
+Agents auf dem VPS rufen **kein** Ollama direkt an, sondern `POST /api/v1/llm/complete` auf dem Panel; das Panel leitet an LiteLLM/Ollama weiter.
+
+| Rechner | `config/system.json` | Rolle |
+|---------|----------------------|--------|
+| **LAN (Panel)** | `llm.mode: "direct"`, `api_base` → Ollama/LiteLLM lokal | Proxy-Ziel |
+| **VPS (Runner)** | `llm.mode: "proxy"`, `llm.proxy.base_url` → Panel-URL | Agents |
+
+Beispiel-Konfigurationen: `config/system.panel-lan.example.json`, `config/system.runner-proxy.example.json`.
+
+**Panel (LAN)** — Ollama erreichbar, Proxy-API aktiv:
+
+```json
+"llm": {
+  "enabled": true,
+  "mode": "direct",
+  "api_base": "http://127.0.0.1:11434"
+}
+```
+
+```bash
+export BOT_LLM_PROXY_TOKEN=<langer-zufallswert>   # oder BOT_TEAM_API_TOKEN
+# optional config/team_api.json: { "token_env": "BOT_LLM_PROXY_TOKEN" }
+bot web --host 0.0.0.0 --port 8080
+```
+
+**Runner (VPS)** — nur Proxy, kein Ollama:
+
+```json
+"llm": {
+  "enabled": true,
+  "mode": "proxy",
+  "proxy": {
+    "base_url": "https://panel.dein-lan.de:8080",
+    "token_env": "BOT_LLM_PROXY_TOKEN"
+  }
+}
+```
+
+```bash
+export BOT_LLM_PROXY_TOKEN=<derselbe-wert-wie-am-panel>
+bot run
+```
+
+Das Panel muss vom VPS aus erreichbar sein (HTTPS, VPN, Tailscale oder Reverse-Tunnel). Latenz VPS ↔ LAN ist für die Agent-Loops unkritisch, solange das Panel erreichbar bleibt.
+
+**Hinweis:** Chat, Dateien und Qdrant nutzen weiterhin das Projekt-`root` am Panel — für volle Remote-Verwaltung gemeinsames Datenverzeichnis oder spätere API-Erweiterungen. Der **LLM-Proxy** deckt die Agent-Modellaufrufe ab.
 
 ---
 
