@@ -150,17 +150,17 @@ Kein Ersatz für einmalige Netzwerk-Einrichtung — aber **kein manuelles JSON-E
 
 Reihenfolge: Infrastruktur zuerst, dann global, dann Team, dann Agent-Tiefe, dann Installer.
 
-### Phase 0 — Fundament (ca. 1 PR)
+### Phase 0 — Fundament (ca. 1 PR) ✅
 
 **Ziel:** Alle folgenden Phasen nutzen dieselbe Basis.
 
-- [ ] `src/bot/config/writers/base.py` — `atomic_write_json(path, data)`, `load_json_model(path, Model)`
-- [ ] `src/bot/web/settings_routes.py` — Router registrieren; Layout `settings_base.html`
-- [ ] Audit-Kategorie `config` in Middleware
-- [ ] Tests: roundtrip load → mutate → save → validate; RBAC 403 für reader
-- [ ] Docs: `docs/CONFIG-UI.md` — Übersicht Routen
+- [x] `src/bot/config/writers/base.py` — `atomic_write_json(path, data)`, `load_json_model(path, Model)`
+- [x] `src/bot/web/settings_routes.py` — Router registrieren; Layout `settings_base.html`
+- [x] Audit-Kategorie `config` in Middleware (Medien-Speichern + künftige `/admin/settings/*` POST)
+- [x] Tests: roundtrip load → mutate → save → validate; RBAC 403 für reader
+- [x] Docs: `docs/CONFIG-UI.md` — Übersicht Routen
 
-**Akzeptanz:** Leere Settings-Übersicht unter `/admin/settings` erreichbar (admin only).
+**Akzeptanz:** Settings-Übersicht unter `/admin/settings` erreichbar (admin only).
 
 ---
 
@@ -312,7 +312,7 @@ Alles andere (Welches LLM, welche Crawl-URL, welcher Agent welche Rolle, welcher
 
 ## Nächste Schritte (sofort)
 
-1. [ ] Phase 0 PR: `config/writers` + `/admin/settings` Gerüst  
+1. [x] Phase 0 PR: `config/writers` + `/admin/settings` Gerüst  
 2. [ ] Phase 1 PR: Nutzer-UI  
 3. [ ] Phase 2a PR: LLM + task_models  
 4. [ ] Danach Team/Agents (Phase 3) — dein Hauptfokus  

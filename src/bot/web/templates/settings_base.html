@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<nav class="text-sm mb-6 flex flex-wrap gap-x-4 gap-y-2 items-center">
+  <a href="/admin" class="p-link">← Admin</a>
+  <span class="p-faint">|</span>
+  <a href="/admin/settings" class="p-link{% if settings_active == 'index' %} font-semibold{% endif %}">Einstellungen</a>
+  {% block settings_nav_extra %}{% endblock %}
+</nav>
+{% block settings_content %}{% endblock %}
+{% endblock %}
