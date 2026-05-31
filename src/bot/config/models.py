@@ -249,7 +249,13 @@ class AgentBlock(BaseModel):
     task_categories: list[str] = Field(default_factory=list)
     """Optional: bevorzugte task_models-Kategorien für diesen Agent."""
     system_prompt_extra: str | None = None
-    """Zusatz zum System-Prompt (wird von Handlern genutzt, sobald verdrahtet)."""
+    """Zusatz zum System-Prompt in Agent-Handlern."""
+    tools_allow: list[str] = Field(default_factory=list)
+    """Leer = Rollen-Default; sonst nur diese Tools (Schnittmenge mit bekannten Tools)."""
+    tools_deny: list[str] = Field(default_factory=list)
+    """Tools abziehen (nach tools_allow bzw. Rollen-Default)."""
+    qdrant_collections: list[str] = Field(default_factory=list)
+    """Leer = project, background, web; sonst erlaubte Suffixe für qdrant_search."""
 
     @field_validator("id")
     @classmethod

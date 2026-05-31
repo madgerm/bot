@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from bot.config.models import AgentBlock
 from bot.llm import LlmStack
 
 
@@ -15,3 +16,4 @@ class HandlerContext:
     agent_id: str
     role: str
     llm_stack: LlmStack
+    agent: AgentBlock | None = None

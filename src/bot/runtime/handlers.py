@@ -8,6 +8,7 @@ from bot.config.loader import discover_teams
 from bot.config.models import TeamBundle
 from bot.llm import LlmError
 from bot.messages.models import Message
+from bot.runtime.agent_tools import resolve_allowed_tools
 from bot.runtime.context import HandlerContext
 from bot.runtime.pipeline import ResolvedPipeline, resolve_pipeline
 from bot.runtime.tools import TOOL_NAMES, run_tool_loop
@@ -89,13 +90,19 @@ class AgentHandler:
     ) -> str:
         category = task_category or message.task_category or self.default_category
         user_content = f"Betreff: {message.subject}\n\n{message.content}"
+        effective_tools = (
+            tools if tools is not None else resolve_allowed_tools(ctx.role, ctx.agent)
+        )
+        prompt = system_prompt
+        if ctx.agent and ctx.agent.system_prompt_extra:
+            prompt = f"{prompt}\n\n{ctx.agent.system_prompt_extra}"
         try:
             return run_tool_loop(
                 ctx,
-                system_prompt=system_prompt,
+                system_prompt=prompt,
                 user_content=user_content,
                 task_category=category,
-                tools=tools or self.tools,
+                tools=effective_tools,
             )
         except LlmError as exc:
             raise RuntimeError(str(exc)) from exc

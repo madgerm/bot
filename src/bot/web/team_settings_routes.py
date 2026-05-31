@@ -16,9 +16,35 @@ from bot.config.writers.team_admin import (
     save_team_general,
     save_team_pipeline,
 )
+from bot.runtime.agent_tools import KNOWLEDGE_CHOICES, TOOL_CHOICES
 from bot.runtime.pipeline import resolve_pipeline
+from bot.runtime.tools import TOOL_NAMES
 from bot.web.auth import CurrentUser, require_team_access
 from bot.web.team_access import require_team_write
+
+
+def _parse_tools_from_form(form, prefix: str = "tool_") -> list[str]:
+    selected: list[str] = []
+    for name in TOOL_NAMES:
+        if form.get(f"{prefix}{name}") == "on":
+            selected.append(name)
+    return selected
+
+
+def _parse_knowledge_from_form(form) -> list[str]:
+    return [suffix for suffix, _ in KNOWLEDGE_CHOICES if form.get(f"know_{suffix}") == "on"]
+
+
+def _agent_form_extras(block=None) -> dict:
+    return {
+        "tool_choices": TOOL_CHOICES,
+        "knowledge_choices": KNOWLEDGE_CHOICES,
+        "selected_tools": set(block.tools_allow) if block and block.tools_allow else set(),
+        "selected_knowledge": set(block.qdrant_collections)
+        if block and block.qdrant_collections
+        else set(),
+    }
+
 
 AGENT_ROLES = [
     "orchestrator",
@@ -217,6 +243,7 @@ def register_team_settings_routes(
                 agent=None,
                 roles=AGENT_ROLES,
                 error=None,
+                **_agent_form_extras(),
             ),
         )
 
@@ -244,6 +271,7 @@ def register_team_settings_routes(
                 roles=AGENT_ROLES,
                 is_orchestrator=agent_id == orch,
                 error=None,
+                **_agent_form_extras(block),
             ),
         )
 
@@ -261,9 +289,12 @@ def register_team_settings_routes(
         system_prompt_extra: str = Form(""),
     ):
         require_team_write(team_id, user)
+        form = await request.form()
         mgr = AgentManager(root_path)
         interval = float(interval_seconds) if interval_seconds.strip() else None
         cats = [c.strip() for c in task_categories.split(",") if c.strip()]
+        tools_allow = _parse_tools_from_form(form)
+        knowledge = _parse_knowledge_from_form(form)
         try:
             mgr.create_agent(
                 team_id,
@@ -273,13 +304,14 @@ def register_team_settings_routes(
                 interval_seconds=interval,
                 display_name=display_name.strip() or None,
             )
-            if cats or system_prompt_extra.strip():
-                mgr.update_agent(
-                    team_id,
-                    agent_id.strip(),
-                    task_categories=cats,
-                    system_prompt_extra=system_prompt_extra.strip() or None,
-                )
+            mgr.update_agent(
+                team_id,
+                agent_id.strip(),
+                task_categories=cats,
+                system_prompt_extra=system_prompt_extra.strip() or None,
+                tools_allow=tools_allow,
+                qdrant_collections=knowledge,
+            )
         except AgentManagerError as exc:
             return templates.TemplateResponse(
                 request,
@@ -293,6 +325,7 @@ def register_team_settings_routes(
                     roles=AGENT_ROLES,
                     error=str(exc),
                     form_agent_id=agent_id,
+                    **_agent_form_extras(),
                 ),
                 status_code=400,
             )
@@ -315,9 +348,12 @@ def register_team_settings_routes(
         system_prompt_extra: str = Form(""),
     ):
         require_team_write(team_id, user)
+        form = await request.form()
         mgr = AgentManager(root_path)
         cats = [c.strip() for c in task_categories.split(",") if c.strip()]
         interval = float(interval_seconds) if interval_seconds.strip() else None
+        tools_allow = _parse_tools_from_form(form)
+        knowledge = _parse_knowledge_from_form(form)
         try:
             mgr.update_agent(
                 team_id,
@@ -328,6 +364,8 @@ def register_team_settings_routes(
                 interval_seconds=interval,
                 task_categories=cats,
                 system_prompt_extra=system_prompt_extra.strip() or None,
+                tools_allow=tools_allow,
+                qdrant_collections=knowledge,
             )
         except AgentManagerError as exc:
             block = mgr.get_agent_block(team_id, agent_id)
@@ -345,6 +383,7 @@ def register_team_settings_routes(
                     roles=AGENT_ROLES,
                     is_orchestrator=agent_id == orch,
                     error=str(exc),
+                    **_agent_form_extras(block),
                 ),
                 status_code=400,
             )
