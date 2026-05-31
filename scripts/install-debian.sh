@@ -704,7 +704,25 @@ install_systemd_user_units() {
     install_systemd_user_team_api_unit "$root" "$env_file"
   fi
 
-  if [[ "$mode" == "runner" || "$mode" == "both" ]]; then
+  if [[ "$mode" == "both" ]]; then
+    tee "${unit_dir}/bot-up.service" >/dev/null <<EOF
+[Unit]
+Description=Bot — Panel + Team-Runner (ein Prozess)
+After=default.target
+
+[Service]
+Type=simple
+WorkingDirectory=${root}
+EnvironmentFile=-${env_file}
+ExecStart=${bot_bin} up --host 0.0.0.0 --port 8080
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+EOF
+  fi
+  if [[ "$mode" == "runner" ]]; then
     tee "${unit_dir}/bot-team-runner.service" >/dev/null <<EOF
 [Unit]
 Description=Bot Team-Runner (Benutzer)
@@ -713,7 +731,7 @@ After=default.target
 [Service]
 Type=simple
 WorkingDirectory=${root}
-EnvironmentFile=${env_file}
+EnvironmentFile=-${env_file}
 ExecStart=${bot_bin} run
 Restart=on-failure
 RestartSec=5
@@ -722,7 +740,7 @@ RestartSec=5
 WantedBy=default.target
 EOF
   fi
-  if [[ "$mode" == "web" || "$mode" == "both" ]]; then
+  if [[ "$mode" == "web" ]]; then
     tee "${unit_dir}/bot-web-panel.service" >/dev/null <<EOF
 [Unit]
 Description=Bot Web-Panel (Benutzer)
@@ -731,8 +749,8 @@ After=default.target
 [Service]
 Type=simple
 WorkingDirectory=${root}
-EnvironmentFile=${env_file}
-ExecStart=${bot_bin} web --host 127.0.0.1 --port 8080
+EnvironmentFile=-${env_file}
+ExecStart=${bot_bin} web --host 0.0.0.0 --port 8080
 Restart=on-failure
 RestartSec=5
 
@@ -743,7 +761,12 @@ EOF
   systemctl --user daemon-reload 2>/dev/null || true
   log "Benutzer-systemd-Units in $unit_dir"
   if [[ "$enable_now" != "true" ]]; then
-    warn "Autostart nicht aktiviert — manuell: systemctl --user enable --now bot-team-runner bot-web-panel"
+    if [[ "$mode" == "both" ]]; then
+      warn "Autostart aus — starten mit: cd ${root} && source .venv/bin/activate && bot up"
+      warn "Oder: systemctl --user enable --now bot-up"
+    else
+      warn "Autostart aus — siehe README (bot run / bot web)"
+    fi
     return 0
   fi
   enable_user_linger
@@ -751,10 +774,14 @@ EOF
   [[ "$install_relay" == "1" ]] && units+=(bot-relay.service)
   [[ "$install_team_api" == "1" && ( "$mode" == "runner" || "$mode" == "both" ) ]] \
     && units+=(bot-team-api.service)
-  [[ "$mode" == "runner" || "$mode" == "both" ]] && units+=(bot-team-runner.service)
-  [[ "$mode" == "web" || "$mode" == "both" ]] && units+=(bot-web-panel.service)
+  if [[ "$mode" == "both" ]]; then
+    units+=(bot-up.service)
+  else
+    [[ "$mode" == "runner" ]] && units+=(bot-team-runner.service)
+    [[ "$mode" == "web" ]] && units+=(bot-web-panel.service)
+  fi
   systemctl --user enable "${units[@]}"
-  systemctl --user start "${units[@]}" 2>/dev/null || warn "Start fehlgeschlagen — journalctl --user -u bot-web-panel"
+  systemctl --user start "${units[@]}" 2>/dev/null || warn "Start fehlgeschlagen — journalctl --user -u bot-up"
   log "Autostart aktiv: Dienste starten nach Reboot (mit linger auch ohne Login)."
 }
 
@@ -835,9 +862,10 @@ EOF
       ;;
     both)
       cat <<EOF
-  • Terminal 1 (Runner):  set -a && source ${env_file} && set +a && bot run
-  • Terminal 2 (Panel):   set -a && source ${env_file} && set +a && bot web
-  • Browser:              http://127.0.0.1:8080
+  • Alles in einem Befehl:  cd ${root} && source .venv/bin/activate && bot up
+  • Browser (auch LAN):     http://<deine-IP>:8080  (Panel lauscht auf 0.0.0.0)
+  • Login:                  admin / changeme
+  • Autostart:              systemctl --user enable --now bot-up
 EOF
       ;;
     relay)
@@ -1053,20 +1081,25 @@ main() {
     "$([[ "$system_install" == true ]] && echo j || echo j)"; then
     setup_systemd=true
   fi
-  if [[ "$setup_systemd" == true ]] \
-    || [[ "${BOT_INSTALL_NONINTERACTIVE:-}" == "1" && ( \
-      "${BOT_INSTALL_RELAY:-0}" == "1" \
-      || "${BOT_INSTALL_PROFILE:-}" == "relay" \
-      || "${BOT_INSTALL_PROFILE:-}" == "runner" \
-      || "${BOT_INSTALL_PROFILE:-}" == "satellite" ) ]]; then
-    autostart_label="ja"
-    if [[ "$system_install" == true ]]; then
+  if [[ "$system_install" == true ]]; then
+    if [[ "$setup_systemd" == true ]] \
+      || [[ "${BOT_INSTALL_NONINTERACTIVE:-}" == "1" && ( \
+        "${BOT_INSTALL_RELAY:-0}" == "1" \
+        || "${BOT_INSTALL_PROFILE:-}" == "relay" \
+        || "${BOT_INSTALL_PROFILE:-}" == "runner" \
+        || "${BOT_INSTALL_PROFILE:-}" == "satellite" ) ]]; then
+      autostart_label="ja"
       install_systemd_units "$install_dir" "$mode" "$svc_user" "$env_file"
-    else
-      install_systemd_user_units "$install_dir" "$mode" "true"
     fi
-  elif [[ "$system_install" == false ]]; then
-    warn "Ohne Autostart: manuell starten oder erneut: systemctl --user enable --now bot-team-runner bot-web-panel"
+  else
+    # Benutzer-Install: Units immer anlegen (ein Dienst: bot up)
+    install_systemd_user_units "$install_dir" "$mode" "$([[ "$setup_systemd" == true ]] && echo true || echo false)"
+    if [[ "$setup_systemd" != "true" ]]; then
+      warn "Manuell starten: cd ${install_dir} && source .venv/bin/activate && bot up"
+      warn "Oder Autostart: systemctl --user enable --now bot-up"
+    else
+      autostart_label="ja"
+    fi
   fi
 
   print_summary "$install_dir" "$mode" "$scope" "$env_file" "$autostart_label"
