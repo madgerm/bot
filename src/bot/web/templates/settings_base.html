@@ -5,6 +5,8 @@
   <span class="p-faint">|</span>
   <a href="/admin/settings" class="p-link{% if settings_active == 'index' %} font-semibold{% endif %}">Übersicht</a>
   <a href="/admin/settings/users" class="p-link{% if settings_active == 'users' %} font-semibold{% endif %}">Nutzer</a>
+  <a href="/admin/settings/system" class="p-link{% if settings_active == 'system' %} font-semibold{% endif %}">System</a>
+  <a href="/admin/settings/models" class="p-link{% if settings_active == 'models' %} font-semibold{% endif %}">Modelle</a>
   {% block settings_nav_extra %}{% endblock %}
 </nav>
 {% block settings_content %}{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "settings_base.html" %}
+{% block title %}Task-Modelle — Einstellungen{% endblock %}
+{% block settings_content %}
+<h1 class="text-2xl font-bold mb-2">Task-Modelle</h1>
+<p class="text-sm p-muted mb-6"><code>config/task_models.json</code> — welches Modell für planning, coding, review, …</p>
+
+{% if saved %}
+<p class="p-status-ok mb-4">Gespeichert.</p>
+{% endif %}
+{% if error %}
+<p class="p-status-bad mb-4 text-sm">{{ error }}</p>
+{% endif %}
+
+<form method="post" action="/admin/settings/models" class="max-w-3xl">
+  <div class="p-card overflow-x-auto mb-6">
+    <table class="w-full text-sm">
+      <thead class="p-muted text-left">
+        <tr>
+          <th class="px-4 py-2">Kategorie</th>
+          <th class="px-4 py-2">Standard-Modell</th>
+          <th class="px-4 py-2">Alternativen (kommagetrennt)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cat, entry in task_models.items() %}
+        <tr class="border-t border-[var(--p-border)]">
+          <td class="px-4 py-2 font-mono text-xs">{{ cat }}</td>
+          <td class="px-4 py-2">
+            <input name="model_{{ cat }}" class="w-full p-input font-mono text-xs" value="{{ entry.default }}" required>
+          </td>
+          <td class="px-4 py-2">
+            <input name="alt_{{ cat }}" class="w-full p-input font-mono text-xs" value="{{ entry.alternatives | join(', ') }}">
+          </td>
+        </tr>
+        {% endfor %}
+        <tr class="border-t border-[var(--p-border)] bg-[var(--p-bg-muted)]">
+          <td class="px-4 py-2">
+            <input name="new_category" class="w-full p-input text-xs" placeholder="neue Kategorie">
+          </td>
+          <td class="px-4 py-2" colspan="2">
+            <input name="new_default" class="w-full p-input font-mono text-xs" placeholder="ollama/…">
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <button type="submit" class="px-4 py-2 rounded bg-[var(--p-accent)] text-white text-sm">Alle Modelle speichern</button>
+</form>
+{% endblock %}
