@@ -1,8 +1,17 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — Bot Panel{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold mb-2">Dashboard</h1>
-<p class="p-muted mb-8">System: <span class="p-secondary">{{ system_name }}</span></p>
+<div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+  <div>
+    <h1 class="text-2xl font-bold mb-2">Dashboard</h1>
+    <p class="p-muted">System: <span class="p-secondary">{{ system_name }}</span></p>
+  </div>
+  {% if user.role == 'admin' %}
+  <a href="/dashboard/teams/new"
+    class="p-btn p-btn-primary text-sm inline-flex items-center gap-2 shrink-0"
+    title="Neues Team anlegen">+ Neues Team</a>
+  {% endif %}
+</div>
 
 <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
   {% for team in teams %}

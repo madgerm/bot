@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Neues Team{% endblock %}
+{% block content %}
+<a href="/dashboard" class="text-sm p-link">← Dashboard</a>
+<h1 class="text-2xl font-bold mt-4 mb-6">Neues Team</h1>
+
+{% if error %}
+<p class="p-status-bad mb-4 text-sm">{{ error }}</p>
+{% endif %}
+
+<form method="post" action="/dashboard/teams/create" class="p-card p-5 space-y-4 max-w-lg">
+  <div>
+    <label class="block text-sm p-muted mb-1">Team-ID (Ordnername)</label>
+    <input name="team_id" required pattern="[a-zA-Z0-9][a-zA-Z0-9_-]*"
+      class="w-full p-input font-mono text-sm" placeholder="z. B. mein-projekt"
+      value="{{ team_id or '' }}">
+    <p class="text-xs p-faint mt-1">Kleinbuchstaben, Ziffern, Bindestrich. Wird nicht geändert.</p>
+  </div>
+  <div>
+    <label class="block text-sm p-muted mb-1">Anzeigename</label>
+    <input name="name" required class="w-full p-input" placeholder="Mein Projekt"
+      value="{{ name or '' }}">
+  </div>
+  <div>
+    <label class="block text-sm p-muted mb-1">Preset</label>
+    <select name="preset" class="w-full p-input">
+      <option value="generic">generic</option>
+      <option value="demo">demo</option>
+      <option value="coding">coding</option>
+      <option value="story">story</option>
+    </select>
+  </div>
+  <div>
+    <label class="block text-sm p-muted mb-1">Team-Typ</label>
+    <select name="workflow" class="w-full p-input">
+      <option value="tasks">Aufgaben — Anweisungen umsetzen</option>
+      <option value="verification">Fragen — Prüffragen prüfen</option>
+    </select>
+  </div>
+  <p class="text-xs p-faint">Legt Orchestrator, worker-exec und worker-review an.</p>
+  <button type="submit" class="p-btn p-btn-primary text-sm">Team anlegen</button>
+</form>
+{% endblock %}

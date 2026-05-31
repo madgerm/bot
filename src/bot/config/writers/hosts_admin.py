@@ -81,6 +81,41 @@ def _detach_teams_from_others(
     return out
 
 
+def append_team_to_local_host(root: Path, team_id: str, *, actor: str) -> None:
+    """Team-ID zum lokalen Host hinzufügen (Dashboard-Sichtbarkeit)."""
+    tid = team_id.strip()
+    cfg = load_hosts_admin(root)
+    if not cfg.hosts:
+        cfg = TeamHostsConfig(
+            hosts=[
+                TeamHostEntry(
+                    id="local",
+                    label="Lokal",
+                    mode="local",
+                    teams=[tid],
+                )
+            ]
+        )
+        save_hosts_admin(root, cfg, actor=actor)
+        return
+    updated = False
+    hosts: list[TeamHostEntry] = []
+    for h in cfg.hosts:
+        if h.mode == "local" and not updated:
+            teams = list(h.teams)
+            if tid not in teams:
+                teams.append(tid)
+            hosts.append(h.model_copy(update={"teams": sorted(teams)}))
+            updated = True
+        else:
+            hosts.append(h)
+    if not updated:
+        hosts.append(
+            TeamHostEntry(id="local", label="Lokal", mode="local", teams=[tid])
+        )
+    save_hosts_admin(root, TeamHostsConfig(hosts=hosts), actor=actor)
+
+
 def save_hosts_admin(root: Path, cfg: TeamHostsConfig, *, actor: str) -> None:
     try:
         cfg = TeamHostsConfig.model_validate(cfg.model_dump(mode="json"))

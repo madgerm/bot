@@ -18,8 +18,24 @@
     <a href="/teams/{{ team_id }}/media" class="p-link">Medien</a>
     <a href="/teams/{{ team_id }}/crawl" class="p-link">Crawl</a>
   </div>
+  {% if request.query_params.get('renamed') %}
+  <p class="p-status-ok text-sm mt-2">Team umbenannt.</p>
+  {% endif %}
+  {% if can_write %}
+  <form method="post" action="/teams/{{ team_id }}/rename"
+    class="mt-3 flex flex-wrap items-end gap-3 max-w-2xl">
+    <div class="flex-1 min-w-[220px]">
+      <label class="block text-xs p-faint mb-1">Team-Name (Anzeige)</label>
+      <input name="name" required class="p-input w-full text-lg font-semibold"
+        value="{{ dashboard.team_name }}">
+    </div>
+    <button type="submit" class="p-btn p-btn-primary text-sm">Speichern</button>
+    <a href="/teams/{{ team_id }}/settings/general" class="text-xs p-link self-center pb-2">Einstellungen</a>
+  </form>
+  {% else %}
   <h1 class="text-2xl font-bold mt-2">{{ dashboard.team_name }}</h1>
-  <p class="p-muted text-sm">Team <code class="p-secondary">{{ dashboard.team_id }}</code>
+  {% endif %}
+  <p class="p-muted text-sm mt-2">Team <code class="p-secondary">{{ dashboard.team_id }}</code>
     · Orchestrator: {{ dashboard.orchestrator_id }}</p>
   <p class="text-xs p-faint mt-1">Team-Runner ({{ host_label }}): <code>{{ connection }}</code></p>
 </div>

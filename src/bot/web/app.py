@@ -193,6 +193,8 @@ def create_app(root: Path | str) -> FastAPI:
     @app.get("/teams/{team_id}", response_class=HTMLResponse)
     async def team_page(request: Request, team_id: str, user: CurrentUser):
         require_team_access(team_id, user)
+        from bot.web.team_access import team_access_level
+
         registry: HostRegistry = app.state.hosts
         client = registry.client_for_team(team_id)
         try:
@@ -200,6 +202,7 @@ def create_app(root: Path | str) -> FastAPI:
         except (ConfigLoadError, TeamHostError) as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
+        access = team_access_level(user, team_id)
         return templates.TemplateResponse(
             request,
             "team.html",
@@ -209,6 +212,7 @@ def create_app(root: Path | str) -> FastAPI:
                 "team_id": team_id,
                 "connection": client.connection_display(),
                 "host_label": client.label,
+                "can_write": access in ("admin", "operator"),
             },
         )
 
@@ -869,5 +873,8 @@ def create_app(root: Path | str) -> FastAPI:
     from bot.web.verification_routes import register_verification_routes
 
     register_verification_routes(app, templates, root_path)
+    from bot.web.team_manage_routes import register_team_manage_routes
+
+    register_team_manage_routes(app, templates, root_path)
 
     return app
