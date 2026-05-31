@@ -34,8 +34,9 @@ Vollständiger Plan: [`plans/2026-05-30-web-panel-config-ui.md`](../plans/2026-0
 | `/admin/settings/status` | Verbindungstests (HTMX, Live-Reload pro Sektion) | — |
 | `/admin/settings/status/fragment` | HTMX: alle Tests | — |
 | `/admin/settings/status/fragment/hosts/{id}` | HTMX: ein Host | — |
-| `/admin/settings/status/fragment/llm` | HTMX: LLM (`?live=1` für Prompt) | — |
+| `/admin/settings/status/fragment/llm` | HTMX: LLM (`?ping=1` HTTP, `?live=1` Prompt) | — |
 | `/admin/settings/status/fragment/qdrant` | HTMX: Qdrant | — |
+| `/admin/settings/status/fragment/mail` | HTMX: E-Mail pro Team (`?probe=1` IMAP/SMTP) | — |
 
 | `/teams/<id>/settings` | Team-Übersicht | — |
 | `/teams/<id>/settings/general` | Name, Preset, Orchestrator | `teams/<id>/team.json` |

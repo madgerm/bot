@@ -256,6 +256,8 @@ class AgentBlock(BaseModel):
     """Tools abziehen (nach tools_allow bzw. Rollen-Default)."""
     qdrant_collections: list[str] = Field(default_factory=list)
     """Leer = project, background, web; sonst erlaubte Suffixe für qdrant_search."""
+    default_task_assignee: bool = False
+    """Wenn true: Vorauswahl im Task-Board (max. einer pro Team)."""
 
     @field_validator("id")
     @classmethod

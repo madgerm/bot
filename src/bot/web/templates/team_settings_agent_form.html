@@ -34,6 +34,11 @@
   <label class="flex items-center gap-2 text-sm">
     <input type="checkbox" name="enabled" value="on" {% if mode == 'create' or (agent and agent.enabled) %}checked{% endif %}> Agent aktiv
   </label>
+  <label class="flex items-center gap-2 text-sm">
+    <input type="checkbox" name="default_task_assignee" value="on"
+      {% if agent and agent.default_task_assignee %}checked{% endif %}>
+    Standard-Assignee für neue Tasks (nur ein Agent pro Team)
+  </label>
   <div>
     <label class="block text-sm p-muted mb-1">Task-Kategorien (kommagetrennt, optional)</label>
     <input name="task_categories" class="w-full p-input font-mono text-xs" placeholder="coding, planning" value="{% if agent and agent.task_categories %}{{ agent.task_categories | join(', ') }}{% endif %}">

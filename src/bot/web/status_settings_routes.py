@@ -20,6 +20,7 @@ from bot.config.writers.hosts_admin import (
     probe_llm_live,
     probe_qdrant,
 )
+from bot.config.writers.mail_status import collect_mail_status
 from bot.config.writers.system_admin import env_var_is_set
 from bot.web.auth import CurrentUser, require_admin
 
@@ -57,6 +58,7 @@ def register_status_settings_routes(
         require_admin(user)
         try:
             status = collect_settings_status(root_path, live_llm=live_llm)
+            status["mail"] = collect_mail_status(root_path)
         except HostsAdminError as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
         return templates.TemplateResponse(
@@ -172,6 +174,27 @@ def register_status_settings_routes(
             "admin_settings_status_team_api_fragment.html",
             {
                 "team_api": team_api,
+                "tested_at": datetime.now(UTC).strftime("%H:%M:%S UTC"),
+            },
+        )
+
+    @app.get("/admin/settings/status/fragment/mail", response_class=HTMLResponse)
+    async def status_fragment_mail(
+        request: Request,
+        user: CurrentUser,
+        probe: bool = Query(False),
+    ):
+        require_admin(user)
+        try:
+            mail = collect_mail_status(root_path, probe=probe)
+        except Exception as exc:
+            mail = {"ok": False, "summary": str(exc), "teams": []}
+        return templates.TemplateResponse(
+            request,
+            "admin_settings_status_mail_fragment.html",
+            {
+                "mail": mail,
+                "probe": probe,
                 "tested_at": datetime.now(UTC).strftime("%H:%M:%S UTC"),
             },
         )
