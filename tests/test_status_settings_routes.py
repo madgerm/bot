@@ -87,3 +87,62 @@ def test_status_fragment_full(client: TestClient) -> None:
 
 def test_status_fragment_requires_admin(client: TestClient) -> None:
     assert client.get("/admin/settings/status/fragment").status_code == 401
+
+
+def test_llm_http_ping(monkeypatch: pytest.MonkeyPatch, runtime_project: Path) -> None:
+    from bot.config.writers.hosts_admin import probe_llm_http
+
+    (runtime_project / "config" / "system.json").write_text(
+        (
+            (runtime_project / "config" / "system.json").read_text()
+            if (runtime_project / "config" / "system.json").is_file()
+            else "{}"
+        ),
+        encoding="utf-8",
+    )
+    # Ensure LLM enabled with api_base
+    import json
+
+    sys_path = runtime_project / "config" / "system.json"
+    data = json.loads(sys_path.read_text())
+    data.setdefault("system", {})["llm"] = {
+        "enabled": True,
+        "api_base": "http://llm.test:4000",
+        "secret_ref": None,
+    }
+    sys_path.write_text(json.dumps(data), encoding="utf-8")
+
+    class _Resp:
+        status_code = 200
+
+        def raise_for_status(self) -> None:
+            return None
+
+    class _Client:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args) -> None:
+            return None
+
+        def get(self, url: str, headers=None):
+            assert "http://llm.test:4000" in url
+            return _Resp()
+
+    monkeypatch.setattr("bot.config.writers.hosts_admin.httpx.Client", _Client)
+    result = probe_llm_http(runtime_project)
+    assert result["ping_ok"] is True
+    assert "HTTP 200" in result["ping_summary"]
+
+
+def test_status_fragment_llm_ping(client: TestClient) -> None:
+    _login(client)
+    r = client.get(
+        "/admin/settings/status/fragment/llm?ping=1",
+        headers={"HX-Request": "true"},
+    )
+    assert r.status_code == 200
+    assert "API-Ping" in r.text or "ping" in r.text.lower()
