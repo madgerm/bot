@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from bot.chat import ChatStore
 from bot.chat.direct_agent import list_direct_agents, send_direct_to_agent
+from bot.chat.direct_chat import record_direct_assistant
 from bot.chat.team_feed import build_team_feed, collect_agent_messages
 from bot.messages import open_message_service
 
@@ -66,6 +67,26 @@ def test_build_team_feed_panel_only(runtime_project: Path) -> None:
         runtime_project, "alpha", "orchestrator", include_internal=False
     )
     assert all(ln.kind == "panel" for ln in feed)
+
+
+def test_direct_assistant_reply_in_feed(runtime_project: Path) -> None:
+    send_direct_to_agent(
+        runtime_project,
+        "alpha",
+        username="admin",
+        target_agent="worker-exec",
+        content="Frage?",
+    )
+    record_direct_assistant(
+        runtime_project, "alpha", "worker-exec", "Ja, klar — hier die Antwort."
+    )
+    feed = build_team_feed(
+        runtime_project, "alpha", "orchestrator", direct_agent="worker-exec"
+    )
+    assert any("Ja, klar" in ln.content for ln in feed)
+    assistant = [ln for ln in feed if "assistant" in ln.label]
+    assert assistant
+    assert "worker-exec" in assistant[0].label
 
 
 def test_send_direct_to_agent(runtime_project: Path) -> None:
@@ -150,3 +171,15 @@ def test_chat_direct_route(panel_client: TestClient, runtime_project: Path) -> N
     assert page.status_code == 200
     assert "Direkt-PM" in page.text
     assert "PM Inhalt" in page.text
+
+
+def test_chat_feed_fragment(panel_client: TestClient) -> None:
+    panel_client.get("/login")
+    panel_client.post(
+        "/login",
+        data={"username": "admin", "password": "secret"},
+        follow_redirects=False,
+    )
+    r = panel_client.get("/teams/alpha/chat/fragment?direct=worker-exec")
+    assert r.status_code == 200
+    assert "chat-feed" not in r.text
