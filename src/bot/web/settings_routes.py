@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from bot.web.auth import CurrentUser, require_admin
+from bot.web.users_settings_routes import register_users_settings_routes
 
 
 def register_settings_routes(
@@ -24,8 +25,8 @@ def register_settings_routes(
                 "id": "users",
                 "title": "Nutzer & Zugänge",
                 "description": "Benutzer anlegen, Rollen, Team-Zugriff, Passwörter",
-                "href": None,
-                "phase": 1,
+                "href": "/admin/settings/users",
+                "phase": None,
             },
             {
                 "id": "system",
@@ -72,3 +73,5 @@ def register_settings_routes(
                 "root_label": str(root_path),
             },
         )
+
+    register_users_settings_routes(app, templates, root_path)

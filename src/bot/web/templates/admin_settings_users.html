@@ -1,0 +1,64 @@
+{% extends "settings_base.html" %}
+{% block title %}Nutzer — Einstellungen{% endblock %}
+{% block settings_content %}
+<h1 class="text-2xl font-bold mb-2">Nutzer & Zugänge</h1>
+<p class="text-sm p-muted mb-6">Web-Panel-Login — gespeichert in <code>config/users.json</code></p>
+
+{% if saved == 'created' %}
+<p class="p-status-ok mb-4">Nutzer angelegt.</p>
+{% elif saved == 'updated' %}
+<p class="p-status-ok mb-4">Änderungen gespeichert.</p>
+{% elif saved == 'deleted' %}
+<p class="p-status-ok mb-4">Nutzer gelöscht.</p>
+{% endif %}
+
+<p class="mb-4">
+  <a href="/admin/settings/users/new" class="p-link font-medium">+ Neuer Nutzer</a>
+</p>
+
+<div class="overflow-x-auto p-card">
+  <table class="w-full text-sm">
+    <thead class="p-muted text-left">
+      <tr>
+        <th class="px-4 py-2">Benutzer</th>
+        <th class="px-4 py-2">Rolle</th>
+        <th class="px-4 py-2">Status</th>
+        <th class="px-4 py-2">Teams</th>
+        <th class="px-4 py-2"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr class="border-t border-[var(--p-border)]">
+        <td class="px-4 py-2 font-medium">{{ u.username }}{% if u.is_self %} <span class="text-xs p-faint">(Sie)</span>{% endif %}</td>
+        <td class="px-4 py-2">{{ u.role }}</td>
+        <td class="px-4 py-2">
+          {% if u.enabled %}
+          <span class="p-status-ok text-xs">aktiv</span>
+          {% else %}
+          <span class="p-status-warn text-xs">deaktiviert</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-2 text-xs">
+          {% if u.role == 'admin' %}
+          <span class="p-faint">alle Teams</span>
+          {% else %}
+          {{ u.teams | join(', ') }}
+          {% for ta in u.team_access %}
+          {% if ta.access == 'reader' %}{{ ta.team_id }} (lesen){% endif %}
+          {% endfor %}
+          {% endif %}
+        </td>
+        <td class="px-4 py-2 text-right">
+          <a href="/admin/settings/users/{{ u.username }}" class="p-link text-xs">Bearbeiten</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5" class="px-4 py-6 p-faint text-center">Keine Nutzer — legen Sie den ersten an.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

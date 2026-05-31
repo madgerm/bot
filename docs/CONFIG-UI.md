@@ -8,8 +8,8 @@ Vollständiger Plan: [`plans/2026-05-30-web-panel-config-ui.md`](../plans/2026-0
 
 | Phase | Inhalt | Status |
 |-------|--------|--------|
-| 0 | Writer-Schicht, `/admin/settings` Gerüst | **aktiv** |
-| 1 | Nutzer CRUD | geplant |
+| 0 | Writer-Schicht, `/admin/settings` Gerüst | **fertig** |
+| 1 | Nutzer CRUD | **fertig** |
 | 2 | LLM, Qdrant, Playwright, task_models | geplant |
 | 3 | Team, Agents, Pipeline | geplant |
 | 4 | Crawl, E-Mail, Hours, Integrationen, Git | geplant |
@@ -21,9 +21,12 @@ Vollständiger Plan: [`plans/2026-05-30-web-panel-config-ui.md`](../plans/2026-0
 | URL | Beschreibung | Schreibt JSON |
 |-----|--------------|---------------|
 | `/admin/settings` | Übersicht aller Konfigurationsbereiche | — |
+| `/admin/settings/users` | Nutzerliste | — |
+| `/admin/settings/users/new` | Nutzer anlegen | `config/users.json` |
+| `/admin/settings/users/{name}` | Nutzer bearbeiten | `config/users.json` |
 | `/admin/media` | Medien global + Team-Overrides | `system.json` (`media_global`), `teams/<id>/media.json` |
 
-Weitere Routen folgen unter `/admin/settings/…` (Phase 1+).
+Weitere Routen folgen unter `/admin/settings/…` (Phase 2+).
 
 ## Technik
 
