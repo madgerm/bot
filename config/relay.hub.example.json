@@ -1,0 +1,12 @@
+{
+  "_comment": "Beispiel system.llm.hub auf dem Team-Runner (VPS)",
+  "llm": {
+    "enabled": true,
+    "mode": "channel",
+    "hub": {
+      "relay_url": "wss://relay.example.com:9000/ws",
+      "relay_room": "meine-installation",
+      "token_env": "BOT_RELAY_TOKEN"
+    }
+  }
+}

@@ -40,6 +40,16 @@ class PollingConfig(BaseModel):
     """thread = ein Thread pro Agent; process = eigener OS-Prozess (empfohlen)."""
 
 
+class ChannelHubConfig(BaseModel):
+    """Internet-Relay: Panel und Runner verbinden sich ausgehend."""
+
+    relay_url: str
+    """WebSocket-URL des Relays, z. B. wss://relay.example.com:9000/ws"""
+    relay_room: str = "default"
+    """Gemeinsamer Raum (Installation) — Panel und Runner müssen übereinstimmen."""
+    token_env: str = "BOT_RELAY_TOKEN"
+
+
 class LlmProxyConfig(BaseModel):
     """Team-Runner (VPS) → Web-Panel (LAN) → Ollama/LiteLLM."""
 
@@ -57,6 +67,8 @@ class LlmConfig(BaseModel):
     api_base: str = "http://127.0.0.1:4000"
     secret_ref: str | None = None
     proxy: LlmProxyConfig | None = None
+    hub: ChannelHubConfig | None = None
+    """Optional: Internet-Relay statt direktem Panel↔Runner-WebSocket."""
     max_retries: int = Field(default=3, ge=1)
     retry_backoff_seconds: float = Field(default=1.0, ge=0)
     timeout_seconds: float = Field(default=120.0, gt=0)

@@ -12,8 +12,8 @@ import httpx
 from websockets.asyncio.client import connect as ws_connect
 from websockets.exceptions import ConnectionClosed
 
+from bot.channel.hub_config import panel_ws_url
 from bot.channel.protocol import decode_message, encode_message
-from bot.channel.relay import CHANNEL_WS_PATH, http_base_to_ws
 from bot.config import load_runtime_config
 from bot.hosts.models import TeamHostEntry
 from bot.hosts.registry import load_team_hosts_config
@@ -21,22 +21,6 @@ from bot.channel.panel_rpc import execute_panel_rpc
 from bot.llm.proxy_service import complete_via_local_llm
 
 logger = logging.getLogger(__name__)
-
-
-def _ws_url(entry: TeamHostEntry) -> str:
-    assert entry.base_url and entry.token_env
-    base = entry.base_url.rstrip("/")
-    if base.startswith("https://"):
-        host = base[len("https://") :]
-        scheme = "wss"
-    elif base.startswith("http://"):
-        host = base[len("http://") :]
-        scheme = "ws"
-    else:
-        host = base
-        scheme = "ws"
-    token = os.environ.get(entry.token_env, "")
-    return f"{scheme}://{host}{CHANNEL_WS_PATH}?token={token}"
 
 
 async def _handle_rpc_request(panel_root: Path, msg: dict[str, Any]) -> dict[str, Any]:
@@ -72,7 +56,7 @@ async def _handle_llm_request(panel_root: Path, msg: dict[str, Any]) -> dict[str
 
 
 async def _session_loop(panel_root: Path, entry: TeamHostEntry) -> None:
-    url = _ws_url(entry)
+    url = panel_ws_url(entry)
     backoff = 2.0
     while True:
         try:

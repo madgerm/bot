@@ -27,6 +27,7 @@ class Supervisor:
         self._lock = threading.RLock()
         self._running = False
         self._qdrant_scheduler: QdrantReindexScheduler | None = None
+        self._channel_manager: object | None = None
 
     @property
     def config(self) -> RuntimeConfig:
@@ -94,6 +95,7 @@ class Supervisor:
             for team in self._teams.values():
                 team.start()
             self._start_qdrant_reindex(config, list(self._teams.keys()))
+            self._start_channel_relay(config)
             self._running = True
             logger.info(
                 "Supervisor gestartet",
@@ -105,6 +107,12 @@ class Supervisor:
 
     def stop(self) -> None:
         with self._lock:
+            if self._channel_manager is not None:
+                from bot.channel.runner_manager import RunnerChannelManager
+
+                if isinstance(self._channel_manager, RunnerChannelManager):
+                    self._channel_manager.stop()
+                self._channel_manager = None
             if self._qdrant_scheduler:
                 self._qdrant_scheduler.stop()
                 self._qdrant_scheduler = None
@@ -112,6 +120,16 @@ class Supervisor:
                 team.stop()
             self._running = False
             logger.info("Supervisor gestoppt")
+
+    def _start_channel_relay(self, config: RuntimeConfig) -> None:
+        from bot.channel.hub_config import runner_uses_internet_relay
+        from bot.channel.runner_manager import RunnerChannelManager
+
+        if not runner_uses_internet_relay(config):
+            return
+        mgr = RunnerChannelManager(self.root)
+        mgr.start()
+        self._channel_manager = mgr
 
     def _start_qdrant_reindex(self, config: RuntimeConfig, team_ids: list[str]) -> None:
         from bot.channel.satellite import is_satellite_runner
