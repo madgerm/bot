@@ -1,0 +1,97 @@
+{% extends "settings_base.html" %}
+{% block title %}Team-Runner — Einstellungen{% endblock %}
+{% block settings_content %}
+<h1 class="text-2xl font-bold mb-2">Team-Runner & Verbindung</h1>
+<p class="text-sm p-muted mb-4">
+  Panel ↔ Runner — <code>config/team_hosts.json</code>. Tokens nur in <code>.env</code>, nicht im JSON.
+</p>
+
+<p class="mb-6 flex flex-wrap gap-4 text-sm">
+  <a href="/admin/settings/hosts/new" class="p-link font-medium">+ Neuer Host</a>
+  <a href="/admin/settings/hosts/wizard" class="p-link font-medium">Setup-Assistent</a>
+  <a href="/admin/settings/status" class="p-link">Status & Tests →</a>
+</p>
+
+{% if saved == 'created' %}
+<p class="p-status-ok mb-4">Host angelegt.</p>
+{% elif saved == 'updated' %}
+<p class="p-status-ok mb-4">Host gespeichert.</p>
+{% elif saved == 'deleted' %}
+<p class="p-status-ok mb-4">Host gelöscht.</p>
+{% elif saved == 'team_api' %}
+<p class="p-status-ok mb-4">Team-API-Konfiguration gespeichert.</p>
+{% endif %}
+
+{% if test_host %}
+<p class="mb-4 text-sm {% if test_ok %}p-status-ok{% else %}p-status-warn{% endif %}">
+  Verbindungstest für <strong>{{ test_host }}</strong>:
+  {% if test_ok %}erfolgreich{% else %}fehlgeschlagen — Details unter Status{% endif %}
+</p>
+{% endif %}
+
+<div class="overflow-x-auto p-card mb-10">
+  <table class="w-full text-sm">
+    <thead class="p-muted text-left">
+      <tr>
+        <th class="px-4 py-2">ID</th>
+        <th class="px-4 py-2">Label</th>
+        <th class="px-4 py-2">Modus</th>
+        <th class="px-4 py-2">Teams</th>
+        <th class="px-4 py-2">Kanal</th>
+        <th class="px-4 py-2"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for h in hosts %}
+      <tr class="border-t border-[var(--p-border)]">
+        <td class="px-4 py-2 font-mono text-xs">{{ h.id }}</td>
+        <td class="px-4 py-2">{{ h.label }}</td>
+        <td class="px-4 py-2">{{ h.mode }}{% if h.base_url %}<br><span class="text-xs p-faint">{{ h.base_url }}</span>{% endif %}</td>
+        <td class="px-4 py-2 text-xs">{{ h.teams | join(', ') or '—' }}</td>
+        <td class="px-4 py-2 text-xs">{% if h.channel %}ja{% if h.relay_url %} (Relay){% endif %}{% else %}—{% endif %}</td>
+        <td class="px-4 py-2 text-right whitespace-nowrap">
+          <form method="post" action="/admin/settings/hosts/{{ h.id }}/test" class="inline">
+            <button type="submit" class="p-link text-xs">Test</button>
+          </form>
+          ·
+          <a href="/admin/settings/hosts/{{ h.id }}" class="p-link text-xs">Bearbeiten</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" class="px-4 py-6 p-faint text-center">Keine Hosts konfiguriert.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<section class="p-card p-6 max-w-3xl">
+  <h2 class="text-lg font-semibold mb-2">Team-API (Runner)</h2>
+  <p class="text-sm p-muted mb-4">
+    <code>config/team_api.json</code> auf dem <strong>Runner</strong>-Rechner — gleicher Token wie Panel-Env für Remote-Hosts.
+  </p>
+  <form method="post" action="/admin/settings/hosts/team-api" class="space-y-4">
+    <label class="block text-sm">
+      <span class="p-muted">Umgebungsvariable für API-Token</span>
+      <input type="text" name="token_env" value="{{ team_api.token_env }}" class="p-input w-full mt-1 font-mono text-sm">
+    </label>
+    <fieldset>
+      <legend class="text-sm p-muted mb-2">Teams über diese API</legend>
+      <div class="flex flex-wrap gap-3">
+        {% for tid in team_ids %}
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="api_team_{{ tid }}" value="on"
+            {% if tid in team_api.teams %}checked{% endif %}>
+          {{ tid }}
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <button type="submit" class="p-btn">Team-API speichern</button>
+  </form>
+  <p class="text-xs p-faint mt-4">
+    Token erzeugen: <code>bot team token</code> — Wert in <code>.env</code> auf Panel und Runner setzen.
+  </p>
+</section>
+{% endblock %}

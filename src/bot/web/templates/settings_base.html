@@ -7,6 +7,8 @@
   <a href="/admin/settings/users" class="p-link{% if settings_active == 'users' %} font-semibold{% endif %}">Nutzer</a>
   <a href="/admin/settings/system" class="p-link{% if settings_active == 'system' %} font-semibold{% endif %}">System</a>
   <a href="/admin/settings/models" class="p-link{% if settings_active == 'models' %} font-semibold{% endif %}">Modelle</a>
+  <a href="/admin/settings/hosts" class="p-link{% if settings_active == 'hosts' %} font-semibold{% endif %}">Hosts</a>
+  <a href="/admin/settings/status" class="p-link{% if settings_active == 'status' %} font-semibold{% endif %}">Status</a>
   {% block settings_nav_extra %}{% endblock %}
 </nav>
 {% block settings_content %}{% endblock %}
