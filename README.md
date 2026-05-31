@@ -68,6 +68,44 @@ git clone https://github.com/madgerm/bot.git && cd bot && bash scripts/install-d
 | `BOT_INSTALL_CRAWL` | `0`/`1` | Crawl4AI-Extra |
 | `BOT_INSTALL_QDRANT` | `0`/`1` | Qdrant-Container per Docker Compose |
 | `BOT_INSTALL_AUTOSTART` | `0`/`1` | systemd enable (nur mit `NONINTERACTIVE`) |
+| `BOT_INSTALL_PROFILE` | `panel`, `runner`, `satellite`, `relay` | Example-Configs + Tokens (siehe unten) |
+| `BOT_INSTALL_RELAY` | `0`/`1` | `bot-relay.service` + `BOT_RELAY_TOKEN` in `.env` |
+| `BOT_INSTALL_TEAM_API` | `0`/`1` | `bot-team-api.service` (`bot team serve`, Port 8443) |
+| `BOT_INSTALL_CHANNEL_HOSTS` | `0`/`1` | Mit Profil `panel`: `team_hosts.channel.example.json` kopieren |
+| `BOT_RELAY_PORT` / `BOT_TEAM_API_PORT` | Zahl | Ports für Relay- bzw. Team-API-Dienst |
+
+**Profile (nicht-interaktiv):**
+
+| Profil | Typisch | systemd | Config |
+|--------|---------|---------|--------|
+| `panel` | Web-Panel mit Ollama/Qdrant lokal | `bot-web-panel` | `system.panel-lan.example.json` |
+| `runner` | Team-Runner + Kanal zum Panel | `bot-team-runner`, `bot-team-api` | `system.runner-channel.example.json`, `team_api.json` |
+| `satellite` | Wie Runner, schlanke Config | wie `runner` | wie `runner` |
+| `relay` | Nur Internet-Relay | `bot-relay` | keine (nur Token) |
+
+**Panel + Relay auf einem VPS:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/madgerm/bot/main/scripts/install-debian.sh | \
+  BOT_INSTALL_NONINTERACTIVE=1 BOT_INSTALL_MODE=web BOT_INSTALL_PROFILE=panel \
+  BOT_INSTALL_RELAY=1 BOT_INSTALL_AUTOSTART=1 BOT_INSTALL_SCOPE=system sudo -E bash -s --
+```
+
+**Satellit-Runner (Agents remote, LLM über Kanal):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/madgerm/bot/main/scripts/install-debian.sh | \
+  BOT_INSTALL_NONINTERACTIVE=1 BOT_INSTALL_MODE=runner BOT_INSTALL_PROFILE=satellite \
+  BOT_INSTALL_AUTOSTART=1 BOT_INSTALL_SCOPE=system sudo -E bash -s --
+```
+
+**Nur Relay:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/madgerm/bot/main/scripts/install-debian.sh | \
+  BOT_INSTALL_NONINTERACTIVE=1 BOT_INSTALL_MODE=relay BOT_INSTALL_PROFILE=relay \
+  BOT_INSTALL_AUTOSTART=1 BOT_INSTALL_SCOPE=system sudo -E bash -s --
+```
 
 **Vollständig inkl. Extras + Autostart (nicht-interaktiv):**
 

@@ -250,16 +250,16 @@ Reihenfolge: Infrastruktur zuerst, dann global, dann Team, dann Agent-Tiefe, dan
 
 ---
 
-### Phase 6 — Installer (parallel oder nach Phase 2) (ca. 1 PR)
+### Phase 6 — Installer (parallel oder nach Phase 2) (ca. 1 PR) ✅
 
 **Ziel:** Debian-Skript ergänzen — optional, nicht Blocker für Panel-UI.
 
-- [ ] `BOT_INSTALL_RELAY=1` → `bot-relay.service` + Token in `.env`
-- [ ] `BOT_INSTALL_PROFILE=panel|runner|satellite|relay` → passende Example-Configs kopieren + Tokens generieren
-- [ ] `bot team serve` in systemd für Runner (Kanal)
-- [ ] README-Tabelle erweitern
+- [x] `BOT_INSTALL_RELAY=1` → `bot-relay.service` + Token in `.env`
+- [x] `BOT_INSTALL_PROFILE=panel|runner|satellite|relay` → Example-Configs (`scripts/apply-install-profile.py`) + Tokens
+- [x] `bot team serve` → `bot-team-api.service` (Runner/Satellit-Profil)
+- [x] README One-Liner + Variablen-Tabelle
 
-**Akzeptanz:** Non-interactive One-Liner für „Panel+Relay“ oder „Satellit+Relay“ dokumentiert.
+**Akzeptanz:** Non-interactive One-Liner für „Panel+Relay“ oder „Satellit+Runner“ dokumentiert.
 
 ---
 

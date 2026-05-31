@@ -16,6 +16,10 @@ Das Skript fragt:
 
 Demo-Logins: `admin` / `changeme`, `demo` / `changeme`, `reader` / `changeme` — Details in `README.md`.
 
+**Profile (nicht-interaktiv):** `BOT_INSTALL_PROFILE=panel|runner|satellite|relay`, optional `BOT_INSTALL_RELAY=1` für `bot-relay.service`, `BOT_INSTALL_TEAM_API=1` für `bot team serve`. One-Liner: `README.md` (Installation).
+
+**Panel-Kopplung:** Nach der Installation `/admin/settings/hosts/wizard` — Token und `team_hosts.json` ohne JSON von Hand.
+
 ## 1. Vorbereitung (manuell)
 
 ```bash
