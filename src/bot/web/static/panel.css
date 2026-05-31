@@ -908,3 +908,10 @@ html.dark .p-chat-row--out .p-chat-bubble {
   padding: 0.15rem;
   font-size: 0.7rem;
 }
+
+.p-chat-stub-badge {
+  margin-top: 0.35rem;
+  font-size: 0.65rem;
+  color: var(--p-warn-text);
+  opacity: 0.9;
+}

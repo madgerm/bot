@@ -73,6 +73,10 @@ class FeedLine:
         return self.content
 
     @property
+    def is_llm_stub(self) -> bool:
+        return self.content.lstrip().startswith("[llm-stub")
+
+    @property
     def internal_summary(self) -> str:
         if self.kind != "internal":
             return ""

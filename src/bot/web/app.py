@@ -244,11 +244,20 @@ def create_app(root: Path | str) -> FastAPI:
             q=q,
         )
         access = team_access_level(user, team_id)
+        from bot.config import load_runtime_config
         from bot.verification.workflow import is_verification_team
+
+        llm_cfg = load_runtime_config(root_path).system.system.llm
 
         return {
             "user": user,
             "team_id": team_id,
+            "llm_info": {
+                "enabled": llm_cfg.enabled,
+                "mode": llm_cfg.mode,
+                "api_base": llm_cfg.api_base or "",
+                "uses_stub": not llm_cfg.enabled,
+            },
             "team_workflow": cfg.team.workflow,
             "is_verification_team": is_verification_team(root_path, team_id),
             "feed": feed,
@@ -880,5 +889,8 @@ def create_app(root: Path | str) -> FastAPI:
     from bot.web.verification_routes import register_verification_routes
 
     register_verification_routes(app, templates, root_path)
+    from bot.web.ops_routes import register_ops_routes
+
+    register_ops_routes(app, templates, root_path)
 
     return app

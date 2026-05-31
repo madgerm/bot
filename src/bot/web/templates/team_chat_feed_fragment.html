@@ -18,6 +18,9 @@
       <time class="p-chat-bubble__time" datetime="">{{ line.time_display }}</time>
     </div>
     <div class="p-chat-bubble__body">{{ line.content }}</div>
+    {% if line.is_llm_stub %}
+    <p class="p-chat-stub-badge" title="Kein Ollama — eingebauter Test-Stub">Stub-Antwort (kein LLM)</p>
+    {% endif %}
     {% if line.awaiting_approval %}
     <div class="p-chat-bubble__actions">
       <span class="p-chat-badge p-chat-badge--warn">Freigabe ausstehend</span>

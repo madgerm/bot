@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Update & Betrieb — Admin{% endblock %}
+{% block content %}
+<a href="/admin" class="text-sm p-link">← Admin</a>
+<h1 class="text-2xl font-bold mt-4 mb-2">Update & Neustart</h1>
+<p class="text-sm p-muted mb-6 max-w-2xl">
+  Aktualisiert Code und Python-Pakete im Installationsverzeichnis
+  <code>{{ root }}</code> und startet die systemd-Dienste
+  <code>bot-web-panel</code> und <code>bot-team-runner</code> neu (falls aktiv).
+</p>
+
+<section class="p-card p-5 mb-8 max-w-2xl">
+  <h2 class="font-semibold mb-2">LLM / Chat-Antworten</h2>
+  {% if llm.uses_stub %}
+  <p class="text-sm p-status-warn">
+    <strong>LLM ist deaktiviert</strong> (<code>system.json → llm.enabled: false</code>).
+    Chat-Antworten kommen dann vom eingebauten <strong>Python-Stub</strong>
+    (<code>[llm-stub …]</code>) — sehr schnell, <em>nicht</em> von Ollama.
+  </p>
+  {% else %}
+  <p class="text-sm p-status-ok">
+    LLM aktiv · Modus <code>{{ llm.mode }}</code>
+    {% if llm.api_base %} · Basis <code>{{ llm.api_base }}</code>{% endif %}
+  </p>
+  <p class="text-xs p-faint mt-2">
+    Echte Antworten entstehen erst, wenn <code>bot run</code> läuft und das Modell antwortet
+    (Ollama/LiteLLM kann Sekunden bis Minuten brauchen).
+  </p>
+  {% endif %}
+  <a href="/admin/settings/system" class="p-link text-sm mt-2 inline-block">→ System-Einstellungen</a>
+</section>
+
+{% if report %}
+<section class="p-card p-5 mb-8 max-w-3xl">
+  <h2 class="font-semibold mb-3">
+    Ergebnis
+    {% if report.success %}<span class="p-status-ok text-sm font-normal">— erfolgreich</span>
+    {% else %}<span class="p-status-bad text-sm font-normal">— mit Fehlern</span>{% endif %}
+  </h2>
+  <ul class="space-y-3 text-sm">
+    {% for step in report.steps %}
+    <li class="p-list-item">
+      <div class="flex justify-between gap-2 mb-1">
+        <span class="font-medium">{{ step.name }}</span>
+        <span class="{% if step.ok %}p-status-ok{% else %}p-status-bad{% endif %}">
+          {% if step.ok %}OK{% else %}Fehler{% endif %}
+        </span>
+      </div>
+      <pre class="text-xs p-faint whitespace-pre-wrap mt-1">{{ step.detail }}</pre>
+    </li>
+    {% endfor %}
+  </ul>
+  {% if report.success %}
+  <p class="text-sm p-muted mt-4">
+    Das Panel wurde ggf. neu gestartet — diese Seite nach ein paar Sekunden neu laden
+    (<kbd>F5</kbd>).
+  </p>
+  {% endif %}
+</section>
+{% endif %}
+
+<form method="post" action="/admin/ops/upgrade" class="p-card p-5 max-w-2xl space-y-4">
+  <p class="text-sm p-secondary">
+    Führt aus: <code>git pull --ff-only</code>, dann <code>pip install -e .</code>, dann
+    <code>systemctl restart</code> (user oder system).
+  </p>
+  <label class="flex items-start gap-2 text-sm">
+    <input type="checkbox" name="confirm" value="yes" required class="mt-1">
+    <span>Ich möchte Bot-Panel und Team-Runner jetzt aktualisieren und neu starten.</span>
+  </label>
+  <label class="flex items-center gap-2 text-sm p-muted">
+    <input type="checkbox" name="skip_git" value="1">
+    <span>Git pull überspringen (nur pip + Neustart)</span>
+  </label>
+  <button type="submit" class="p-btn p-btn-primary">Jetzt aktualisieren</button>
+</form>
+
+<p class="text-xs p-faint mt-6 max-w-2xl">
+  Manuell auf dem Server: <code>cd {{ root }} && git pull && pip install -e . && systemctl --user restart bot-web-panel bot-team-runner</code>
+</p>
+{% endblock %}

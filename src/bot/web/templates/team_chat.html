@@ -35,6 +35,18 @@
   </aside>
 
   <section class="p-chat-panel" aria-label="Nachrichtenverlauf">
+  {% if llm_info and llm_info.uses_stub %}
+    <div class="p-chat-hint p-chat-hint--warn">
+      <strong>Kein echtes KI-Modell:</strong> LLM ist aus (<code>llm.enabled: false</code>).
+      Antworten kommen vom <strong>Python-Stub</strong> (<code>[llm-stub]</code>) — sofort, ohne Ollama.
+      <a href="/admin/ops" class="p-link ml-1">Einstellungen</a>
+    </div>
+  {% elif llm_info %}
+    <div class="p-chat-hint">
+      LLM aktiv (<code>{{ llm_info.mode }}</code>) — Antworten nach dem Senden über
+      <code>bot run</code> (Ollama/LiteLLM, kann dauern).
+    </div>
+  {% endif %}
   {% if is_verification_team and not direct_agent %}
     <div class="p-chat-hint p-chat-hint--warn">
       <strong>Fragen-Team:</strong> Anforderungen klären, dann Plan freigeben.
