@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from bot.agents_mgmt import AgentManager, AgentManagerError
+from bot.config.models import AgentBlock
 from bot.config.writers.team_admin import (
     TeamAdminError,
     list_agent_ids,
@@ -16,7 +17,14 @@ from bot.config.writers.team_admin import (
     save_team_general,
     save_team_pipeline,
 )
-from bot.runtime.agent_tools import KNOWLEDGE_CHOICES, TOOL_CHOICES
+from bot.runtime.agent_tools import (
+    KNOWLEDGE_CHOICES,
+    TOOL_CHOICES,
+    agent_knowledge_summary,
+    agent_tools_summary,
+    resolve_allowed_tools,
+    role_default_tools,
+)
 from bot.runtime.pipeline import resolve_pipeline
 from bot.runtime.tools import TOOL_NAMES
 from bot.web.auth import CurrentUser, require_team_access
@@ -35,14 +43,46 @@ def _parse_knowledge_from_form(form) -> list[str]:
     return [suffix for suffix, _ in KNOWLEDGE_CHOICES if form.get(f"know_{suffix}") == "on"]
 
 
-def _agent_form_extras(block=None) -> dict:
+def _parse_agent_tools_from_form(form) -> tuple[list[str], list[str]]:
+    use_custom = form.get("use_custom_tools") == "on"
+    tools_allow = _parse_tools_from_form(form, "tool_") if use_custom else []
+    tools_deny = _parse_tools_from_form(form, "deny_tool_")
+    return tools_allow, tools_deny
+
+
+def _enrich_agent_rows(agents: list[dict]) -> list[dict]:
+    for row in agents:
+        block = AgentBlock(
+            id=row["id"],
+            role=row["role"],  # type: ignore[arg-type]
+            enabled=row["enabled"],
+            interval_seconds=row.get("interval_seconds"),
+            display_name=row.get("display_name"),
+            task_categories=row.get("task_categories") or [],
+            system_prompt_extra=row.get("system_prompt_extra"),
+            tools_allow=row.get("tools_allow") or [],
+            tools_deny=row.get("tools_deny") or [],
+            qdrant_collections=row.get("qdrant_collections") or [],
+        )
+        row["tools_summary"] = agent_tools_summary(block.role, block)
+        row["knowledge_summary"] = agent_knowledge_summary(block)
+    return agents
+
+
+def _agent_form_extras(block: AgentBlock | None = None, *, role: str = "worker") -> dict:
+    eff_role = block.role if block else role
+    agent = block
     return {
         "tool_choices": TOOL_CHOICES,
         "knowledge_choices": KNOWLEDGE_CHOICES,
+        "use_custom_tools": bool(block and block.tools_allow),
         "selected_tools": set(block.tools_allow) if block and block.tools_allow else set(),
+        "selected_deny": set(block.tools_deny) if block and block.tools_deny else set(),
         "selected_knowledge": set(block.qdrant_collections)
         if block and block.qdrant_collections
         else set(),
+        "role_default_tools": sorted(role_default_tools(eff_role)),
+        "effective_tools": sorted(resolve_allowed_tools(eff_role, agent)),
     }
 
 
@@ -219,7 +259,7 @@ def register_team_settings_routes(
         require_team_access(team_id, user)
         mgr = AgentManager(root_path)
         try:
-            agents = mgr.list_agents(team_id)
+            agents = _enrich_agent_rows(mgr.list_agents(team_id))
             orch = load_team_config(root_path, team_id).team.orchestrator_id
         except (AgentManagerError, TeamAdminError) as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -293,7 +333,7 @@ def register_team_settings_routes(
         mgr = AgentManager(root_path)
         interval = float(interval_seconds) if interval_seconds.strip() else None
         cats = [c.strip() for c in task_categories.split(",") if c.strip()]
-        tools_allow = _parse_tools_from_form(form)
+        tools_allow, tools_deny = _parse_agent_tools_from_form(form)
         knowledge = _parse_knowledge_from_form(form)
         try:
             mgr.create_agent(
@@ -310,6 +350,7 @@ def register_team_settings_routes(
                 task_categories=cats,
                 system_prompt_extra=system_prompt_extra.strip() or None,
                 tools_allow=tools_allow,
+                tools_deny=tools_deny,
                 qdrant_collections=knowledge,
             )
         except AgentManagerError as exc:
@@ -325,7 +366,7 @@ def register_team_settings_routes(
                     roles=AGENT_ROLES,
                     error=str(exc),
                     form_agent_id=agent_id,
-                    **_agent_form_extras(),
+                    **_agent_form_extras(role=role),
                 ),
                 status_code=400,
             )
@@ -352,7 +393,7 @@ def register_team_settings_routes(
         mgr = AgentManager(root_path)
         cats = [c.strip() for c in task_categories.split(",") if c.strip()]
         interval = float(interval_seconds) if interval_seconds.strip() else None
-        tools_allow = _parse_tools_from_form(form)
+        tools_allow, tools_deny = _parse_agent_tools_from_form(form)
         knowledge = _parse_knowledge_from_form(form)
         try:
             mgr.update_agent(
@@ -365,6 +406,7 @@ def register_team_settings_routes(
                 task_categories=cats,
                 system_prompt_extra=system_prompt_extra.strip() or None,
                 tools_allow=tools_allow,
+                tools_deny=tools_deny,
                 qdrant_collections=knowledge,
             )
         except AgentManagerError as exc:

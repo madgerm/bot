@@ -44,14 +44,35 @@
     <textarea name="system_prompt_extra" rows="4" class="w-full p-input text-sm">{% if agent and agent.system_prompt_extra %}{{ agent.system_prompt_extra }}{% endif %}</textarea>
   </div>
   <fieldset class="border-t border-[var(--p-border)] pt-4">
-    <legend class="text-sm font-medium mb-2">Tools (leer = Rollen-Standard)</legend>
-    <p class="text-xs p-faint mb-3">Nur angehakte Tools sind für diesen Agent erlaubt. Nichts angehakt = alle Tools der Rolle.</p>
-    <div class="grid gap-2 sm:grid-cols-2">
+    <legend class="text-sm font-medium mb-2">Tools</legend>
+    {% if mode == 'edit' and effective_tools %}
+    <p class="text-xs p-muted mb-3">
+      Aktiv: <code class="text-xs">{{ effective_tools | join(', ') }}</code>
+      · Rollen-Standard:
+      <code class="text-xs">{{ role_default_tools | join(', ') }}</code>
+    </p>
+    {% endif %}
+    <label class="flex items-center gap-2 text-sm mb-3">
+      <input type="checkbox" name="use_custom_tools" value="on" {% if use_custom_tools %}checked{% endif %}>
+      Eigene Tool-Liste (nur angehakte Tools erlauben)
+    </label>
+    <p class="text-xs p-faint mb-2">Ohne Häkchen oben gilt der Rollen-Standard; unten können einzelne Tools zusätzlich verboten werden.</p>
+    <div class="grid gap-2 sm:grid-cols-2 mb-4 {% if not use_custom_tools %}opacity-60{% endif %}">
       {% for tid, label in tool_choices %}
       <label class="flex items-center gap-2 text-sm">
         <input type="checkbox" name="tool_{{ tid }}" value="on"
           {% if selected_tools and tid in selected_tools %}checked{% endif %}>
         <span>{{ label }} <code class="text-xs p-faint">{{ tid }}</code></span>
+      </label>
+      {% endfor %}
+    </div>
+    <p class="text-xs font-medium p-muted mb-2">Verbieten (von erlaubten Tools abziehen)</p>
+    <div class="grid gap-2 sm:grid-cols-2">
+      {% for tid, label in tool_choices %}
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="deny_tool_{{ tid }}" value="on"
+          {% if selected_deny and tid in selected_deny %}checked{% endif %}>
+        <span class="p-status-warn text-xs">{{ tid }}</span>
       </label>
       {% endfor %}
     </div>
