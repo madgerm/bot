@@ -61,6 +61,15 @@ def test_build_llm_stack_channel_mode(tmp_path: Path) -> None:
     assert isinstance(stack.client, ChannelLlmClient)
 
 
+def test_rpc_queue_roundtrip(tmp_path: Path) -> None:
+    from bot.channel.rpc_queue import ChannelRpcQueue
+
+    q = ChannelRpcQueue(tmp_path)
+    req_id = q.enqueue("qdrant.search", {"team_id": "demo", "query": "x"})
+    q.complete(req_id, {"hits": [{"score": 0.9}]})
+    assert q.wait_for_result(req_id, timeout_seconds=1.0)["hits"][0]["score"] == 0.9
+
+
 def test_channel_queue_fail(tmp_path: Path) -> None:
     q = LlmChannelQueue(tmp_path)
     req_id = q.enqueue(

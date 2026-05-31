@@ -26,6 +26,7 @@ from bot.cli_team import register_team_commands
 from bot.cli_web import register_web_commands
 from bot.cli_auth import register_auth_commands
 from bot.cli_backup import register_backup_commands
+from bot.cli_relay import register_relay_commands
 from bot.config import ConfigLoadError, ConfigStore, load_runtime_config
 
 
@@ -156,6 +157,7 @@ def build_parser() -> argparse.ArgumentParser:
     register_deploy_commands(sub, add_root)
     register_auth_commands(sub, add_root)
     register_backup_commands(sub, add_root)
+    register_relay_commands(sub, add_root)
     return parser
 
 
@@ -190,6 +192,7 @@ def main(argv: list[str] | None = None) -> None:
         "deploy",
         "auth",
         "backup",
+        "relay",
     ):
         raise SystemExit(args.func(args))
 

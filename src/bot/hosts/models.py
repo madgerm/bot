@@ -21,6 +21,10 @@ class TeamHostEntry(BaseModel):
     )
     channel: bool = False
     """Panel baut WebSocket zum Runner auf (LLM-Queue, Runner muss Panel nicht anrufen)."""
+    relay_url: str | None = None
+    """Optional: wss://…/ws — Panel verbindet sich zum Internet-Relay statt direkt zum Runner."""
+    relay_room: str | None = None
+    """Raum-ID (muss mit Runner system.llm.hub.relay_room übereinstimmen)."""
 
     @model_validator(mode="after")
     def validate_remote(self) -> TeamHostEntry:

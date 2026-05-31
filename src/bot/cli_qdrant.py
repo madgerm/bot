@@ -91,9 +91,25 @@ def register_qdrant_commands(sub, add_root) -> None:
 
 
 def cmd_qdrant_reindex(args: argparse.Namespace) -> int:
-    from bot.qdrant.indexer import index_crawl_snapshots, index_team_workspace
+    from bot.channel.satellite import channel_rpc, is_satellite_root
 
-    ws = index_team_workspace(args.root, args.team)
-    cr = index_crawl_snapshots(args.root, args.team)
+    if is_satellite_root(args.root):
+        ws_data = channel_rpc(
+            args.root,
+            "qdrant.index_workspace",
+            {"team_id": args.team},
+        )
+        cr_data = channel_rpc(
+            args.root,
+            "crawl.index_snapshots",
+            {"team_id": args.team},
+        )
+        ws = int(ws_data.get("count", 0))
+        cr = int(cr_data.get("count", 0))
+    else:
+        from bot.qdrant.indexer import index_crawl_snapshots, index_team_workspace
+
+        ws = index_team_workspace(args.root, args.team)
+        cr = index_crawl_snapshots(args.root, args.team)
     print(f"Indexiert: workspace={ws}, crawl={cr}")
     return 0

@@ -7,6 +7,15 @@
       "api_base": "http://127.0.0.1:11434",
       "secret_ref": "LITELLM_API_KEY",
       "timeout_seconds": 300
+    },
+    "qdrant_global": {
+      "enabled": true,
+      "url": "http://127.0.0.1:6333"
+    },
+    "playwright_global": {
+      "mode": "local",
+      "headless": true,
+      "timeout_seconds": 60
     }
   }
 }

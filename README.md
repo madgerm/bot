@@ -344,6 +344,89 @@ bot web
 
 Das Panel startet den Kanal-Connector automatisch beim `bot web`-Start.
 
+#### Satellit-Runner: was über den Kanal läuft (`llm.mode: channel`)
+
+| Dienst | Über Panel-Kanal | Nur am Panel (LAN) |
+|--------|------------------|---------------------|
+| **LLM / Ollama** | ja (gecached) | `qdrant_global`, Embeddings |
+| **Qdrant-Suche** (`qdrant_search` Tool) | ja | Qdrant-Server |
+| **Workspace → Qdrant** (`index_workspace` Tool) | ja | Index liest Panel-`data/…/workspace` |
+| **Bildgenerierung** (RPC `media.generate_image`) | ja (API, nicht Agent-Tool) | `media_global` / Webhook |
+| **Playwright** (`browser_open` Tool) | ja — Chromium **nur auf dem Panel** | `playwright_global` + `[playwright]`-Extra |
+| **Crawl4AI** (`bot crawl`, Panel `/teams/<id>/crawl`) | ja — Crawler **nur auf dem Panel** | `pip install -e ".[crawl]"` + Chromium |
+| **Qdrant-Reindex im Runner** | nein (deaktiviert) | Reindex auf Panel oder Cron am Panel |
+
+**Schwere Dienste nur am Panel (LAN):** Ollama, Qdrant, Playwright/Chromium, Crawl4AI, Medien-Webhooks — der **1-GB-Satellit** führt nur Agents + leichte Logik aus; RAM-hungrige Jobs laufen über den Kanal.
+
+**Noch nicht über den Kanal** (brauchen lokales `root` auf dem VPS oder gemeinsames Storage):
+
+- Agent-Dateien (`read_file`, `write_file`, Git)
+- Team-Chat/Tasks-SQLite am Panel-`root`
+
+Für einen „echten“ Satelliten: Agents auf dem VPS, **Wissen (Qdrant) und LLM nur im LAN** — Panel mit `channel: true`, Qdrant und Ollama lokal. Workspace-Dateien für Indexing liegen unter `data/<team>/workspace` **am Panel**.
+
+### 4. Internet-Relay (beide Seiten nur ausgehend)
+
+Weder Panel noch Runner müssen sich gegenseitig im Internet finden — beide verbinden sich zu einem **Relay** (VPS, Cloud, …):
+
+```text
+  Panel (LAN) ──wss──►  ┌─────────────────┐  ◄──wss──  Runner (Satellit)
+  Ollama, Qdrant      │  bot relay serve │         bot run
+                      │  Raum + Token    │
+                      └─────────────────┘
+```
+
+**Relay starten** (eigener Server, z. B. 5 €-VPS):
+
+```bash
+export BOT_RELAY_TOKEN=$(python -c "import secrets; print(secrets.token_urlsafe(32))")
+bot relay serve --host 0.0.0.0 --port 9000
+```
+
+**Runner** (`config/system.json` — siehe `config/relay.hub.example.json`):
+
+```json
+"llm": {
+  "enabled": true,
+  "mode": "channel",
+  "hub": {
+    "relay_url": "wss://relay.example.com:9000/ws",
+    "relay_room": "meine-installation",
+    "token_env": "BOT_RELAY_TOKEN"
+  }
+}
+```
+
+```bash
+export BOT_RELAY_TOKEN=<gleicher Wert>
+bot run
+```
+
+**Panel** (`team_hosts.json` — HTTP-Dashboard weiter über `base_url` zum Runner):
+
+```json
+{
+  "hosts": [{
+    "id": "satellit",
+    "mode": "remote",
+    "base_url": "https://runner-public:8443",
+    "token_env": "BOT_TEAM_API_TOKEN",
+    "channel": true,
+    "relay_url": "wss://relay.example.com:9000/ws",
+    "relay_room": "meine-installation",
+    "teams": ["demo"]
+  }]
+}
+```
+
+```bash
+export BOT_TEAM_API_TOKEN=...
+export BOT_RELAY_TOKEN=<gleicher Wert wie am Relay>
+bot web
+```
+
+Die ausführbare Datei ist der **`bot`-Befehl** (`pip install -e .`); auf dem Relay-Server reicht `bot relay serve`. Später optional als einzelnes Binary (PyInstaller o. ä.).
+
 ---
 
 ## Phase 2: Qdrant, Team-Chat, Playwright
@@ -451,7 +534,7 @@ Agent-Kommunikation bleibt **file-basiert** (`inbox/`/`outbox/`). Für mehrere R
 ### Medien, Crawl, Integrationen
 
 - **Medien:** `media_global` in `system.json`, Override: `teams/<id>/media.json`
-- **Crawl4AI:** `pip install -e ".[crawl]"` · `teams/<id>/crawl.json` — liefert **fit_markdown** (ohne Menü/Navigation) unter `data/<id>/crawl/`
+- **Crawl4AI:** `pip install -e ".[crawl]"` · `teams/<id>/crawl.json` — liefert **fit_markdown** (ohne Menü/Navigation) unter `data/<id>/crawl/`. Im **Satellit-Modus** (`llm.mode: channel`) nur am Panel installieren; `bot crawl` auf dem VPS leitet per Kanal-RPC an das Panel weiter.
 - **Telegram/Matrix:** `teams/<id>/integrations.json` → `POST /api/v1/integrations/<team>/telegram|matrix`
 
 ### Deployment (Linux-User pro Team)

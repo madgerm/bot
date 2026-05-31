@@ -130,19 +130,34 @@ class AgentToolkit:
         return ToolResult(True, out)
 
     def _tool_qdrant_search(self, args: dict[str, Any]) -> ToolResult:
-        from bot.qdrant.service import QdrantService, QdrantServiceError
-
         query = str(args.get("query", ""))
         collection = str(args.get("collection", "project"))
         limit = int(args.get("limit", 5))
         if not query.strip():
             raise ToolExecutionError("query fehlt")
         try:
-            service = QdrantService.from_root(self.ctx.root)
-            hits = service.search(
-                self.ctx.team_id, collection, query, limit=limit
-            )
-        except QdrantServiceError as exc:
+            from bot.channel.satellite import channel_rpc, is_satellite_root
+
+            if is_satellite_root(self.ctx.root):
+                data = channel_rpc(
+                    self.ctx.root,
+                    "qdrant.search",
+                    {
+                        "team_id": self.ctx.team_id,
+                        "query": query,
+                        "collection": collection,
+                        "limit": limit,
+                    },
+                )
+                hits = data.get("hits", [])
+            else:
+                from bot.qdrant.service import QdrantService, QdrantServiceError
+
+                service = QdrantService.from_root(self.ctx.root)
+                hits = service.search(
+                    self.ctx.team_id, collection, query, limit=limit
+                )
+        except Exception as exc:
             raise ToolExecutionError(str(exc)) from exc
         lines = []
         for h in hits:
@@ -151,19 +166,33 @@ class AgentToolkit:
         return ToolResult(True, "\n---\n".join(lines) or "(keine Treffer)", {"hits": len(hits)})
 
     def _tool_browser_open(self, args: dict[str, Any]) -> ToolResult:
-        from bot.browser.service import BrowserService, BrowserServiceError
-
         url = str(args.get("url", ""))
         if not url.startswith(("http://", "https://")):
             raise ToolExecutionError("url muss mit http(s) beginnen")
         try:
-            svc = BrowserService.for_team(self.ctx.root, self.ctx.team_id)
-            info = svc.open_url(url)
-            text = ""
-            if svc._page:
-                text = svc._page.inner_text("body")[:8000]
-            svc.close()
-        except BrowserServiceError as exc:
+            from bot.channel.satellite import channel_rpc, is_satellite_root
+
+            if is_satellite_root(self.ctx.root):
+                data = channel_rpc(
+                    self.ctx.root,
+                    "browser.open",
+                    {
+                        "team_id": self.ctx.team_id,
+                        "url": url,
+                        "max_chars": 8000,
+                    },
+                    timeout_seconds=180.0,
+                )
+                info = data.get("info", {})
+                text = str(data.get("body_text", ""))
+            else:
+                from bot.browser.service import BrowserService, BrowserServiceError
+
+                info = BrowserService.for_team(self.ctx.root, self.ctx.team_id).open_url_with_body(
+                    url
+                )
+                text = str(info.get("body_text", ""))
+        except Exception as exc:
             raise ToolExecutionError(str(exc)) from exc
         body = f"title={info.get('title')}\nurl={info.get('url')}\n\n{text}"
         return ToolResult(True, body, info)
@@ -208,9 +237,22 @@ class AgentToolkit:
         )
 
     def _tool_index_workspace(self, args: dict[str, Any]) -> ToolResult:
-        from bot.qdrant.indexer import index_team_workspace
+        try:
+            from bot.channel.satellite import channel_rpc, is_satellite_root
 
-        count = index_team_workspace(self.ctx.root, self.ctx.team_id)
+            if is_satellite_root(self.ctx.root):
+                data = channel_rpc(
+                    self.ctx.root,
+                    "qdrant.index_workspace",
+                    {"team_id": self.ctx.team_id},
+                )
+                count = int(data.get("count", 0))
+            else:
+                from bot.qdrant.indexer import index_team_workspace
+
+                count = index_team_workspace(self.ctx.root, self.ctx.team_id)
+        except Exception as exc:
+            raise ToolExecutionError(str(exc)) from exc
         return ToolResult(True, f"{count} Datei(en) in Qdrant (project) indexiert", {"count": count})
 
 
