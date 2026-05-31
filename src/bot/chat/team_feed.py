@@ -85,11 +85,26 @@ def _line_from_internal(msg: Message, orch_id: str) -> FeedLine:
     )
 
 
+def _is_direct_panel_message(msg: ChatMessage, direct_agent: str) -> bool:
+    if msg.metadata.get("channel") != "direct":
+        return False
+    if msg.metadata.get("direct_peer") == direct_agent:
+        return True
+    return msg.agent_id == direct_agent
+
+
 def _line_from_panel(msg: ChatMessage) -> FeedLine:
     who = msg.agent_id or msg.role
-    if msg.metadata.get("username"):
+    if msg.metadata.get("channel") == "direct":
+        if msg.role == "assistant":
+            who = msg.agent_id or "Agent"
+        elif msg.metadata.get("username"):
+            who = str(msg.metadata["username"])
+        elif msg.metadata.get("direct_peer"):
+            who = f"Du → {msg.metadata['direct_peer']}"
+    elif msg.metadata.get("username"):
         who = str(msg.metadata["username"])
-    if msg.metadata.get("direct_peer"):
+    elif msg.metadata.get("direct_peer"):
         who = f"Du → {msg.metadata['direct_peer']}"
     label = f"{who} · {msg.role}"
     if msg.metadata.get("channel") == "internal":
@@ -122,11 +137,7 @@ def build_team_feed(
         panel_msgs = [
             m
             for m in store.list_messages(limit=limit)
-            if m.metadata.get("direct_peer") == direct_agent
-            or (
-                m.metadata.get("channel") == "direct"
-                and m.agent_id in (direct_agent, None)
-            )
+            if _is_direct_panel_message(m, direct_agent)
         ]
         internal: list[Message] = []
     else:

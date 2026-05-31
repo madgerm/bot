@@ -35,6 +35,52 @@ TEMPLATES_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
 
 
+def _team_chat_feed(
+    root: Path,
+    team_id: str,
+    *,
+    direct_agent: str | None,
+    include_internal: bool,
+    q: str | None,
+):
+    from bot.chat.team_feed import build_team_feed
+    from bot.config.writers.team_admin import load_team_config
+
+    orch_id = load_team_config(root, team_id).team.orchestrator_id
+    feed = build_team_feed(
+        root,
+        team_id,
+        orch_id,
+        direct_agent=direct_agent,
+        include_internal=include_internal,
+    )
+    if q and not direct_agent:
+        q_lower = q.lower()
+        feed = [
+            ln
+            for ln in feed
+            if q_lower in ln.content.lower() or q_lower in ln.label.lower()
+        ]
+    return feed
+
+
+def _team_chat_fragment_url(
+    team_id: str,
+    *,
+    direct_agent: str | None,
+    filter_q: str | None,
+    show_internal: bool,
+) -> str:
+    from urllib.parse import urlencode
+
+    params: dict[str, str] = {"show_internal": "1" if show_internal else "0"}
+    if direct_agent:
+        params["direct"] = direct_agent
+    if filter_q:
+        params["q"] = filter_q
+    return f"/teams/{team_id}/chat/fragment?{urlencode(params)}"
+
+
 def create_app(root: Path | str) -> FastAPI:
     root_path = Path(root).resolve()
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
@@ -166,6 +212,51 @@ def create_app(root: Path | str) -> FastAPI:
             },
         )
 
+    def _team_chat_context(
+        team_id: str,
+        user: CurrentUser,
+        *,
+        direct: str | None,
+        q: str | None,
+        show_internal: str | None,
+        agent: str | None = None,
+    ) -> dict:
+        from bot.chat.direct_agent import list_direct_agents
+        from bot.config.writers.team_admin import load_team_config
+        from bot.web.team_access import team_access_level
+
+        require_team_access(team_id, user)
+        orch_id = load_team_config(root_path, team_id).team.orchestrator_id
+        direct_agent = (direct or "").strip() or None
+        include_internal = show_internal != "0"
+        feed = _team_chat_feed(
+            root_path,
+            team_id,
+            direct_agent=direct_agent,
+            include_internal=include_internal,
+            q=q,
+        )
+        access = team_access_level(user, team_id)
+        return {
+            "user": user,
+            "team_id": team_id,
+            "feed": feed,
+            "filter_agent": agent,
+            "filter_q": q,
+            "can_write": access in ("admin", "operator"),
+            "awaiting_approval": any(ln.awaiting_approval for ln in feed),
+            "direct_agent": direct_agent,
+            "orchestrator_id": orch_id,
+            "agents_for_pm": list_direct_agents(root_path, team_id),
+            "show_internal": include_internal,
+            "feed_fragment_url": _team_chat_fragment_url(
+                team_id,
+                direct_agent=direct_agent,
+                filter_q=q,
+                show_internal=include_internal,
+            ),
+        }
+
     @app.get("/teams/{team_id}/chat", response_class=HTMLResponse)
     async def team_chat_page(
         request: Request,
@@ -176,49 +267,22 @@ def create_app(root: Path | str) -> FastAPI:
         direct: str | None = None,
         show_internal: str | None = None,
     ):
-        require_team_access(team_id, user)
-        from bot.chat.direct_agent import list_direct_agents
-        from bot.chat.team_feed import build_team_feed
-        from bot.config.writers.team_admin import load_team_config
-
-        orch_id = load_team_config(root_path, team_id).team.orchestrator_id
-        direct_agent = (direct or "").strip() or None
-        include_internal = show_internal != "0"
-        feed = build_team_feed(
-            root_path,
-            team_id,
-            orch_id,
-            direct_agent=direct_agent,
-            include_internal=include_internal,
+        ctx = _team_chat_context(
+            team_id, user, direct=direct, q=q, show_internal=show_internal, agent=agent
         )
-        if q and not direct_agent:
-            q_lower = q.lower()
-            feed = [
-                ln
-                for ln in feed
-                if q_lower in ln.content.lower() or q_lower in ln.label.lower()
-            ]
-        from bot.web.team_access import team_access_level
+        return templates.TemplateResponse(request, "team_chat.html", ctx)
 
-        access = team_access_level(user, team_id)
-        awaiting_approval = any(ln.awaiting_approval for ln in feed)
-        return templates.TemplateResponse(
-            request,
-            "team_chat.html",
-            {
-                "user": user,
-                "team_id": team_id,
-                "feed": feed,
-                "filter_agent": agent,
-                "filter_q": q,
-                "can_write": access in ("admin", "operator"),
-                "awaiting_approval": awaiting_approval,
-                "direct_agent": direct_agent,
-                "orchestrator_id": orch_id,
-                "agents_for_pm": list_direct_agents(root_path, team_id),
-                "show_internal": include_internal,
-            },
-        )
+    @app.get("/teams/{team_id}/chat/fragment", response_class=HTMLResponse)
+    async def team_chat_feed_fragment(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        q: str | None = None,
+        direct: str | None = None,
+        show_internal: str | None = None,
+    ):
+        ctx = _team_chat_context(team_id, user, direct=direct, q=q, show_internal=show_internal)
+        return templates.TemplateResponse(request, "team_chat_feed_fragment.html", ctx)
 
     @app.post("/teams/{team_id}/chat/send")
     async def team_chat_send(

@@ -110,6 +110,37 @@ class AgentHandler:
         except LlmError as exc:
             raise RuntimeError(str(exc)) from exc
 
+    def handle_chat_direct(self, message: Message, ctx: HandlerContext) -> HandlerResult:
+        """Direkt-PM vom Panel — Dialog ohne Review-Pipeline."""
+        from bot.chat.direct_chat import format_direct_context, record_direct_assistant
+
+        agent_id = ctx.agent_id
+        history = format_direct_context(ctx.root, ctx.team_id, agent_id)
+        reply = self._run_with_tools(
+            ctx,
+            message,
+            system_prompt=(
+                "Du antwortest dem menschlichen Nutzer per Direkt-PM im Web-Panel. "
+                "Antworte auf Deutsch, kurz und dialogisch. Keine Delegation an andere "
+                "Agents, kein Review-Schritt — nur die direkte Antwort an den Nutzer. "
+                "Tools nur bei Bedarf; keine künstliche done.summary-Struktur."
+            ),
+            task_category=message.task_category or self.default_category,
+            user_content=(
+                f"Direkt-Chat-Verlauf:\n{history}\n\n"
+                f"Neue Nachricht:\n{message.content}\n\n"
+                "Antworte dem Nutzer."
+            ),
+        )
+        record_direct_assistant(
+            ctx.root,
+            ctx.team_id,
+            agent_id,
+            reply,
+            internal_message_id=message.id,
+        )
+        return HandlerResult(complete=True)
+
 
 class OrchestratorHandler(AgentHandler):
     role = "orchestrator"
@@ -229,6 +260,9 @@ class WorkerExecHandler(AgentHandler):
     tools = _TOOLS_EXEC
 
     def handle(self, message: Message, ctx: HandlerContext) -> HandlerResult:
+        if message.type == "chat.direct":
+            return self.handle_chat_direct(message, ctx)
+
         pipe = _pipeline(ctx)
         result = self._run_with_tools(
             ctx,
@@ -261,6 +295,9 @@ class ReviewerHandler(AgentHandler):
     tools = _TOOLS_REVIEW
 
     def handle(self, message: Message, ctx: HandlerContext) -> HandlerResult:
+        if message.type == "chat.direct":
+            return self.handle_chat_direct(message, ctx)
+
         pipe = _pipeline(ctx)
         review = self._run_with_tools(
             ctx,
@@ -300,6 +337,9 @@ class DocumenterHandler(AgentHandler):
     tools = _TOOLS_DOC
 
     def handle(self, message: Message, ctx: HandlerContext) -> HandlerResult:
+        if message.type == "chat.direct":
+            return self.handle_chat_direct(message, ctx)
+
         pipe = _pipeline(ctx)
         doc = self._run_with_tools(
             ctx,

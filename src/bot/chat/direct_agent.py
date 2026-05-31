@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from bot.chat import ChatStore
+from bot.chat.direct_chat import direct_metadata
 from bot.chat.orchestrator_bridge import orchestrator_id
 from bot.messages import MessageError, open_message_service
 from bot.messages.models import Message
@@ -34,12 +35,11 @@ def send_direct_to_agent(
         role="user",
         content=content.strip(),
         agent_id=target_agent,
-        metadata={
-            "username": username,
-            "direct_peer": target_agent,
-            "channel": "direct",
-            "internal_message_id": msg.id,
-        },
+        metadata=direct_metadata(
+            agent_id=target_agent,
+            username=username,
+            internal_message_id=msg.id,
+        ),
     )
     return msg
 

@@ -37,13 +37,14 @@
     <p class="text-sm p-muted mb-4 p-card p-3">
       Oben: dein Dialog mit dem <strong>Orchestrator</strong>.
       <strong>Eingerückt</strong>: interne Nachrichten (Orchestrator ↔ Agents).
-      <code>bot run</code> muss laufen. <a href="?show_internal=0" class="p-link">nur Panel</a>
+      <code>bot run</code> muss laufen. Verlauf aktualisiert sich alle 5&nbsp;s.
+      <a href="?show_internal=0" class="p-link">nur Panel</a>
       {% if not show_internal %} · <a href="?show_internal=1" class="p-link">inkl. Team-Verkehr</a>{% endif %}
     </p>
     {% else %}
     <p class="text-sm p-muted mb-4 p-card p-3">
-      Direktnachricht an <code>{{ direct_agent }}</code> (Inbox). Der Agent antwortet bei laufendem <code>bot run</code>
-      ggf. im Team-Feed sichtbar.
+      Direktnachricht an <code>{{ direct_agent }}</code>. Bei laufendem <code>bot run</code> erscheinen Antworten
+      unten automatisch (alle 5&nbsp;s).
       <a href="/teams/{{ team_id }}/chat" class="p-link ml-2">← Orchestrator-Chat</a>
     </p>
     {% endif %}
@@ -71,34 +72,13 @@
     </form>
     {% endif %}
 
-    <section class="space-y-2 mb-10">
-      {% for line in feed %}
-      <article class="p-3 rounded text-sm
-        {% if line.kind == 'internal' %}p-card-muted border-l-2 border-indigo-600/60{% else %}p-card{% endif %}"
-        style="margin-left: {{ (line.indent * 1.25)|round(2) }}rem">
-        <div class="text-xs p-faint mb-1 flex flex-wrap gap-2">
-          <span>{{ line.created_at }}</span>
-          <span>{{ line.label }}</span>
-          {% if line.kind == 'internal' %}<span class="p-chip">Team intern</span>{% endif %}
-          {% if line.awaiting_approval %}<span class="p-status-warn">Freigabe?</span>{% endif %}
-        </div>
-        <pre class="whitespace-pre-wrap">{{ line.content }}</pre>
-        {% if can_write and line.awaiting_approval and not direct_agent %}
-        <form method="post" action="/teams/{{ team_id }}/chat/approve" class="mt-2">
-          <button type="submit" class="p-btn p-btn-success text-xs">Freigeben</button>
-        </form>
-        {% endif %}
-        {% if can_write and line.panel_message_id and line.kind == 'panel' %}
-        <form method="post" action="/teams/{{ team_id }}/chat/delete" class="mt-2 inline">
-          <input type="hidden" name="message_id" value="{{ line.panel_message_id }}">
-          <button type="submit" class="text-xs p-link">Löschen</button>
-        </form>
-        {% endif %}
-      </article>
-      {% else %}
-      <p class="p-faint">Noch keine Nachrichten.</p>
-      {% endfor %}
+    <section id="chat-feed" class="space-y-2 mb-10"
+      hx-get="{{ feed_fragment_url }}"
+      hx-trigger="every 5s"
+      hx-swap="innerHTML">
+      {% include "team_chat_feed_fragment.html" %}
     </section>
+    <p class="htmx-indicator text-xs p-faint mb-6">Aktualisiere Verlauf …</p>
   </div>
 </div>
 
