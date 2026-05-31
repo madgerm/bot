@@ -131,7 +131,6 @@ Heute stecken **Tools und Qdrant-Collections fest im Code** (`handlers.py`, `too
 
 - Formularfelder: **„Umgebungsvariable“** (`LITELLM_API_KEY`, `BOT_TEAM_API_TOKEN`, …), nicht Klartext speichern
 - Panel zeigt: gesetzt ja/nein (z. B. `os.environ.get` ohne Wert anzeigen)
-- Optional Phase 5: `.env`-Snippet zum Download nach Speichern der `secret_ref`-Namen
 
 ### 5. Verbindungs-Assistent (Panel ↔ Runner)
 
