@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from bot.crawl.config import CrawlConfigError
+
 
 def execute_panel_rpc(panel_root: Path, kind: str, payload: dict[str, Any]) -> dict[str, Any]:
     if kind == "qdrant.search":
@@ -35,6 +37,50 @@ def execute_panel_rpc(panel_root: Path, kind: str, payload: dict[str, Any]) -> d
         except MediaServiceError as exc:
             raise RuntimeError(str(exc)) from exc
         return {"result": result}
+
+    if kind == "crawl.fetch":
+        from bot.crawl import CrawlService, CrawlServiceError
+
+        team_id = str(payload["team_id"])
+        url = str(payload.get("url", ""))
+        max_pages = int(payload.get("max_pages", 10))
+        index_qdrant = bool(payload.get("index_qdrant", False))
+        try:
+            svc = CrawlService.for_team(panel_root, team_id)
+            if payload.get("single_url"):
+                pages = [svc.crawl_url(url)]
+            else:
+                pages = svc.crawl_domain(url, max_pages)
+            indexed = 0
+            if index_qdrant and pages:
+                indexed = svc.index_to_qdrant(pages)
+        except (CrawlServiceError, CrawlConfigError) as exc:
+            raise RuntimeError(str(exc)) from exc
+        return {"pages": pages, "indexed": indexed}
+
+    if kind == "crawl.run_all":
+        from bot.crawl import CrawlService, CrawlServiceError
+
+        team_id = str(payload["team_id"])
+        index_qdrant = bool(payload.get("index_qdrant", True))
+        try:
+            svc = CrawlService.for_team(panel_root, team_id)
+            results = svc.crawl_all_configured()
+            indexed = 0
+            if index_qdrant:
+                for pages in results.values():
+                    indexed += svc.index_to_qdrant(pages)
+        except (CrawlServiceError, CrawlConfigError) as exc:
+            raise RuntimeError(str(exc)) from exc
+        summary = {domain: len(pages) for domain, pages in results.items()}
+        return {"summary": summary, "indexed": indexed, "results": results}
+
+    if kind == "crawl.index_snapshots":
+        from bot.qdrant.indexer import index_crawl_snapshots
+
+        team_id = str(payload["team_id"])
+        count = index_crawl_snapshots(panel_root, team_id)
+        return {"count": count}
 
     if kind == "browser.open":
         from bot.browser.service import BrowserService, BrowserServiceError

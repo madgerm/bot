@@ -353,15 +353,15 @@ Das Panel startet den Kanal-Connector automatisch beim `bot web`-Start.
 | **Workspace → Qdrant** (`index_workspace` Tool) | ja | Index liest Panel-`data/…/workspace` |
 | **Bildgenerierung** (RPC `media.generate_image`) | ja (API, nicht Agent-Tool) | `media_global` / Webhook |
 | **Playwright** (`browser_open` Tool) | ja — Chromium **nur auf dem Panel** | `playwright_global` + `[playwright]`-Extra |
+| **Crawl4AI** (`bot crawl`, Panel `/teams/<id>/crawl`) | ja — Crawler **nur auf dem Panel** | `pip install -e ".[crawl]"` + Chromium |
 | **Qdrant-Reindex im Runner** | nein (deaktiviert) | Reindex auf Panel oder Cron am Panel |
 
-**Schwere Dienste nur am Panel (LAN):** Ollama, Qdrant, Playwright/Chromium, Medien-Webhooks — der **1-GB-Satellit** führt nur Agents + leichte Logik aus; RAM-hungrige Jobs laufen über den Kanal.
+**Schwere Dienste nur am Panel (LAN):** Ollama, Qdrant, Playwright/Chromium, Crawl4AI, Medien-Webhooks — der **1-GB-Satellit** führt nur Agents + leichte Logik aus; RAM-hungrige Jobs laufen über den Kanal.
 
 **Noch nicht über den Kanal** (brauchen lokales `root` auf dem VPS oder gemeinsames Storage):
 
 - Agent-Dateien (`read_file`, `write_file`, Git)
 - Team-Chat/Tasks-SQLite am Panel-`root`
-- Crawl4AI (`bot crawl`) — optional später analog zum Browser
 
 Für einen „echten“ Satelliten: Agents auf dem VPS, **Wissen (Qdrant) und LLM nur im LAN** — Panel mit `channel: true`, Qdrant und Ollama lokal. Workspace-Dateien für Indexing liegen unter `data/<team>/workspace` **am Panel**.
 
@@ -534,7 +534,7 @@ Agent-Kommunikation bleibt **file-basiert** (`inbox/`/`outbox/`). Für mehrere R
 ### Medien, Crawl, Integrationen
 
 - **Medien:** `media_global` in `system.json`, Override: `teams/<id>/media.json`
-- **Crawl4AI:** `pip install -e ".[crawl]"` · `teams/<id>/crawl.json` — liefert **fit_markdown** (ohne Menü/Navigation) unter `data/<id>/crawl/`
+- **Crawl4AI:** `pip install -e ".[crawl]"` · `teams/<id>/crawl.json` — liefert **fit_markdown** (ohne Menü/Navigation) unter `data/<id>/crawl/`. Im **Satellit-Modus** (`llm.mode: channel`) nur am Panel installieren; `bot crawl` auf dem VPS leitet per Kanal-RPC an das Panel weiter.
 - **Telegram/Matrix:** `teams/<id>/integrations.json` → `POST /api/v1/integrations/<team>/telegram|matrix`
 
 ### Deployment (Linux-User pro Team)
