@@ -237,16 +237,16 @@ Reihenfolge: Infrastruktur zuerst, dann global, dann Team, dann Agent-Tiefe, dan
 
 ---
 
-### Phase 5 — Hosts, Verbindung, Feinschliff Agent (ca. 1–2 PRs)
+### Phase 5 — Hosts, Verbindung, Feinschliff Agent (ca. 1–2 PRs) ✅
 
-- [ ] `/admin/settings/hosts` — CRUD `TeamHostEntry` (mode, base_url, teams[], channel, relay_*)
-- [ ] Wizard (siehe oben) + Token-Generator
-- [ ] `team_api.json` — token_env + teams (admin only, Warnung)
-- [ ] Agent: `tools_allow` / `qdrant_collections` in Schema + Runtime (`tools.py` filtert)
-- [ ] Agent-Detail: „Wissen“ — Checkboxen project/background/web
-- [ ] Statusseite `/admin/settings/status` — LLM-Test, Qdrant, Kanal verbunden?, Relay-Raum
+- [x] `/admin/settings/hosts` — CRUD `TeamHostEntry` (mode, base_url, teams[], channel, relay_*)
+- [x] Wizard (siehe oben) + Token-Generator
+- [x] `team_api.json` — token_env + teams (admin only, Warnung)
+- [ ] Agent: `tools_allow` / `qdrant_collections` in Schema + Runtime (`tools.py` filtert) — optional später
+- [ ] Agent-Detail: „Wissen“ — Checkboxen project/background/web — optional später
+- [x] Statusseite `/admin/settings/status` — LLM-Test, Qdrant, Host-Verbindung
 
-**Akzeptanz:** Satellit-Setup dokumentiert als Wizard-Schritte 1–5 ohne JSON-Datei öffnen.
+**Akzeptanz:** Satellit-Setup über Wizard ohne JSON-Datei öffnen.
 
 ---
 

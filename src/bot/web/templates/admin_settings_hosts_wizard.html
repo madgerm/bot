@@ -1,0 +1,91 @@
+{% extends "settings_base.html" %}
+{% block title %}Setup-Assistent — Team-Runner{% endblock %}
+{% block settings_content %}
+<h1 class="text-2xl font-bold mb-2">Setup-Assistent</h1>
+<p class="text-sm p-muted mb-6">
+  <a href="/admin/settings/hosts" class="p-link">← Hosts</a> —
+  Einmalige Kopplung Panel ↔ Runner ohne JSON von Hand zu bearbeiten.
+</p>
+
+{% if error %}
+<p class="p-status-warn mb-4">{{ error }}</p>
+{% endif %}
+
+{% if result %}
+<section class="p-card p-6 mb-8 max-w-3xl border-2 border-[var(--p-accent)]">
+  <h2 class="text-lg font-semibold mb-3 p-status-ok">Konfiguration gespeichert</h2>
+  <p class="text-sm mb-4">Kopieren Sie den Token <strong>einmalig</strong> in die <code>.env</code> auf Panel und Runner:</p>
+  <pre class="p-code text-xs mb-4 overflow-x-auto">{{ result.panel_env }}</pre>
+  <p class="text-xs p-muted mb-4">Umgebungsvariable: <code>{{ result.env_name }}</code></p>
+  <h3 class="text-sm font-medium mb-2">Host-Eintrag (team_hosts.json)</h3>
+  <pre class="p-code text-xs overflow-x-auto">{{ result.host_json_display }}</pre>
+  <p class="text-sm mt-4">
+    <a href="/admin/settings/status" class="p-link">Verbindung testen →</a>
+  </p>
+</section>
+{% else %}
+
+<form method="post" action="/admin/settings/hosts/wizard" class="p-card p-6 max-w-2xl space-y-4">
+  <label class="block text-sm">
+    <span class="p-muted">Setup-Typ</span>
+    <select name="setup" class="p-input w-full mt-1">
+      <option value="local">Alles auf einem Rechner (lokal)</option>
+      <option value="remote">Remote — HTTP-API (<code>bot team serve</code>)</option>
+      <option value="remote_channel">Remote + Kanal (LLM-Queue, Panel verbindet ausgehend)</option>
+      <option value="remote_relay">Remote + Kanal über Internet-Relay</option>
+    </select>
+  </label>
+
+  <label class="block text-sm">
+    <span class="p-muted">Host-ID</span>
+    <input type="text" name="host_id" required class="p-input w-full mt-1 font-mono"
+      value="{{ (form or {}).get('host_id', 'runner-1') }}">
+  </label>
+  <label class="block text-sm">
+    <span class="p-muted">Label</span>
+    <input type="text" name="label" class="p-input w-full mt-1"
+      value="{{ (form or {}).get('label', 'Team-Runner') }}">
+  </label>
+  <label class="block text-sm">
+    <span class="p-muted">Runner-URL (nur Remote)</span>
+    <input type="url" name="base_url" class="p-input w-full mt-1 font-mono text-sm"
+      placeholder="http://192.168.1.10:8443"
+      value="{{ (form or {}).get('base_url', '') }}">
+  </label>
+  <label class="block text-sm">
+    <span class="p-muted">Token-Env-Name</span>
+    <input type="text" name="token_env" class="p-input w-full mt-1 font-mono text-sm"
+      value="{{ (form or {}).get('token_env', 'BOT_TEAM_API_TOKEN') }}">
+  </label>
+  <label class="block text-sm">
+    <span class="p-muted">Relay-URL (nur bei Relay-Setup)</span>
+    <input type="text" name="relay_url" class="p-input w-full mt-1 font-mono text-sm"
+      value="{{ (form or {}).get('relay_url', '') }}">
+  </label>
+  <label class="block text-sm">
+    <span class="p-muted">Relay-Raum</span>
+    <input type="text" name="relay_room" class="p-input w-full mt-1"
+      value="{{ (form or {}).get('relay_room', 'default') }}">
+  </label>
+
+  <fieldset>
+    <legend class="text-sm p-muted mb-2">Teams auf diesem Runner</legend>
+    <div class="flex flex-wrap gap-3">
+      {% for tid in team_ids %}
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="team_{{ tid }}" value="on" checked>
+        {{ tid }}
+      </label>
+      {% endfor %}
+    </div>
+  </fieldset>
+
+  <button type="submit" class="p-btn">Assistent ausführen & Token erzeugen</button>
+</form>
+
+<p class="text-xs p-faint mt-6 max-w-2xl">
+  Der Assistent schreibt <code>team_hosts.json</code> und bei Remote ggf. <code>team_api.json</code>.
+  Auf dem Runner: <code>bot team serve</code>, Firewall, gleicher Token in <code>.env</code>.
+</p>
+{% endif %}
+{% endblock %}

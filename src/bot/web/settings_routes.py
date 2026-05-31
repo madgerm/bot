@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from bot.web.auth import CurrentUser, require_admin
+from bot.web.hosts_settings_routes import register_hosts_settings_routes
 from bot.web.system_settings_routes import register_system_settings_routes
 from bot.web.users_settings_routes import register_users_settings_routes
 
@@ -54,15 +55,15 @@ def register_settings_routes(
                 "id": "hosts",
                 "title": "Team-Runner & Verbindung",
                 "description": "Lokal/Remote, Kanal, Relay — Setup-Assistent",
-                "href": None,
-                "phase": 5,
+                "href": "/admin/settings/hosts",
+                "phase": None,
             },
             {
                 "id": "status",
                 "title": "Status & Tests",
                 "description": "LLM-, Qdrant- und Kanal-Verbindung prüfen",
-                "href": None,
-                "phase": 5,
+                "href": "/admin/settings/status",
+                "phase": None,
             },
         ]
         return templates.TemplateResponse(
@@ -77,3 +78,4 @@ def register_settings_routes(
 
     register_users_settings_routes(app, templates, root_path)
     register_system_settings_routes(app, templates, root_path)
+    register_hosts_settings_routes(app, templates, root_path)

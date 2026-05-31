@@ -1,0 +1,68 @@
+{% extends "settings_base.html" %}
+{% block title %}Status — Einstellungen{% endblock %}
+{% block settings_content %}
+<h1 class="text-2xl font-bold mb-2">Status & Verbindungstests</h1>
+<p class="text-sm p-muted mb-8">
+  <a href="/admin/settings/hosts" class="p-link">Hosts bearbeiten</a> —
+  Live-Prüfung beim Laden dieser Seite.
+</p>
+
+<section class="mb-10">
+  <h2 class="text-lg font-semibold mb-3">Team-Runner</h2>
+  <div class="space-y-3">
+    {% for h in status.hosts %}
+    <article class="p-card p-4">
+      <div class="flex flex-wrap justify-between gap-2">
+        <span class="font-medium">{{ h.label }} <span class="text-xs p-faint font-mono">({{ h.id }})</span></span>
+        <span class="text-xs {% if h.ok %}p-status-ok{% else %}p-status-warn{% endif %}">
+          {% if h.ok %}OK{% else %}Fehler{% endif %}
+        </span>
+      </div>
+      <p class="text-sm p-muted mt-1">{{ h.summary }}</p>
+      <p class="text-xs p-faint mt-1">Modus {{ h.mode }} · Teams: {{ h.teams | join(', ') or '—' }}{% if h.channel %} · Kanal{% endif %}</p>
+    </article>
+    {% else %}
+    <p class="p-faint text-sm">Keine Hosts — <a href="/admin/settings/hosts/wizard" class="p-link">Assistent starten</a></p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="mb-10">
+  <h2 class="text-lg font-semibold mb-3">Team-API (Runner-Token)</h2>
+  <div class="p-card p-4 text-sm">
+    <p>Env <code>{{ status.team_api.token_env }}</code>:
+      {% if status.team_api.token_set %}
+      <span class="p-status-ok">gesetzt</span>
+      {% else %}
+      <span class="p-status-warn">nicht gesetzt</span>
+      {% endif %}
+    </p>
+    <p class="text-xs p-faint mt-1">Teams: {{ status.team_api.teams | join(', ') or '—' }}</p>
+  </div>
+</section>
+
+<section class="mb-10">
+  <h2 class="text-lg font-semibold mb-3">LLM</h2>
+  <div class="p-card p-4 text-sm">
+    <p class="{% if status.llm.ok %}p-status-ok{% else %}p-status-warn{% endif %}">{{ status.llm.summary }}</p>
+  </div>
+</section>
+
+<section class="mb-10">
+  <h2 class="text-lg font-semibold mb-3">Qdrant</h2>
+  <div class="p-card p-4 text-sm">
+    <p class="{% if status.qdrant.ok %}p-status-ok{% else %}p-status-warn{% endif %}">{{ status.qdrant.summary }}</p>
+  </div>
+</section>
+
+{% if status.channel_hosts %}
+<section>
+  <h2 class="text-lg font-semibold mb-3">Kanal (Konfiguration)</h2>
+  <p class="text-sm p-muted">
+    Ausgehende Kanal-Verbindung für Hosts:
+    <code>{{ status.channel_hosts | join(', ') }}</code> —
+    Laufzeit-Status siehe Panel-Logs (<code>bot web</code>).
+  </p>
+</section>
+{% endif %}
+{% endblock %}

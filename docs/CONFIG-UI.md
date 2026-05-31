@@ -13,7 +13,7 @@ Vollständiger Plan: [`plans/2026-05-30-web-panel-config-ui.md`](../plans/2026-0
 | 2 | LLM, Qdrant, Playwright, task_models | **fertig** |
 | 3 | Team, Agents, Pipeline | **fertig** |
 | 4 | Crawl, E-Mail, Hours, Integrationen, Git | **fertig** |
-| 5 | Hosts-Wizard, Agent-Tools/Wissen, Status | geplant |
+| 5 | Hosts-Wizard, team_api, Status | **fertig** |
 | 6 | Installer-Profile (Relay, …) | geplant |
 
 ## Routen (Admin)
@@ -27,6 +27,11 @@ Vollständiger Plan: [`plans/2026-05-30-web-panel-config-ui.md`](../plans/2026-0
 | `/admin/settings/system` | LLM, Qdrant, Playwright, Polling, Webhooks | `config/system.json` |
 | `/admin/settings/models` | Task-Modell-Routing | `config/task_models.json` |
 | `/admin/media` | Medien global + Team-Overrides | `system.json` (`media_global`), `teams/<id>/media.json` |
+| `/admin/settings/hosts` | Team-Runner (lokal/remote, Kanal, Relay) | `config/team_hosts.json` |
+| `/admin/settings/hosts/wizard` | Setup-Assistent + Token-Generator | `team_hosts.json`, ggf. `team_api.json` |
+| `/admin/settings/hosts/new` | Host anlegen | `team_hosts.json` |
+| `/admin/settings/hosts/{id}` | Host bearbeiten | `team_hosts.json` |
+| `/admin/settings/status` | Verbindungstests (Hosts, LLM, Qdrant) | — |
 
 | `/teams/<id>/settings` | Team-Übersicht | — |
 | `/teams/<id>/settings/general` | Name, Preset, Orchestrator | `teams/<id>/team.json` |
@@ -41,8 +46,6 @@ Vollständiger Plan: [`plans/2026-05-30-web-panel-config-ui.md`](../plans/2026-0
 | `/teams/<id>/settings/git` | Repo/Branch | `git.json` |
 | `/teams/<id>/settings/playwright` | Team-Override | `playwright.json` |
 
-Weitere Routen: Phase 5 (Hosts-Wizard, Status).
-
 ## Technik
 
 - **Lesen/Schreiben:** `src/bot/config/writers/base.py` — atomisches `atomic_write_json`, Pydantic-Validierung via `load_json_model`
@@ -51,5 +54,5 @@ Weitere Routen: Phase 5 (Hosts-Wizard, Status).
 
 ## Manuell (vorerst)
 
-- **Panel ↔ Team-Runner:** `config/team_hosts.json`, Tokens in `.env` — später Setup-Assistent (Phase 5)
+- **Panel ↔ Team-Runner:** Tokens in `.env` (Wizard unter `/admin/settings/hosts/wizard` erzeugt Vorschlag)
 - **Secrets:** Umgebungsvariablen (`LITELLM_API_KEY`, …), nicht Klartext im Panel speichern

@@ -1,0 +1,90 @@
+{% extends "settings_base.html" %}
+{% block title %}{% if mode == 'create' %}Host anlegen{% else %}Host bearbeiten{% endif %} — Einstellungen{% endblock %}
+{% block settings_content %}
+<h1 class="text-2xl font-bold mb-2">{% if mode == 'create' %}Neuer Team-Host{% else %}Host {{ entry.id }}{% endif %}</h1>
+<p class="text-sm p-muted mb-6"><a href="/admin/settings/hosts" class="p-link">← Zurück zur Liste</a></p>
+
+{% if error %}
+<p class="p-status-warn mb-4">{{ error }}</p>
+{% endif %}
+
+{% set f = form or {} %}
+<form method="post" action="{% if mode == 'create' %}/admin/settings/hosts/new{% else %}/admin/settings/hosts/{{ entry.id }}{% endif %}" class="p-card p-6 max-w-2xl space-y-4">
+  {% if mode == 'create' %}
+  <label class="block text-sm">
+    <span class="p-muted">Host-ID</span>
+    <input type="text" name="host_id" required class="p-input w-full mt-1 font-mono"
+      value="{{ f.get('host_id', '') }}" pattern="[a-zA-Z0-9][a-zA-Z0-9._-]{1,63}">
+  </label>
+  {% endif %}
+
+  <label class="block text-sm">
+    <span class="p-muted">Anzeigename</span>
+    <input type="text" name="label" class="p-input w-full mt-1"
+      value="{{ f.get('label', entry.label if entry else '') }}">
+  </label>
+
+  <label class="block text-sm">
+    <span class="p-muted">Modus</span>
+    <select name="mode" class="p-input w-full mt-1" id="host-mode-select">
+      <option value="local" {% if (f.get('mode', entry.mode if entry else 'local')) == 'local' %}selected{% endif %}>Lokal (dieser Rechner)</option>
+      <option value="remote" {% if (f.get('mode', entry.mode if entry else '')) == 'remote' %}selected{% endif %}>Remote (HTTP-API)</option>
+    </select>
+  </label>
+
+  <div id="remote-fields" class="space-y-4 border-t border-[var(--p-border)] pt-4">
+    <label class="block text-sm">
+      <span class="p-muted">Base-URL (Runner)</span>
+      <input type="url" name="base_url" class="p-input w-full mt-1 font-mono text-sm"
+        placeholder="http://10.0.0.2:8443"
+        value="{{ f.get('base_url', entry.base_url if entry else '') }}">
+    </label>
+    <label class="block text-sm">
+      <span class="p-muted">Token-Umgebungsvariable</span>
+      <input type="text" name="token_env" class="p-input w-full mt-1 font-mono text-sm"
+        value="{{ f.get('token_env', entry.token_env if entry else 'BOT_TEAM_API_TOKEN') }}">
+    </label>
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" name="channel" value="on"
+        {% if f.get('channel') == 'on' or (entry and entry.channel) %}checked{% endif %}>
+      Kanal (Panel verbindet per WebSocket zum Runner)
+    </label>
+    <label class="block text-sm">
+      <span class="p-muted">Relay-URL (optional)</span>
+      <input type="text" name="relay_url" class="p-input w-full mt-1 font-mono text-sm"
+        placeholder="wss://relay.example/ws"
+        value="{{ f.get('relay_url', entry.relay_url if entry else '') }}">
+    </label>
+    <label class="block text-sm">
+      <span class="p-muted">Relay-Raum</span>
+      <input type="text" name="relay_room" class="p-input w-full mt-1"
+        value="{{ f.get('relay_room', entry.relay_room if entry else '') }}">
+    </label>
+  </div>
+
+  <fieldset class="border-t border-[var(--p-border)] pt-4">
+    <legend class="text-sm p-muted mb-2">Zugeordnete Teams</legend>
+    <div class="flex flex-wrap gap-3">
+      {% for tid in team_ids %}
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="team_{{ tid }}" value="on"
+          {% if tid in selected_teams %}checked{% endif %}>
+        {{ tid }}
+      </label>
+      {% endfor %}
+    </div>
+  </fieldset>
+
+  <div class="flex gap-4 pt-2">
+    <button type="submit" class="p-btn">Speichern</button>
+    <a href="/admin/settings/hosts" class="p-link text-sm self-center">Abbrechen</a>
+  </div>
+</form>
+
+{% if mode == 'edit' and entry %}
+<form method="post" action="/admin/settings/hosts/{{ entry.id }}/delete" class="mt-8"
+  onsubmit="return confirm('Host wirklich löschen?');">
+  <button type="submit" class="text-sm text-red-500 hover:underline">Host löschen</button>
+</form>
+{% endif %}
+{% endblock %}

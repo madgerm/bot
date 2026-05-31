@@ -65,6 +65,8 @@ def test_settings_requires_admin(client: TestClient) -> None:
     assert "Nutzer" in r.text
     assert "/admin/settings/users" in r.text
     assert "/admin/media" in r.text
+    assert "/admin/settings/hosts" in r.text
+    assert "/admin/settings/status" in r.text
 
 
 def test_admin_page_links_settings(client: TestClient) -> None:
