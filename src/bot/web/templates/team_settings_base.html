@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<nav class="text-sm mb-6 flex flex-wrap gap-x-4 gap-y-2 items-center">
+  <a href="/teams/{{ team_id }}" class="p-link">← Team</a>
+  <span class="p-faint">|</span>
+  <a href="/teams/{{ team_id }}/settings" class="p-link{% if settings_active == 'index' %} font-semibold{% endif %}">Einstellungen</a>
+  <a href="/teams/{{ team_id }}/settings/general" class="p-link{% if settings_active == 'general' %} font-semibold{% endif %}">Allgemein</a>
+  <a href="/teams/{{ team_id }}/settings/pipeline" class="p-link{% if settings_active == 'pipeline' %} font-semibold{% endif %}">Pipeline</a>
+  <a href="/teams/{{ team_id }}/settings/agents" class="p-link{% if settings_active == 'agents' %} font-semibold{% endif %}">Agents</a>
+</nav>
+{% block team_settings_content %}{% endblock %}
+{% endblock %}

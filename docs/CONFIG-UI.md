@@ -11,7 +11,7 @@ Vollständiger Plan: [`plans/2026-05-30-web-panel-config-ui.md`](../plans/2026-0
 | 0 | Writer-Schicht, `/admin/settings` Gerüst | **fertig** |
 | 1 | Nutzer CRUD | **fertig** |
 | 2 | LLM, Qdrant, Playwright, task_models | **fertig** |
-| 3 | Team, Agents, Pipeline | geplant |
+| 3 | Team, Agents, Pipeline | **fertig** |
 | 4 | Crawl, E-Mail, Hours, Integrationen, Git | geplant |
 | 5 | Hosts-Wizard, Agent-Tools/Wissen, Status | geplant |
 | 6 | Installer-Profile (Relay, …) | geplant |
@@ -28,7 +28,12 @@ Vollständiger Plan: [`plans/2026-05-30-web-panel-config-ui.md`](../plans/2026-0
 | `/admin/settings/models` | Task-Modell-Routing | `config/task_models.json` |
 | `/admin/media` | Medien global + Team-Overrides | `system.json` (`media_global`), `teams/<id>/media.json` |
 
-Weitere Routen folgen unter `/admin/settings/…` (Phase 3+).
+| `/teams/<id>/settings` | Team-Übersicht | — |
+| `/teams/<id>/settings/general` | Name, Preset, Orchestrator | `teams/<id>/team.json` |
+| `/teams/<id>/settings/pipeline` | Pipeline-Agents | `teams/<id>/team.json` |
+| `/teams/<id>/settings/agents` | Agent-Liste, CRUD | `teams/<id>/agents/<id>/agent.json` |
+
+Weitere Routen: Phase 4 (Crawl, E-Mail, …).
 
 ## Technik
 

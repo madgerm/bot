@@ -69,14 +69,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
     @app.get("/teams/{team_id}/agents", response_class=HTMLResponse)
     async def team_agents_page(request: Request, team_id: str, user: CurrentUser):
         require_team_access(team_id, user)
-        from bot.agents_mgmt import AgentManager
-
-        agents = AgentManager(root_path).list_agents(team_id)
-        return templates.TemplateResponse(
-            request,
-            "team_agents.html",
-            {"user": user, "team_id": team_id, "agents": agents, "error": None},
-        )
+        return RedirectResponse(f"/teams/{team_id}/settings/agents", status_code=302)
 
     @app.post("/teams/{team_id}/agents/create")
     async def team_agents_create(
