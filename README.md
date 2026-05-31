@@ -64,21 +64,35 @@ git clone https://github.com/madgerm/bot.git && cd bot && bash scripts/install-d
 | `BOT_INSTALL_SCOPE` | `user`, `system` | Nur Ihr Login vs. `/opt/bot` + `bot`-User |
 | `BOT_INSTALL_DIR` | Pfad | Zielverzeichnis (Standard: `~/bot` oder `/opt/bot`) |
 | `BOT_REPO_URL` / `BOT_REPO_BRANCH` | | Quelle beim Download-Install |
+| `BOT_INSTALL_PLAYWRIGHT` | `0`/`1` | Playwright + Chromium (interaktiv: Rückfrage) |
+| `BOT_INSTALL_CRAWL` | `0`/`1` | Crawl4AI-Extra |
+| `BOT_INSTALL_QDRANT` | `0`/`1` | Qdrant-Container per Docker Compose |
+| `BOT_INSTALL_AUTOSTART` | `0`/`1` | systemd enable (nur mit `NONINTERACTIVE`) |
+
+**Vollständig inkl. Extras + Autostart (nicht-interaktiv):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/madgerm/bot/main/scripts/install-debian.sh | BOT_INSTALL_NONINTERACTIVE=1 BOT_INSTALL_MODE=both BOT_INSTALL_SCOPE=system BOT_INSTALL_PLAYWRIGHT=1 BOT_INSTALL_CRAWL=1 BOT_INSTALL_QDRANT=1 BOT_INSTALL_AUTOSTART=1 sudo -E bash -s --
+```
 
 Nach der Installation: `bot` liegt bei systemweiter Installation in `/usr/local/bin/bot`, sonst in `~/.local/bin/bot` (ggf. `export PATH="$HOME/.local/bin:$PATH"`).
 
 ### Was das Skript einrichtet
 
-| Komponente | Team-Runner | Web-Panel |
-|------------|-------------|-----------|
-| Python-venv + `pip install` | ja | ja |
-| `config/`, `teams/` (Demo-Teams) | ja | ja |
-| Umgebungsdatei mit Secrets | optional `BOT_TEAM_API_TOKEN` | `BOT_SESSION_SECRET` |
-| systemd (`bot-team-runner`, `bot-web-panel`) | auf Wunsch | auf Wunsch |
+| Komponente | Standard | Optional (Rückfrage im Installer) |
+|------------|----------|-------------------------------------|
+| Python-venv + Bot-Kern (`pip`) | ja | — |
+| Team-Runner / Web-Panel | nach Auswahl | — |
+| `config/`, Demo-Teams | ja | — |
+| Secrets (`BOT_SESSION_SECRET` …) | ja (Web) | — |
+| **Autostart nach Neustart** | nein | **ja** — `systemctl enable` + Start; bei Benutzer-Install zusätzlich `loginctl enable-linger` |
+| **Playwright** (`bot browser`) | nein | pip-Extra + `playwright install-deps` + Chromium |
+| **Crawl4AI** (`bot crawl`) | nein | pip-Extra |
+| **Qdrant** (Vektor-Wissen) | nein | Docker installieren/starten; danach `qdrant_global.enabled` in `config/system.json` |
 
 **Geprüfte Systempakete:** `python3` (≥3.11), `python3-venv`, `python3-dev`, `git`, `sqlite3`, `build-essential`, `curl`, `ca-certificates`.  
-**SQLite** für Chat/Tasks/E-Mail wird von Python mitgeliefert — kein separater Datenbank-Server nötig.  
-**Qdrant** (optional, Vektor-Wissen): separat starten, z. B. `docker compose --profile qdrant` in `deploy/`.
+**SQLite** für Chat/Tasks/E-Mail ist in Python enthalten — kein separater DB-Server.  
+**LLM/Ollama/LiteLLM** werden nicht mitinstalliert — nur Hinweis in `.env` / `config/system.json`.
 
 ### Initiale Web-Zugänge (Demo)
 

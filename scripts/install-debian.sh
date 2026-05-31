@@ -164,24 +164,167 @@ ensure_apt_dependencies() {
   as_root apt-get install -y --no-install-recommends "${pkgs[@]}"
 }
 
+venv_exec() {
+  local root="$1"
+  local run_user="${2:-}"
+  shift 2
+  local cmd="$*"
+  if [[ -n "$run_user" ]]; then
+    sudo -u "$run_user" env HOME="$root" bash -c "cd '$root' && source .venv/bin/activate && ${cmd}"
+  else
+    bash -c "cd '$root' && source .venv/bin/activate && ${cmd}"
+  fi
+}
+
+setup_venv_core() {
+  local root="$1"
+  local py="$2"
+  local run_user="${3:-}"
+  if [[ -n "$run_user" ]]; then
+    if [[ ! -d "${root}/.venv" ]]; then
+      log "Erstelle virtuelle Umgebung (.venv) …"
+      sudo -u "$run_user" env HOME="$root" "$py" -m venv "${root}/.venv"
+    fi
+    venv_exec "$root" "$run_user" "python -m pip install -U pip wheel"
+    if [[ -f "${root}/requirements-lock.txt" ]]; then
+      venv_exec "$root" "$run_user" "pip install -r requirements-lock.txt"
+      venv_exec "$root" "$run_user" "pip install -e . --no-deps"
+    else
+      venv_exec "$root" "$run_user" "pip install -e ."
+    fi
+  else
+    cd "$root"
+    if [[ ! -d .venv ]]; then
+      log "Erstelle virtuelle Umgebung (.venv) …"
+      "$py" -m venv .venv
+    fi
+    # shellcheck source=/dev/null
+    source .venv/bin/activate
+    python -m pip install -U pip wheel
+    if [[ -f requirements-lock.txt ]]; then
+      pip install -r requirements-lock.txt
+      pip install -e . --no-deps
+    else
+      pip install -e .
+    fi
+  fi
+  log "Python-Paket 'bot' (Kern) installiert."
+}
+
+install_playwright_extra() {
+  local root="$1"
+  local run_user="${2:-}"
+  log "Installiere Playwright-Extra (pip) …"
+  venv_exec "$root" "$run_user" "pip install -e '.[playwright]'"
+  if [[ "${BOT_INSTALL_NONINTERACTIVE:-}" == "1" ]] || [[ "${BOT_INSTALL_YES:-}" == "1" ]]; then
+    as_root bash -c "cd '$root' && source .venv/bin/activate && playwright install-deps" \
+      2>/dev/null || true
+  elif prompt_yn "Playwright-Systembibliotheken per apt installieren (playwright install-deps)?" "j"; then
+    as_root bash -c "cd '$root' && source .venv/bin/activate && playwright install-deps" \
+      || bash -c "cd '$root' && source .venv/bin/activate && playwright install-deps"
+  fi
+  log "Lade Chromium für Playwright …"
+  venv_exec "$root" "$run_user" "playwright install chromium"
+  log "Playwright bereit — test: bot browser (Team mit Playwright-Konfiguration)"
+}
+
+install_crawl_extra() {
+  local root="$1"
+  local run_user="${2:-}"
+  log "Installiere Crawl4AI-Extra …"
+  venv_exec "$root" "$run_user" "pip install -e '.[crawl]'"
+  log "Crawl4AI bereit — nutzbar über bot crawl und Panel /teams/<id>/crawl"
+}
+
+ensure_docker() {
+  if need_cmd docker && docker compose version >/dev/null 2>&1; then
+    return 0
+  fi
+  if need_cmd docker && need_cmd docker-compose; then
+    return 0
+  fi
+  warn "Docker/Compose nicht gefunden."
+  if prompt_yn_auto "Docker (docker.io + compose-plugin) jetzt installieren?" "j"; then
+    as_root apt-get update -qq
+    as_root apt-get install -y --no-install-recommends docker.io docker-compose-plugin
+    as_root systemctl enable --now docker 2>/dev/null || true
+    if [[ -n "${SUDO_USER:-}" ]] && [[ "$SUDO_USER" != "root" ]]; then
+      as_root usermod -aG docker "$SUDO_USER" || true
+      warn "Benutzer $SUDO_USER zur Gruppe 'docker' hinzugefügt — ggf. neu einloggen."
+    elif [[ "$(id -u)" -ne 0 ]]; then
+      as_root usermod -aG docker "$USER" || true
+      warn "Benutzer $USER zur Gruppe 'docker' hinzugefügt — ggf. neu einloggen."
+    fi
+  else
+    return 1
+  fi
+  need_cmd docker
+}
+
+install_qdrant_docker() {
+  local root="$1"
+  local deploy_dir="${root}/deploy"
+  if [[ ! -f "${deploy_dir}/docker-compose.yml" ]]; then
+    warn "Kein deploy/docker-compose.yml — Qdrant übersprungen."
+    return 1
+  fi
+  ensure_docker || return 1
+  log "Starte Qdrant (Docker Compose, Profil qdrant) …"
+  if docker compose version >/dev/null 2>&1; then
+    (cd "$deploy_dir" && docker compose --profile qdrant up -d qdrant)
+  else
+    (cd "$deploy_dir" && docker-compose --profile qdrant up -d qdrant)
+  fi
+  log "Qdrant läuft typischerweise auf http://127.0.0.1:6333"
+  warn "In config/system.json: qdrant_global.enabled auf true setzen, dann: bot qdrant init --team demo"
+}
+
+prompt_yn_auto() {
+  local msg="$1" default="${2:-n}"
+  if [[ "${BOT_INSTALL_NONINTERACTIVE:-}" == "1" ]]; then
+    return 1
+  fi
+  prompt_yn "$msg" "$default"
+}
+
+resolve_optional_extras() {
+  # Setzt INSTALL_PLAYWRIGHT, INSTALL_CRAWL, INSTALL_QDRANT (export)
+  if [[ -n "${BOT_INSTALL_SKIP_PROMPTS:-}" ]]; then
+    export INSTALL_PLAYWRIGHT="${INSTALL_PLAYWRIGHT:-0}"
+    export INSTALL_CRAWL="${INSTALL_CRAWL:-0}"
+    export INSTALL_QDRANT="${INSTALL_QDRANT:-0}"
+    return 0
+  fi
+  if [[ "${BOT_INSTALL_NONINTERACTIVE:-}" == "1" ]]; then
+    export INSTALL_PLAYWRIGHT="$([[ "${BOT_INSTALL_PLAYWRIGHT:-0}" == "1" ]] && echo 1 || echo 0)"
+    export INSTALL_CRAWL="$([[ "${BOT_INSTALL_CRAWL:-0}" == "1" ]] && echo 1 || echo 0)"
+    export INSTALL_QDRANT="$([[ "${BOT_INSTALL_QDRANT:-0}" == "1" ]] && echo 1 || echo 0)"
+    return 0
+  fi
+  echo ""
+  echo "Optionale Komponenten (größerer Download, nicht für jeden Server nötig):"
+  INSTALL_PLAYWRIGHT=0
+  INSTALL_CRAWL=0
+  INSTALL_QDRANT=0
+  prompt_yn "Playwright installieren (bot browser, inkl. Chromium)?" "n" && INSTALL_PLAYWRIGHT=1
+  prompt_yn "Crawl4AI installieren (bot crawl → Qdrant)?" "n" && INSTALL_CRAWL=1
+  prompt_yn "Qdrant per Docker starten (Vektor-Wissensbasis)?" "n" && INSTALL_QDRANT=1
+  export INSTALL_PLAYWRIGHT INSTALL_CRAWL INSTALL_QDRANT
+}
+
+install_optional_extras() {
+  local root="$1"
+  local run_user="${2:-}"
+  [[ "${INSTALL_PLAYWRIGHT:-0}" == "1" ]] && install_playwright_extra "$root" "$run_user"
+  [[ "${INSTALL_CRAWL:-0}" == "1" ]] && install_crawl_extra "$root" "$run_user"
+  [[ "${INSTALL_QDRANT:-0}" == "1" ]] && install_qdrant_docker "$root"
+}
+
 setup_venv() {
   local root="$1"
   local py="$2"
-  cd "$root"
-  if [[ ! -d .venv ]]; then
-    log "Erstelle virtuelle Umgebung (.venv) …"
-    "$py" -m venv .venv
-  fi
-  # shellcheck source=/dev/null
-  source .venv/bin/activate
-  python -m pip install -U pip wheel
-  if [[ -f requirements-lock.txt ]]; then
-    pip install -r requirements-lock.txt
-    pip install -e . --no-deps
-  else
-    pip install -e .
-  fi
-  log "Python-Paket 'bot' installiert ($(bot --help >/dev/null 2>&1 && echo OK || echo prüfen))"
+  setup_venv_core "$root" "$py" ""
+  install_optional_extras "$root" ""
 }
 
 write_env_file() {
@@ -322,12 +465,13 @@ EOF
   local units=()
   [[ "$mode" == "runner" || "$mode" == "both" ]] && units+=(bot-team-runner.service)
   [[ "$mode" == "web" || "$mode" == "both" ]] && units+=(bot-web-panel.service)
-  if [[ "${BOT_INSTALL_NONINTERACTIVE:-}" == "1" ]] || [[ "${BOT_INSTALL_START_SERVICES:-}" == "1" ]]; then
+  if [[ "${BOT_INSTALL_NONINTERACTIVE:-}" == "1" ]] && [[ "${BOT_INSTALL_AUTOSTART:-0}" == "1" ]] \
+    || [[ "${BOT_INSTALL_START_SERVICES:-}" == "1" ]]; then
     for u in "${units[@]}"; do
       as_root systemctl enable "$u"
       as_root systemctl restart "$u" || warn "Start von $u fehlgeschlagen — Logs: journalctl -u $u"
     done
-  elif prompt_yn "systemd-Dienste jetzt aktivieren und starten?" "j"; then
+  elif prompt_yn "Dienste für Autostart nach Neustart aktivieren (systemctl enable)?" "j"; then
     for u in "${units[@]}"; do
       as_root systemctl enable "$u"
       as_root systemctl restart "$u" || warn "Start von $u fehlgeschlagen — Logs: journalctl -u $u"
@@ -337,9 +481,23 @@ EOF
   fi
 }
 
+enable_user_linger() {
+  if ! need_cmd loginctl; then
+    warn "loginctl fehlt — Benutzer-systemd startet ggf. erst nach Login."
+    return 0
+  fi
+  if loginctl show-user "$USER" -p Linger 2>/dev/null | grep -q "Linger=yes"; then
+    log "loginctl linger bereits aktiv für $USER."
+    return 0
+  fi
+  log "Aktiviere loginctl enable-linger für $USER (Autostart ohne Login) …"
+  as_root loginctl enable-linger "$USER"
+}
+
 install_systemd_user_units() {
   local root="$1"
   local mode="$2"
+  local enable_now="${3:-false}"
   local env_file="${HOME}/.config/bot/env"
   local unit_dir="${HOME}/.config/systemd/user"
   mkdir -p "$unit_dir"
@@ -383,13 +541,17 @@ EOF
   fi
   systemctl --user daemon-reload 2>/dev/null || true
   log "Benutzer-systemd-Units in $unit_dir"
-  if prompt_yn "Benutzer-Dienste (systemctl --user) aktivieren?" "n"; then
-    local units=()
-    [[ "$mode" == "runner" || "$mode" == "both" ]] && units+=(bot-team-runner.service)
-    [[ "$mode" == "web" || "$mode" == "both" ]] && units+=(bot-web-panel.service)
-    systemctl --user enable "${units[@]}"
-    systemctl --user start "${units[@]}" || warn "Start fehlgeschlagen — journalctl --user -u bot-web-panel"
+  if [[ "$enable_now" != "true" ]]; then
+    warn "Autostart nicht aktiviert — manuell: systemctl --user enable --now bot-team-runner bot-web-panel"
+    return 0
   fi
+  enable_user_linger
+  local units=()
+  [[ "$mode" == "runner" || "$mode" == "both" ]] && units+=(bot-team-runner.service)
+  [[ "$mode" == "web" || "$mode" == "both" ]] && units+=(bot-web-panel.service)
+  systemctl --user enable "${units[@]}"
+  systemctl --user start "${units[@]}" 2>/dev/null || warn "Start fehlgeschlagen — journalctl --user -u bot-web-panel"
+  log "Autostart aktiv: Dienste starten nach Reboot (mit linger auch ohne Login)."
 }
 
 run_config_validate() {
@@ -427,6 +589,7 @@ print_summary() {
   local mode="$2"
   local scope="$3"
   local env_file="$4"
+  local autostart="${5:-nein}"
   cat <<EOF
 
 Installation abgeschlossen (Bot ${BOT_VERSION_LABEL})
@@ -434,6 +597,10 @@ Installation abgeschlossen (Bot ${BOT_VERSION_LABEL})
   Modus              : ${mode}
   Geltungsbereich    : ${scope}
   Umgebung           : ${env_file}
+  Autostart (systemd): ${autostart}
+  Playwright         : $([[ "${INSTALL_PLAYWRIGHT:-0}" == "1" ]] && echo ja || echo nein)
+  Crawl4AI           : $([[ "${INSTALL_CRAWL:-0}" == "1" ]] && echo ja || echo nein)
+  Qdrant (Docker)    : $([[ "${INSTALL_QDRANT:-0}" == "1" ]] && echo ja || echo nein)
 
 Nächste Schritte:
 EOF
@@ -474,6 +641,7 @@ main() {
 
   # Nicht-interaktiv (CI/Automatisierung):
   #   BOT_INSTALL_MODE=runner|web|both BOT_INSTALL_SCOPE=user|system BOT_INSTALL_NONINTERACTIVE=1
+  #   BOT_INSTALL_PLAYWRIGHT=1 BOT_INSTALL_CRAWL=1 BOT_INSTALL_QDRANT=1 BOT_INSTALL_AUTOSTART=1
   if [[ "${BOT_INSTALL_NONINTERACTIVE:-}" == "1" ]]; then
     : "${BOT_INSTALL_MODE:=both}"
     : "${BOT_INSTALL_SCOPE:=user}"
@@ -511,6 +679,19 @@ main() {
         ;;
       *) err "BOT_INSTALL_SCOPE muss user oder system sein." ;;
     esac
+  elif [[ -n "${BOT_INSTALL_SKIP_PROMPTS:-}" && -n "${BOT_INSTALL_MODE:-}" ]]; then
+    mode="${BOT_INSTALL_MODE}"
+    case "${BOT_INSTALL_SCOPE:-user}" in
+      system | s) scope="systemweit"; system_install=true
+        install_dir="${BOT_INSTALL_DIR:-/opt/bot}"
+        env_file="/etc/bot/env"
+        svc_user="${BOT_SYSTEM_USER:-bot}" ;;
+      *) scope="Benutzer"; system_install=false
+        install_dir="${BOT_INSTALL_DIR:-${HOME}/bot}"
+        env_file="${HOME}/.config/bot/env"
+        svc_user="${USER}" ;;
+    esac
+    log "Setze Installation fort (sudo): Modus=$mode, Scope=$scope"
   else
     local choice
     choice="$(prompt "Auswahl (1/2/3)" "3")"
@@ -549,6 +730,8 @@ main() {
     install_dir="$(prompt "Installationsverzeichnis" "$install_dir")"
   fi
 
+  resolve_optional_extras
+
   local py
   py="$(find_python)" || py=""
   if [[ -z "$py" ]]; then
@@ -569,8 +752,17 @@ main() {
   if [[ "$system_install" == true ]]; then
     if [[ "$(id -u)" -ne 0 ]]; then
       log "Starte systemweite Installation mit sudo …"
-      exec sudo BOT_INSTALL_SRC="${BOT_INSTALL_SRC:-}" BOT_INSTALL_DIR="$install_dir" \
-        BOT_REPO_URL="$BOT_REPO_URL" BOT_REPO_BRANCH="$BOT_REPO_BRANCH" \
+      exec sudo \
+        BOT_INSTALL_SRC="${BOT_INSTALL_SRC:-}" \
+        BOT_INSTALL_DIR="$install_dir" \
+        BOT_REPO_URL="$BOT_REPO_URL" \
+        BOT_REPO_BRANCH="$BOT_REPO_BRANCH" \
+        BOT_INSTALL_SKIP_PROMPTS=1 \
+        BOT_INSTALL_MODE="$mode" \
+        BOT_INSTALL_SCOPE=system \
+        INSTALL_PLAYWRIGHT="${INSTALL_PLAYWRIGHT:-0}" \
+        INSTALL_CRAWL="${INSTALL_CRAWL:-0}" \
+        INSTALL_QDRANT="${INSTALL_QDRANT:-0}" \
         bash "$0" "$@"
     fi
     create_system_user "$svc_user"
@@ -578,24 +770,14 @@ main() {
     chown "${svc_user}:${svc_user}" "$install_dir"
     clone_or_use_source "$install_dir"
     chown -R "${svc_user}:${svc_user}" "$install_dir"
-    sudo -u "$svc_user" env HOME="$install_dir" bash -c "
-      set -euo pipefail
-      cd '$install_dir'
-      '$py' -m venv .venv
-      source .venv/bin/activate
-      python -m pip install -U pip wheel
-      if [[ -f requirements-lock.txt ]]; then
-        pip install -r requirements-lock.txt
-        pip install -e . --no-deps
-      else
-        pip install -e .
-      fi
-    "
+    setup_venv_core "$install_dir" "$py" "$svc_user"
+    install_optional_extras "$install_dir" "$svc_user"
     log "Virtuelle Umgebung unter $install_dir/.venv (Benutzer $svc_user)"
   else
     mkdir -p "$install_dir"
     clone_or_use_source "$install_dir"
-    setup_venv "$install_dir" "$py"
+    setup_venv_core "$install_dir" "$py" ""
+    install_optional_extras "$install_dir" ""
   fi
 
   if [[ "$system_install" == true ]]; then
@@ -620,20 +802,25 @@ main() {
   fi
 
   local setup_systemd=false
+  local autostart_label="nein"
   if [[ "${BOT_INSTALL_NONINTERACTIVE:-}" == "1" ]]; then
-    setup_systemd=false
-  elif prompt_yn "systemd-Dienste für Autostart einrichten?" "$([[ "$system_install" == true ]] && echo j || echo n)"; then
+    [[ "${BOT_INSTALL_AUTOSTART:-0}" == "1" ]] && setup_systemd=true
+  elif prompt_yn "Autostart nach Neustart einrichten (systemd enable + start)?" \
+    "$([[ "$system_install" == true ]] && echo j || echo j)"; then
     setup_systemd=true
   fi
   if [[ "$setup_systemd" == true ]]; then
+    autostart_label="ja"
     if [[ "$system_install" == true ]]; then
       install_systemd_units "$install_dir" "$mode" "$svc_user" "$env_file"
     else
-      install_systemd_user_units "$install_dir" "$mode"
+      install_systemd_user_units "$install_dir" "$mode" "true"
     fi
+  elif [[ "$system_install" == false ]]; then
+    warn "Ohne Autostart: manuell starten oder erneut: systemctl --user enable --now bot-team-runner bot-web-panel"
   fi
 
-  print_summary "$install_dir" "$mode" "$scope" "$env_file"
+  print_summary "$install_dir" "$mode" "$scope" "$env_file" "$autostart_label"
 }
 
 main "$@"
