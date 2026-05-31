@@ -1,0 +1,36 @@
+{% extends "team_settings_base.html" %}
+{% block title %}Öffnungszeiten — {{ team_id }}{% endblock %}
+{% block team_settings_content %}
+<h1 class="text-2xl font-bold mb-2">Öffnungszeiten</h1>
+<p class="text-sm p-muted mb-4">
+  <code>teams/{{ team_id }}/hours.json</code> ·
+  <a href="/teams/{{ team_id }}/settings/hours/master" class="p-link">Master-Zeiten bearbeiten</a> ·
+  <a href="/teams/{{ team_id }}/hours" class="p-link">Workflow</a>
+</p>
+{% if request.query_params.get('saved') %}<p class="p-status-ok mb-4">Gespeichert.</p>{% endif %}
+{% if error %}<p class="p-status-bad mb-4 text-sm">{{ error }}</p>{% endif %}
+<form method="post" action="/teams/{{ team_id }}/settings/hours" class="space-y-4 max-w-2xl">
+  <label class="flex gap-2 text-sm"><input type="checkbox" name="hours_enabled" value="on" {% if not hours or hours.enabled %}checked{% endif %}> aktiv</label>
+  <input name="master_file" class="w-full p-input text-sm" value="{{ hours.master_file if hours else 'teams/' ~ team_id ~ '/hours.master.json' }}">
+  <div>
+    <label class="text-sm p-muted">Website-Quelle</label>
+    <select name="website_type" class="w-full p-input">
+      <option value="page" {% if hours and hours.website.type == 'page' %}selected{% endif %}>page (URL + Crawl)</option>
+      <option value="file" {% if hours and hours.website.type == 'file' %}selected{% endif %}>file</option>
+      <option value="http" {% if hours and hours.website.type == 'http' %}selected{% endif %}>http</option>
+    </select>
+    <input name="website_url" class="w-full p-input mt-2" placeholder="URL" value="{% if hours and hours.website.type in ['page','http'] %}{{ hours.website.url }}{% endif %}">
+    <input name="website_path" class="w-full p-input mt-2" placeholder="Pfad (file)" value="{% if hours and hours.website.type == 'file' %}{{ hours.website.path }}{% endif %}">
+    <select name="website_crawl_engine" class="w-full p-input mt-2">
+      <option value="auto">auto</option>
+      <option value="httpx">httpx</option>
+      <option value="crawl4ai">crawl4ai</option>
+    </select>
+  </div>
+  <select name="checker_agent_id" class="w-full p-input">
+    {% for aid in agent_ids %}<option value="{{ aid }}" {% if hours and hours.checker_agent_id == aid %}selected{% endif %}>{{ aid }}</option>{% endfor %}
+  </select>
+  <label class="flex gap-2 text-sm"><input type="checkbox" name="hours_require_approval" value="on" {% if not hours or hours.require_approval %}checked{% endif %}> Freigabe</label>
+  <button type="submit" class="px-4 py-2 rounded bg-[var(--p-accent)] text-white text-sm">Speichern</button>
+</form>
+{% endblock %}

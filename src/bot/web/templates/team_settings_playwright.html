@@ -1,0 +1,20 @@
+{% extends "team_settings_base.html" %}
+{% block title %}Playwright — {{ team_id }}{% endblock %}
+{% block team_settings_content %}
+<h1 class="text-2xl font-bold mb-2">Playwright (Team)</h1>
+<p class="text-sm p-muted mb-4"><code>teams/{{ team_id }}/playwright.json</code> — überschreibt global nur bei <code>source: custom</code></p>
+{% if request.query_params.get('saved') %}<p class="p-status-ok mb-4">Gespeichert.</p>{% endif %}
+<form method="post" action="/teams/{{ team_id }}/settings/playwright" class="p-card p-5 space-y-3 max-w-xl">
+  <select name="source" class="w-full p-input">
+    <option value="global" {% if not playwright or playwright.source == 'global' %}selected{% endif %}>global (System-Einstellung)</option>
+    <option value="custom" {% if playwright and playwright.source == 'custom' %}selected{% endif %}>custom (Team-Override)</option>
+  </select>
+  <select name="pw_mode" class="w-full p-input">
+    <option value="local">local</option>
+    <option value="remote">remote</option>
+  </select>
+  <label class="flex gap-2 text-sm"><input type="checkbox" name="headless" value="on" {% if not playwright or playwright.headless != false %}checked{% endif %}> headless</label>
+  <textarea name="ws_endpoints" rows="3" class="w-full p-input font-mono text-xs">{% if playwright %}{{ playwright.ws_endpoints | join('\n') }}{% endif %}</textarea>
+  <button type="submit" class="px-4 py-2 rounded bg-[var(--p-accent)] text-white text-sm">Speichern</button>
+</form>
+{% endblock %}

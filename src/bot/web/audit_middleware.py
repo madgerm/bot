@@ -40,6 +40,9 @@ def _parse_post_action(path: str) -> tuple[str, str, str | None, dict[str, Any]]
     m = re.match(r"^/teams/([^/]+)/settings/agents/([^/]+)/save$", path)
     if m:
         return ("config", "agent_update", m.group(1), {"agent_id": m.group(2)})
+    m = re.match(r"^/teams/([^/]+)/settings/(crawl|email|hours/master|hours|integrations|git|playwright)$", path)
+    if m:
+        return ("config", f"team_{m.group(2).replace('/', '_')}_save", m.group(1), {})
     m = re.match(r"^/teams/([^/]+)/settings/agents/([^/]+)/delete$", path)
     if m:
         return ("config", "agent_delete", m.group(1), {"agent_id": m.group(2)})

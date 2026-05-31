@@ -220,20 +220,20 @@ Reihenfolge: Infrastruktur zuerst, dann global, dann Team, dann Agent-Tiefe, dan
 
 ---
 
-### Phase 4 — Team-Dienste (ca. 2 PRs)
+### Phase 4 — Team-Dienste (ca. 2 PRs) ✅
 
 **Ziel:** Crawl, E-Mail, Hours, Integrationen, Git, Playwright-Override.
 
-| Seite | Config | Besonderheiten |
-|-------|--------|----------------|
-| Crawl | `crawl.json` | Domains-Liste (URL, max_pages, enabled), Qdrant-Collection |
-| E-Mail | `email.json` | IMAP/SMTP Hosts, `secret_ref`, Rules, Test „Verbindung“ |
-| Hours | `hours.json` + Link Master | Website/Google-Typ, checker_agent_id, Master-Editor (einfache Wochentabelle) |
-| Integrationen | `integrations.json` | Telegram/Matrix enabled, default_agent, token_ref |
-| Git | `git.json` | remote, branch, repo_path |
-| Playwright team | `playwright.json` | source global/custom |
+| Seite | Config | Status |
+|-------|--------|--------|
+| `/teams/<id>/settings/crawl` | `crawl.json` | ✅ |
+| `/teams/<id>/settings/email` | `email.json` | ✅ |
+| `/teams/<id>/settings/hours` + `/hours/master` | `hours.json`, Master | ✅ |
+| `/teams/<id>/settings/integrations` | `integrations.json` | ✅ |
+| `/teams/<id>/settings/git` | `git.json` | ✅ |
+| `/teams/<id>/settings/playwright` | `playwright.json` | ✅ |
 
-**Akzeptanz:** `teams/demo/crawl.json` vollständig durch Panel ersetzbar; Crawl-Run auf `/teams/<id>/crawl` nutzt neue Config.
+**Akzeptanz:** Team-Dienste im Panel; Crawl-Run weiter unter `/teams/<id>/crawl`.
 
 ---
 

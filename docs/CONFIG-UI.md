@@ -12,7 +12,7 @@ Vollständiger Plan: [`plans/2026-05-30-web-panel-config-ui.md`](../plans/2026-0
 | 1 | Nutzer CRUD | **fertig** |
 | 2 | LLM, Qdrant, Playwright, task_models | **fertig** |
 | 3 | Team, Agents, Pipeline | **fertig** |
-| 4 | Crawl, E-Mail, Hours, Integrationen, Git | geplant |
+| 4 | Crawl, E-Mail, Hours, Integrationen, Git | **fertig** |
 | 5 | Hosts-Wizard, Agent-Tools/Wissen, Status | geplant |
 | 6 | Installer-Profile (Relay, …) | geplant |
 
@@ -33,7 +33,15 @@ Vollständiger Plan: [`plans/2026-05-30-web-panel-config-ui.md`](../plans/2026-0
 | `/teams/<id>/settings/pipeline` | Pipeline-Agents | `teams/<id>/team.json` |
 | `/teams/<id>/settings/agents` | Agent-Liste, CRUD | `teams/<id>/agents/<id>/agent.json` |
 
-Weitere Routen: Phase 4 (Crawl, E-Mail, …).
+| `/teams/<id>/settings/crawl` | Crawl-Domains | `teams/<id>/crawl.json` |
+| `/teams/<id>/settings/email` | IMAP/SMTP | `teams/<id>/email.json` |
+| `/teams/<id>/settings/hours` | Quellen, Checker | `teams/<id>/hours.json` |
+| `/teams/<id>/settings/hours/master` | Wochenzeiten | `hours.master.json` |
+| `/teams/<id>/settings/integrations` | Telegram/Matrix | `integrations.json` |
+| `/teams/<id>/settings/git` | Repo/Branch | `git.json` |
+| `/teams/<id>/settings/playwright` | Team-Override | `playwright.json` |
+
+Weitere Routen: Phase 5 (Hosts-Wizard, Status).
 
 ## Technik
 

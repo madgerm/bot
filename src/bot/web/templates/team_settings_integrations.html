@@ -1,0 +1,24 @@
+{% extends "team_settings_base.html" %}
+{% block title %}Integrationen — {{ team_id }}{% endblock %}
+{% block team_settings_content %}
+<h1 class="text-2xl font-bold mb-2">Telegram & Matrix</h1>
+<p class="text-sm p-muted mb-4"><code>teams/{{ team_id }}/integrations.json</code></p>
+{% if request.query_params.get('saved') %}<p class="p-status-ok mb-4">Gespeichert.</p>{% endif %}
+<form method="post" class="space-y-6 max-w-xl">
+  <section class="p-card p-4 space-y-2">
+    <h2 class="font-semibold">Telegram</h2>
+    <label class="flex gap-2 text-sm"><input type="checkbox" name="tg_enabled" value="on" {% if integrations.telegram.enabled %}checked{% endif %}> aktiv</label>
+    <input name="tg_token_ref" class="w-full p-input" value="{{ integrations.telegram.bot_token_ref }}">
+    <input name="tg_agent" class="w-full p-input" value="{{ integrations.telegram.default_agent_id }}">
+  </section>
+  <section class="p-card p-4 space-y-2">
+    <h2 class="font-semibold">Matrix</h2>
+    <label class="flex gap-2 text-sm"><input type="checkbox" name="mx_enabled" value="on" {% if integrations.matrix.enabled %}checked{% endif %}> aktiv</label>
+    <input name="mx_homeserver" class="w-full p-input" value="{{ integrations.matrix.homeserver }}">
+    <input name="mx_token_ref" class="w-full p-input" value="{{ integrations.matrix.access_token_ref }}">
+    <input name="mx_room" class="w-full p-input" value="{{ integrations.matrix.room_id or '' }}" placeholder="!room:server">
+    <input name="mx_agent" class="w-full p-input" value="{{ integrations.matrix.default_agent_id }}">
+  </section>
+  <button type="submit" formaction="/teams/{{ team_id }}/settings/integrations" class="px-4 py-2 rounded bg-[var(--p-accent)] text-white text-sm">Speichern</button>
+</form>
+{% endblock %}
