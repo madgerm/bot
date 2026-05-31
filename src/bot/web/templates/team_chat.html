@@ -33,7 +33,14 @@
   </aside>
 
   <div>
-    {% if not direct_agent %}
+    {% if is_verification_team and not direct_agent %}
+    <p class="text-sm p-muted mb-4 p-card p-3 border-l-2 border-amber-500/60">
+      <strong>Fragen-Team:</strong> Zuerst Anforderungen klären, dann <strong>Plan freigeben</strong> —
+      es entstehen nummerierte Prüffragen (Router → Prüfung → JA/NEIN → ggf. Fix → Re-Test).
+      <a href="/teams/{{ team_id }}/verification" class="p-link ml-1">Prüfungen</a>
+    </p>
+  {% endif %}
+  {% if not direct_agent %}
     <p class="text-sm p-muted mb-4 p-card p-3">
       Oben: dein Dialog mit dem <strong>Orchestrator</strong>.
       <strong>Eingerückt</strong>: interne Nachrichten (Orchestrator ↔ Agents).

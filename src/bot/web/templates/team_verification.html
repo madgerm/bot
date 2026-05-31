@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Prüfungen — {{ team_id }}{% endblock %}
+{% block content %}
+<div class="mb-6 flex flex-wrap gap-4 items-center">
+  <a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
+  <a href="/teams/{{ team_id }}/chat" class="text-sm p-link">Chat</a>
+  <h1 class="text-2xl font-bold">Prüffragen</h1>
+</div>
+
+{% if not is_verification %}
+<p class="p-card p-4 text-sm p-muted mb-6">
+  Dieses Team ist ein <strong>Aufgaben-Team</strong> (<code>workflow: tasks</code>).
+  Unter <a href="/teams/{{ team_id }}/settings/general" class="p-link">Einstellungen → Allgemein</a>
+  auf <strong>Fragen — Prüffragen prüfen</strong> umstellen.
+</p>
+{% else %}
+<p class="text-sm p-muted mb-4">
+  Phase: <code>{{ phase }}</code>
+  · bestanden {{ summary.get('passed', 0) }}
+  · offen {{ summary.get('open', 0) + summary.get('checking', 0) + summary.get('fixing', 0) }}
+  · fehlgeschlagen {{ summary.get('failed', 0) }}
+  · Dateien: <code>teams/{{ team_id }}/verification/</code>
+</p>
+{% endif %}
+
+<div class="p-card overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="p-muted text-left">
+      <tr>
+        <th class="px-3 py-2">#</th>
+        <th class="px-3 py-2">Titel</th>
+        <th class="px-3 py-2">Methode</th>
+        <th class="px-3 py-2">Status</th>
+        <th class="px-3 py-2">Urteil</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for q in questions %}
+      <tr class="border-t border-[var(--p-border)]">
+        <td class="px-3 py-2 font-mono">{{ '%03d'|format(q.seq) }}</td>
+        <td class="px-3 py-2">
+          <div class="font-medium">{{ q.title }}</div>
+          <p class="text-xs p-faint mt-1 line-clamp-2">{{ q.question }}</p>
+        </td>
+        <td class="px-3 py-2 text-xs"><code>{{ q.check_method }}</code></td>
+        <td class="px-3 py-2 text-xs">{{ q.status }}</td>
+        <td class="px-3 py-2 text-xs">
+          {% if q.verdict == 'ja' %}<span class="p-status-ok">JA</span>
+          {% elif q.verdict == 'nein' %}<span class="p-status-bad">NEIN</span>
+          {% elif q.verdict == 'teilweise' %}<span class="p-status-warn">TEILWEISE</span>
+          {% elif q.verdict %}<span class="p-faint">{{ q.verdict|upper }}</span>
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="px-3 py-6 p-faint">Noch keine Prüffragen. Im Chat Anforderungen klären und freigeben.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

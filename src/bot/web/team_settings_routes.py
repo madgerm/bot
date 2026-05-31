@@ -182,9 +182,11 @@ def register_team_settings_routes(
         enabled: str | None = Form(None),
         preset: str = Form("generic"),
         orchestrator_id: str = Form(...),
+        workflow: str = Form("tasks"),
     ):
         require_team_write(team_id, user)
         preset_val = preset if preset in ("generic", "demo", "coding", "story") else "generic"
+        workflow_val = workflow if workflow in ("tasks", "verification") else "tasks"
         try:
             save_team_general(
                 root_path,
@@ -194,6 +196,7 @@ def register_team_settings_routes(
                 enabled=enabled == "on",
                 preset=preset_val,  # type: ignore[arg-type]
                 orchestrator_id=orchestrator_id,
+                workflow=workflow_val,  # type: ignore[arg-type]
             )
         except TeamAdminError as exc:
             cfg = load_team_config(root_path, team_id)

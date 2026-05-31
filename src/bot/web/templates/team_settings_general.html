@@ -14,6 +14,18 @@
     <input name="name" required class="w-full p-input" value="{{ team.name }}">
   </div>
   <div>
+    <label class="block text-sm p-muted mb-1">Team-Typ</label>
+    <select name="workflow" class="w-full p-input">
+      <option value="tasks" {% if team.workflow != 'verification' %}selected{% endif %}>
+        Aufgaben — Anweisungen umsetzen („installier X“)
+      </option>
+      <option value="verification" {% if team.workflow == 'verification' %}selected{% endif %}>
+        Fragen — Prüffragen prüfen („funktioniert X?“)
+      </option>
+    </select>
+    <p class="text-xs p-faint mt-1">Fragen-Teams: Orchestrator klärt Anforderungen, erzeugt Prüffragen, Router + Bewertung + Fix/Re-Test.</p>
+  </div>
+  <div>
     <label class="block text-sm p-muted mb-1">Preset</label>
     <select name="preset" class="w-full p-input">
       {% for p in ['generic', 'demo', 'coding', 'story'] %}

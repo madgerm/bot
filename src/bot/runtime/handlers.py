@@ -153,25 +153,44 @@ class OrchestratorHandler(AgentHandler):
         if message.type in {"delegation_result", "hours_check_result"}:
             return HandlerResult(complete=True)
 
+        from bot.verification.workflow import is_verification_team
+
+        verification = is_verification_team(ctx.root, ctx.team_id)
+
         if message.type == "chat.user":
             from bot.chat import ChatStore
             from bot.chat.orchestrator_bridge import format_chat_context
 
             history = format_chat_context(ctx.root, ctx.team_id)
-            prompt_user = (
-                f"Bisheriger Team-Chat:\n{history}\n\n"
-                f"Aktuelle Anfrage:\n{message.content}\n\n"
-                "Du bist der Orchestrator. Erstelle einen klaren Plan: welche Schritte, "
-                "welche Agent-Rollen/IDs. Delegiere noch NICHT — der Nutzer muss "
-                "erst freigeben. Ende mit kurzer Zusammenfassung für den Nutzer."
-            )
+            if verification:
+                prompt_user = (
+                    f"Bisheriger Team-Chat:\n{history}\n\n"
+                    f"Aktuelle Anfrage:\n{message.content}\n\n"
+                    "Du bist der Requirement-Orchestrator (Fragen-Team). "
+                    "Baue NICHTS. Kläre mit Rückfragen, was genau vorhanden sein soll. "
+                    "Fasse am Ende Funktionen in Stichpunkten zusammen. "
+                    "Der Nutzer muss freigeben — dann werden daraus nummerierte Prüffragen."
+                )
+                sys_prompt = (
+                    "Du sprichst mit dem Team-Leiter. Deutsch, verständlich. "
+                    "Kein Code, keine Implementierung — nur Anforderungen klären."
+                )
+            else:
+                prompt_user = (
+                    f"Bisheriger Team-Chat:\n{history}\n\n"
+                    f"Aktuelle Anfrage:\n{message.content}\n\n"
+                    "Du bist der Orchestrator. Erstelle einen klaren Plan: welche Schritte, "
+                    "welche Agent-Rollen/IDs. Delegiere noch NICHT — der Nutzer muss "
+                    "erst freigeben. Ende mit kurzer Zusammenfassung für den Nutzer."
+                )
+                sys_prompt = (
+                    "Du sprichst mit dem menschlichen Team-Leiter im Panel-Chat. "
+                    "Antworte auf Deutsch, verständlich, ohne interne JSON-Formate."
+                )
             plan = self._run_with_tools(
                 ctx,
                 message,
-                system_prompt=(
-                    "Du sprichst mit dem menschlichen Team-Leiter im Panel-Chat. "
-                    "Antworte auf Deutsch, verständlich, ohne interne JSON-Formate."
-                ),
+                system_prompt=sys_prompt,
                 task_category="planning",
                 user_content=prompt_user,
             )
@@ -188,6 +207,46 @@ class OrchestratorHandler(AgentHandler):
             from bot.chat.orchestrator_bridge import format_chat_context
 
             history = format_chat_context(ctx.root, ctx.team_id)
+            if verification:
+                from bot.verification.workflow import (
+                    start_next_check,
+                    store_questions_from_llm,
+                )
+
+                prompt_user = (
+                    f"Team-Chat (freigegeben):\n{history}\n\n"
+                    "Erzeuge eine JSON-Liste von Prüffragen. Jede Frage klein und prüfbar.\n"
+                    "Antworte NUR mit einem JSON-Array in einem ```json Block:\n"
+                    '[{"seq":1,"title":"...","question":"Ist ...?","expectation":"...",'
+                    '"check_method":"browser|code|db|api|mixed","success_criteria":"..."}]'
+                )
+                generated = self._run_with_tools(
+                    ctx,
+                    message,
+                    system_prompt=(
+                        "Requirement-Orchestrator. Erzeuge 8–25 Prüffragen aus dem Gespräch. "
+                        "check_method passend wählen. Kein Fließtext außerhalb JSON."
+                    ),
+                    task_category="planning",
+                    user_content=prompt_user,
+                )
+                questions = store_questions_from_llm(
+                    ctx.root, ctx.team_id, generated
+                )
+                summary = (
+                    f"Freigegeben — {len(questions)} Prüffragen erzeugt. "
+                    "Die erste Prüfung startet automatisch.\n\n"
+                    f"Siehe Panel → Prüfungen oder `teams/{ctx.team_id}/verification/`."
+                )
+                ChatStore(ctx.root, ctx.team_id).add(
+                    role="assistant",
+                    content=summary,
+                    agent_id=ctx.agent_id,
+                    metadata={"awaiting_approval": False},
+                )
+                start_next_check(ctx.root, ctx.team_id, ctx.agent_id)
+                return HandlerResult(complete=True)
+
             prompt_user = (
                 f"Team-Chat:\n{history}\n\n"
                 "Der Nutzer hat den Plan freigegeben (z. B. „so ist top“). "
@@ -263,6 +322,66 @@ class WorkerExecHandler(AgentHandler):
         if message.type == "chat.direct":
             return self.handle_chat_direct(message, ctx)
 
+        from bot.verification.workflow import (
+            MSG_CHECK,
+            MSG_FIX,
+            MSG_RETEST,
+            parse_question_payload,
+            record_check_evidence_and_review,
+        )
+
+        if message.type in (MSG_CHECK, MSG_RETEST):
+            pipe = _pipeline(ctx)
+            payload = parse_question_payload(message.content)
+            qid = str(payload.get("question_id", ""))
+            evidence = self._run_with_tools(
+                ctx,
+                message,
+                system_prompt=(
+                    "Du bist ein Prüf-Agent. Führe NUR die eine Prüffrage aus. "
+                    "Kein Bauen, kein Refactoring — nur prüfen und dokumentieren."
+                ),
+                task_category=message.task_category or "review",
+            )
+            if qid:
+                record_check_evidence_and_review(
+                    ctx.root,
+                    ctx.team_id,
+                    pipe.orchestrator_id,
+                    pipe.review_id,
+                    qid,
+                    evidence,
+                )
+            return HandlerResult(complete=True)
+
+        if message.type == MSG_FIX:
+            from bot.verification.workflow import enqueue_check
+            from bot.verification.store import VerificationStore
+
+            pipe = _pipeline(ctx)
+            payload = parse_question_payload(message.content)
+            qid = str(payload.get("question_id", ""))
+            self._run_with_tools(
+                ctx,
+                message,
+                system_prompt=(
+                    "Du bist ein Fix-Agent. Behebe NUR die beschriebene Lücke. "
+                    "Keine Zusatzfeatures."
+                ),
+                task_category="coding",
+            )
+            store = VerificationStore(ctx.root, ctx.team_id)
+            q = store.get_question(qid) if qid else None
+            if q:
+                enqueue_check(
+                    ctx.root,
+                    ctx.team_id,
+                    pipe.orchestrator_id,
+                    q,
+                    retest=True,
+                )
+            return HandlerResult(complete=True)
+
         pipe = _pipeline(ctx)
         result = self._run_with_tools(
             ctx,
@@ -297,6 +416,39 @@ class ReviewerHandler(AgentHandler):
     def handle(self, message: Message, ctx: HandlerContext) -> HandlerResult:
         if message.type == "chat.direct":
             return self.handle_chat_direct(message, ctx)
+
+        from bot.verification.workflow import (
+            MSG_REVIEW,
+            apply_review_and_continue,
+            parse_question_payload,
+        )
+
+        if message.type == MSG_REVIEW:
+            pipe = _pipeline(ctx)
+            payload = parse_question_payload(message.content)
+            qid = str(payload.get("question_id", ""))
+            review = self._run_with_tools(
+                ctx,
+                message,
+                system_prompt=(
+                    "Du bist die Kontroll-Instanz. Bewerte den Prüf-Nachweis nach Kriterien. "
+                    "Antworte NUR als JSON: "
+                    '{"verdict":"ja|nein|teilweise|unklar","reasons":"...",'
+                    '"gaps":["..."],"fix_needed":true,"next_fix":"..."}'
+                ),
+                task_category="review",
+            )
+            if qid:
+                apply_review_and_continue(
+                    ctx.root,
+                    ctx.team_id,
+                    pipe.orchestrator_id,
+                    pipe.execute_id,
+                    pipe.review_id,
+                    qid,
+                    review,
+                )
+            return HandlerResult(complete=True)
 
         pipe = _pipeline(ctx)
         review = self._run_with_tools(

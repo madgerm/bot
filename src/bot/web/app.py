@@ -226,7 +226,8 @@ def create_app(root: Path | str) -> FastAPI:
         from bot.web.team_access import team_access_level
 
         require_team_access(team_id, user)
-        orch_id = load_team_config(root_path, team_id).team.orchestrator_id
+        cfg = load_team_config(root_path, team_id)
+        orch_id = cfg.team.orchestrator_id
         direct_agent = (direct or "").strip() or None
         include_internal = show_internal != "0"
         feed = _team_chat_feed(
@@ -237,9 +238,13 @@ def create_app(root: Path | str) -> FastAPI:
             q=q,
         )
         access = team_access_level(user, team_id)
+        from bot.verification.workflow import is_verification_team
+
         return {
             "user": user,
             "team_id": team_id,
+            "team_workflow": cfg.team.workflow,
+            "is_verification_team": is_verification_team(root_path, team_id),
             "feed": feed,
             "filter_agent": agent,
             "filter_q": q,
@@ -861,5 +866,8 @@ def create_app(root: Path | str) -> FastAPI:
     from bot.web.team_settings_routes import register_team_settings_routes
 
     register_team_settings_routes(app, templates, root_path)
+    from bot.web.verification_routes import register_verification_routes
+
+    register_verification_routes(app, templates, root_path)
 
     return app
