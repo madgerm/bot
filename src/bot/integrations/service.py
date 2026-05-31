@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from bot.integrations.config import IntegrationsConfig, load_integrations_config, resolve_ref
+from bot.integrations.config import load_integrations_config, resolve_ref
 from bot.webhooks import WebhookService, WebhookServiceError
 
 

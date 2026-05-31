@@ -48,7 +48,7 @@ class TaskService:
 
     def _notify_agent(self, agent_id: str, task: TaskRecord) -> None:
         from bot.config import load_runtime_config
-        from bot.messages import MessageService, MessageError
+        from bot.messages import MessageError, MessageService
 
         cfg = load_runtime_config(self.root)
         bundle = cfg.teams.get(self.team_id)

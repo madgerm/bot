@@ -82,7 +82,7 @@ def test_hours_check_approve_publish(runtime_project: Path) -> None:
     with pytest.raises(HoursServiceError):
         service.publish(record.id)
 
-    approved = service.approve(record.id, "max")
+    service.approve(record.id, "max")
     published = service.publish(record.id)
     assert published.status == "published"
 

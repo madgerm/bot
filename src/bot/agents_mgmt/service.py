@@ -6,7 +6,7 @@ import json
 import shutil
 from pathlib import Path
 
-from bot.config.loader import ConfigLoadError, load_runtime_config
+from bot.config.loader import load_runtime_config
 from bot.config.models import AgentBlock, AgentConfig
 
 

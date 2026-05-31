@@ -8,6 +8,7 @@ from pathlib import Path
 from bot.files.service import FileService
 from bot.qdrant.service import QdrantService, QdrantServiceError
 
+
 def _is_indexable(path: Path) -> bool:
     return path.suffix.lower() in _INDEXABLE
 

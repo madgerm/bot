@@ -5,11 +5,9 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
-from bot.config import load_runtime_config
 from bot.config.models import ImageGenerationConfig, MediaChannelConfig, MediaGlobalConfig
 
 

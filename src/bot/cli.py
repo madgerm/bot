@@ -8,25 +8,25 @@ import sys
 from pathlib import Path
 
 from bot import __version__
-from bot.cli_browser import register_browser_commands
-from bot.cli_chat import register_chat_commands
-from bot.cli_hours import register_hours_commands
-from bot.cli_tasks import register_tasks_commands
-from bot.cli_git import register_git_commands
-from bot.cli_crawl import register_crawl_commands
-from bot.cli_story import register_story_commands
-from bot.cli_media import register_media_commands
-from bot.cli_deploy import register_deploy_commands
-from bot.cli_mail import register_mail_commands
-from bot.cli_llm import register_llm_commands
-from bot.cli_msg import register_msg_commands
-from bot.cli_qdrant import register_qdrant_commands
-from bot.cli_run import register_run_commands
-from bot.cli_team import register_team_commands
-from bot.cli_web import register_web_commands
 from bot.cli_auth import register_auth_commands
 from bot.cli_backup import register_backup_commands
+from bot.cli_browser import register_browser_commands
+from bot.cli_chat import register_chat_commands
+from bot.cli_crawl import register_crawl_commands
+from bot.cli_deploy import register_deploy_commands
+from bot.cli_git import register_git_commands
+from bot.cli_hours import register_hours_commands
+from bot.cli_llm import register_llm_commands
+from bot.cli_mail import register_mail_commands
+from bot.cli_media import register_media_commands
+from bot.cli_msg import register_msg_commands
+from bot.cli_qdrant import register_qdrant_commands
 from bot.cli_relay import register_relay_commands
+from bot.cli_run import register_run_commands
+from bot.cli_story import register_story_commands
+from bot.cli_tasks import register_tasks_commands
+from bot.cli_team import register_team_commands
+from bot.cli_web import register_web_commands
 from bot.config import ConfigLoadError, ConfigStore, load_runtime_config
 
 

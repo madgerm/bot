@@ -1,7 +1,7 @@
 """Task Board (SQLite pro Team)."""
 
-from bot.tasks.store import TaskRecord, TaskStore, TaskStoreError
 from bot.tasks.service import TaskService, TaskServiceError
+from bot.tasks.store import TaskRecord, TaskStore, TaskStoreError
 
 __all__ = [
     "TaskRecord",

@@ -1,9 +1,8 @@
 """Backup create/restore."""
 
-import json
 from pathlib import Path
 
-from bot.backup import BackupError, create_backup, restore_backup
+from bot.backup import create_backup, restore_backup
 from bot.chat.store import ChatStore
 
 

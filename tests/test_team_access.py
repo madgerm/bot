@@ -1,9 +1,8 @@
-from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
 
-from bot.web.auth import SessionUser, UserRecord, UsersConfig, _team_access_map
+from bot.web.auth import SessionUser, UserRecord, _team_access_map
 from bot.web.team_access import require_team_write
 
 

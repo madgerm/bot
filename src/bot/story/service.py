@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from bot.story.db import StoryDB, StoryDBError
+from bot.story.db import StoryDB
 
 
 class StoryService:

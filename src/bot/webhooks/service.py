@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from bot.config import load_runtime_config
-from bot.messages import MessageService, MessageError
+from bot.messages import MessageError, MessageService
 
 
 class WebhookServiceError(Exception):

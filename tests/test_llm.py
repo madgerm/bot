@@ -4,10 +4,10 @@ from types import SimpleNamespace
 
 import pytest
 
+from bot.config import load_runtime_config
 from bot.config.models import TaskModelsConfig
 from bot.llm import LiteLLMClient, ModelRouter, StubLlmClient, build_llm_stack
 from bot.llm.client import LlmError
-from bot.config import load_runtime_config
 
 
 def test_model_router_resolve_override() -> None:

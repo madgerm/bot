@@ -1,0 +1,93 @@
+{% extends "settings_base.html" %}
+{% block title %}{% if mode == 'create' %}Neuer Nutzer{% else %}{{ record.username }}{% endif %} — Einstellungen{% endblock %}
+{% block settings_content %}
+<h1 class="text-2xl font-bold mb-2">{% if mode == 'create' %}Neuer Nutzer{% else %}Nutzer bearbeiten{% endif %}</h1>
+
+{% if error %}
+<p class="p-status-bad mb-4 text-sm">{{ error }}</p>
+{% endif %}
+
+<form method="post" action="{% if mode == 'create' %}/admin/settings/users/create{% else %}/admin/settings/users/{{ record.username }}/save{% endif %}" class="max-w-2xl space-y-6">
+  <section class="p-card p-5 space-y-4">
+    <h2 class="font-semibold">Konto</h2>
+    {% if mode == 'create' %}
+    <div>
+      <label class="block text-sm p-muted mb-1">Benutzername</label>
+      <input name="username" required pattern="[a-zA-Z0-9][a-zA-Z0-9._-]+" class="w-full p-input" value="{{ form_username or '' }}" autocomplete="off">
+    </div>
+    <div>
+      <label class="block text-sm p-muted mb-1">Passwort</label>
+      <input type="password" name="password" required class="w-full p-input" autocomplete="new-password">
+    </div>
+    <div>
+      <label class="block text-sm p-muted mb-1">Passwort (Wiederholung)</label>
+      <input type="password" name="password_confirm" required class="w-full p-input" autocomplete="new-password">
+    </div>
+    {% else %}
+    <p class="text-sm">Benutzername: <strong>{{ record.username }}</strong></p>
+    <div>
+      <label class="block text-sm p-muted mb-1">Neues Passwort (leer = unverändert)</label>
+      <input type="password" name="password" class="w-full p-input" autocomplete="new-password">
+    </div>
+    <div>
+      <label class="block text-sm p-muted mb-1">Passwort (Wiederholung)</label>
+      <input type="password" name="password_confirm" class="w-full p-input" autocomplete="new-password">
+    </div>
+    {% endif %}
+    <div>
+      <label class="block text-sm p-muted mb-1">Rolle</label>
+      <select name="role" class="w-full p-input">
+        <option value="user" {% if (form_role or (record and record.role)) == 'user' %}selected{% endif %}>user</option>
+        <option value="admin" {% if (form_role or (record and record.role)) == 'admin' %}selected{% endif %}>admin</option>
+      </select>
+    </div>
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" name="enabled" value="on" {% if form_enabled is defined %}{% if form_enabled %}checked{% endif %}{% elif record is none or record.enabled %}checked{% endif %}>
+      Konto aktiv (Login erlaubt)
+    </label>
+  </section>
+
+  <section class="p-card p-5 space-y-3">
+    <h2 class="font-semibold">Team-Zugriff</h2>
+    <p class="text-xs p-faint">Admins sehen alle Teams. Für <code>user</code>: kein Zugang, nur lesen oder voller Operator-Zugriff.</p>
+    {% if team_ids %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="p-muted text-left">
+          <tr><th class="py-1 pr-4">Team</th><th class="py-1">Zugriff</th></tr>
+        </thead>
+        <tbody>
+          {% for tid in team_ids %}
+          <tr class="border-t border-[var(--p-border)]">
+            <td class="py-2 pr-4 font-mono text-xs">{{ tid }}</td>
+            <td class="py-2">
+              <select name="access_{{ tid }}" class="p-input text-sm">
+                <option value="none" {% if team_levels[tid] == 'none' %}selected{% endif %}>—</option>
+                <option value="reader" {% if team_levels[tid] == 'reader' %}selected{% endif %}>Lesen</option>
+                <option value="operator" {% if team_levels[tid] == 'operator' %}selected{% endif %}>Operator</option>
+              </select>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-sm p-faint">Keine Teams unter <code>teams/</code> gefunden.</p>
+    {% endif %}
+  </section>
+
+  <div class="flex flex-wrap gap-3 items-center">
+    <button type="submit" class="px-4 py-2 rounded bg-[var(--p-accent)] text-white font-medium">Speichern</button>
+    <a href="/admin/settings/users" class="p-link text-sm">Abbrechen</a>
+  </div>
+</form>
+
+{% if mode == 'edit' and not is_self %}
+<form method="post" action="/admin/settings/users/{{ record.username }}/delete" class="mt-8 border-t border-[var(--p-border)] pt-6" onsubmit="return confirm('Nutzer wirklich löschen?');">
+  <button type="submit" class="p-status-bad text-sm hover:opacity-80">Nutzer löschen</button>
+</form>
+{% elif mode == 'edit' and is_self %}
+<p class="text-xs p-faint mt-8">Eigenes Konto kann hier nicht gelöscht werden.</p>
+{% endif %}
+{% endblock %}

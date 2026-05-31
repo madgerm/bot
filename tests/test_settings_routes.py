@@ -8,7 +8,6 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from bot.config.models import MediaGlobalConfig
 from bot.config.media_admin import load_media_global, save_media_global
 from bot.web import create_app
 
@@ -64,7 +63,7 @@ def test_settings_requires_admin(client: TestClient) -> None:
     assert r.status_code == 200
     assert "Einstellungen" in r.text
     assert "Nutzer" in r.text
-    assert "Phase 1" in r.text
+    assert "/admin/settings/users" in r.text
     assert "/admin/media" in r.text
 
 

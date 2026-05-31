@@ -9,9 +9,9 @@ from typing import Any
 
 import httpx
 
-from bot.config import ConfigLoadError, load_runtime_config
-from bot.messages.models import Message
+from bot.config import load_runtime_config
 from bot.dashboard import AgentStatus, TeamDashboard, build_team_dashboard
+from bot.messages.models import Message
 
 
 class TeamHostError(Exception):

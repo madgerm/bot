@@ -33,7 +33,8 @@ def _agent_worker_main(
         format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
     )
     from bot.config import load_runtime_config
-    from bot.config.models import AgentBlock, AgentConfig as AgentCfg
+    from bot.config.models import AgentBlock
+    from bot.config.models import AgentConfig as AgentCfg
     from bot.llm import build_llm_stack
     from bot.runtime.agent import AgentRunner
 

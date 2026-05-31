@@ -5,9 +5,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from pathlib import Path
 
-from bot.messages import MessageError, MessageService, open_message_service
+from bot.messages import MessageError, open_message_service
 
 
 def _print_message(message) -> None:

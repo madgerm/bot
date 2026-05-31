@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 from bot.runtime.context import HandlerContext
@@ -151,7 +150,7 @@ class AgentToolkit:
                 )
                 hits = data.get("hits", [])
             else:
-                from bot.qdrant.service import QdrantService, QdrantServiceError
+                from bot.qdrant.service import QdrantService
 
                 service = QdrantService.from_root(self.ctx.root)
                 hits = service.search(
@@ -186,7 +185,7 @@ class AgentToolkit:
                 info = data.get("info", {})
                 text = str(data.get("body_text", ""))
             else:
-                from bot.browser.service import BrowserService, BrowserServiceError
+                from bot.browser.service import BrowserService
 
                 info = BrowserService.for_team(self.ctx.root, self.ctx.team_id).open_url_with_body(
                     url
@@ -329,7 +328,7 @@ def run_tool_loop(
     model = ctx.llm_stack.router.resolve(category, role=ctx.role)
     fallbacks = ctx.llm_stack.router.fallbacks(category, role=ctx.role)
 
-    for step in range(max_steps):
+    for _step in range(max_steps):
         raw = ctx.llm_stack.client.complete(
             model, messages, fallbacks=fallbacks or None
         )

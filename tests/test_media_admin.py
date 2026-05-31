@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from bot.config.media_admin import load_media_global, load_team_media_file, save_media_global
+from bot.config.media_admin import load_media_global, save_media_global
 from bot.config.models import MediaGlobalConfig
 
 
@@ -19,6 +19,7 @@ def test_save_media_global_roundtrip(runtime_project: Path) -> None:
 
 def test_admin_media_page(web_project: Path) -> None:
     from fastapi.testclient import TestClient
+
     from bot.web import create_app
 
     client = TestClient(create_app(web_project))

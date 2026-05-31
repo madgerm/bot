@@ -29,6 +29,7 @@ class UserRecord(BaseModel):
     role: Literal["admin", "user"] = "user"
     teams: list[str] = Field(default_factory=list)
     team_access: list[TeamAccessRecord] = Field(default_factory=list)
+    enabled: bool = True
 
 
 class UsersConfig(BaseModel):
@@ -87,6 +88,8 @@ def _team_access_map(record: UserRecord) -> dict[str, Literal["reader", "operato
 def authenticate(root: Path, username: str, password: str) -> SessionUser | None:
     cfg = load_users_config(root)
     for record in cfg.users:
+        if not record.enabled:
+            continue
         if record.username == username and verify_password(password, record.password):
             access = _team_access_map(record)
             teams = sorted(set(record.teams) | set(access.keys()))

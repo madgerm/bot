@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from bot.config.models import PipelineConfig, TeamBundle, TeamConfig
+from bot.config.models import PipelineConfig, TeamBundle
 
 
 @dataclass(frozen=True)

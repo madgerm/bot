@@ -4,9 +4,14 @@ from unittest.mock import patch
 
 import pytest
 
-from bot.approval.status import ApprovalError
-from bot.mail.config import validate_recipient
-from bot.mail.config import EmailRules, EmailTeamConfig, ImapConfig, SmtpConfig
+from bot.mail.config import (
+    EmailConfigError,
+    EmailRules,
+    EmailTeamConfig,
+    ImapConfig,
+    SmtpConfig,
+    validate_recipient,
+)
 from bot.mail.service import MailService, MailServiceError
 from bot.mail.store import MailStore
 
@@ -30,7 +35,7 @@ def _email_cfg() -> EmailTeamConfig:
 def test_validate_recipient_domain() -> None:
     cfg = _email_cfg()
     validate_recipient(cfg, "a@test.de")
-    with pytest.raises(Exception):
+    with pytest.raises(EmailConfigError):
         validate_recipient(cfg, "a@other.com")
 
 

@@ -164,16 +164,16 @@ Reihenfolge: Infrastruktur zuerst, dann global, dann Team, dann Agent-Tiefe, dan
 
 ---
 
-### Phase 1 — Nutzer & Navigation (ca. 1 PR)
+### Phase 1 — Nutzer & Navigation (ca. 1 PR) ✅
 
 **Ziel:** Nutzer vollständig im Panel.
 
-- [ ] `/admin/settings/users` — Liste, anlegen, Rolle, Teams, aktiv/deaktiviert
-- [ ] Passwort setzen: `bot auth hash-password` Logik in `users_admin.py` wiederverwenden (bcrypt)
-- [ ] Nutzer löschen / Team-Zugriff (`team_access`) editieren
-- [ ] Admin-Startseite: Kacheln zu Settings
+- [x] `/admin/settings/users` — Liste, anlegen, Rolle, Teams, aktiv/deaktiviert
+- [x] Passwort setzen: bcrypt via `hash_password` in `users_admin.py`
+- [x] Nutzer löschen / Team-Zugriff (`team_access`) editieren
+- [x] Settings-Übersicht verlinkt Nutzer
 
-**Akzeptanz:** Neuer Operator-User nur über Panel; Login funktioniert; Audit-Eintrag.
+**Akzeptanz:** Neuer User nur über Panel; Login funktioniert; Audit-Eintrag (`config` / `user_*`).
 
 ---
 
@@ -313,7 +313,7 @@ Alles andere (Welches LLM, welche Crawl-URL, welcher Agent welche Rolle, welcher
 ## Nächste Schritte (sofort)
 
 1. [x] Phase 0 PR: `config/writers` + `/admin/settings` Gerüst  
-2. [ ] Phase 1 PR: Nutzer-UI  
+2. [x] Phase 1 PR: Nutzer-UI  
 3. [ ] Phase 2a PR: LLM + task_models  
 4. [ ] Danach Team/Agents (Phase 3) — dein Hauptfokus  
 
