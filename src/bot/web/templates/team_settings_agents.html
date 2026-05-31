@@ -18,6 +18,7 @@
         <th class="px-4 py-2">Intervall</th>
         <th class="px-4 py-2">Tools</th>
         <th class="px-4 py-2">Wissen</th>
+        <th class="px-4 py-2">LLM</th>
         <th class="px-4 py-2"></th>
       </tr>
     </thead>
@@ -33,6 +34,7 @@
         <td class="px-4 py-2 text-xs p-faint">{{ a.interval_seconds or 'global' }}</td>
         <td class="px-4 py-2 text-xs p-faint">{{ a.tools_summary }}</td>
         <td class="px-4 py-2 text-xs p-faint">{{ a.knowledge_summary }}</td>
+        <td class="px-4 py-2 text-xs font-mono p-faint">{{ a.llm_model or '—' }}</td>
         <td class="px-4 py-2 text-right">
           <a href="/teams/{{ team_id }}/settings/agents/{{ a.id }}" class="p-link text-xs">Bearbeiten</a>
         </td>

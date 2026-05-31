@@ -87,9 +87,11 @@ class AgentHandler:
         system_prompt: str,
         task_category: str | None = None,
         tools: frozenset[str] | None = None,
+        user_content: str | None = None,
     ) -> str:
         category = task_category or message.task_category or self.default_category
-        user_content = f"Betreff: {message.subject}\n\n{message.content}"
+        if user_content is None:
+            user_content = f"Betreff: {message.subject}\n\n{message.content}"
         effective_tools = (
             tools if tools is not None else resolve_allowed_tools(ctx.role, ctx.agent)
         )
@@ -103,6 +105,7 @@ class AgentHandler:
                 user_content=user_content,
                 task_category=category,
                 tools=effective_tools,
+                message_model_override=message.model_override,
             )
         except LlmError as exc:
             raise RuntimeError(str(exc)) from exc
@@ -118,6 +121,76 @@ class OrchestratorHandler(AgentHandler):
 
         if message.type in {"delegation_result", "hours_check_result"}:
             return HandlerResult(complete=True)
+
+        if message.type == "chat.user":
+            from bot.chat import ChatStore
+            from bot.chat.orchestrator_bridge import format_chat_context
+
+            history = format_chat_context(ctx.root, ctx.team_id)
+            prompt_user = (
+                f"Bisheriger Team-Chat:\n{history}\n\n"
+                f"Aktuelle Anfrage:\n{message.content}\n\n"
+                "Du bist der Orchestrator. Erstelle einen klaren Plan: welche Schritte, "
+                "welche Agent-Rollen/IDs. Delegiere noch NICHT — der Nutzer muss "
+                "erst freigeben. Ende mit kurzer Zusammenfassung für den Nutzer."
+            )
+            plan = self._run_with_tools(
+                ctx,
+                message,
+                system_prompt=(
+                    "Du sprichst mit dem menschlichen Team-Leiter im Panel-Chat. "
+                    "Antworte auf Deutsch, verständlich, ohne interne JSON-Formate."
+                ),
+                task_category="planning",
+                user_content=prompt_user,
+            )
+            ChatStore(ctx.root, ctx.team_id).add(
+                role="assistant",
+                content=plan,
+                agent_id=ctx.agent_id,
+                metadata={"awaiting_approval": True, "internal_message_id": message.id},
+            )
+            return HandlerResult(complete=True)
+
+        if message.type == "chat.approve":
+            from bot.chat import ChatStore
+            from bot.chat.orchestrator_bridge import format_chat_context
+
+            history = format_chat_context(ctx.root, ctx.team_id)
+            prompt_user = (
+                f"Team-Chat:\n{history}\n\n"
+                "Der Nutzer hat den Plan freigegeben (z. B. „so ist top“). "
+                "Setze jetzt um: formuliere die Aufgabe für den Ausführungs-Agenten."
+            )
+            plan = self._run_with_tools(
+                ctx,
+                message,
+                system_prompt=(
+                    "Orchestrator nach Freigabe. Nutze Tools wenn nötig. "
+                    "Danach kurze Bestätigung für den Nutzer-Chat."
+                ),
+                task_category="planning",
+                user_content=prompt_user,
+            )
+            ChatStore(ctx.root, ctx.team_id).add(
+                role="assistant",
+                content=f"Freigegeben — Aufgabe an {pipe.execute_id} delegiert.\n\n{plan}",
+                agent_id=ctx.agent_id,
+                metadata={"awaiting_approval": False},
+            )
+            body = f"{message.content.rstrip()}\n\n--- Ausführung ---\n{plan}"
+            return HandlerResult(
+                complete=True,
+                delegates=[
+                    DelegateRequest(
+                        to_agent=pipe.execute_id,
+                        subject=message.subject or "Chat-Aufgabe",
+                        content=body,
+                        type="task",
+                        task_category=message.task_category or "coding",
+                    )
+                ],
+            )
 
         if message.from_agent == pipe.review_id:
             return HandlerResult(complete=True)

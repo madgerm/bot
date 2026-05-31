@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 
 from bot.agents_mgmt import AgentManager, AgentManagerError
 from bot.config.models import AgentBlock
+from bot.config.writers.task_models_admin import load_task_models_admin
 from bot.config.writers.team_admin import (
     TeamAdminError,
     list_agent_ids,
@@ -63,18 +64,35 @@ def _enrich_agent_rows(agents: list[dict]) -> list[dict]:
             tools_allow=row.get("tools_allow") or [],
             tools_deny=row.get("tools_deny") or [],
             qdrant_collections=row.get("qdrant_collections") or [],
+            llm_model=row.get("llm_model"),
+            default_task_assignee=row.get("default_task_assignee"),
         )
         row["tools_summary"] = agent_tools_summary(block.role, block)
         row["knowledge_summary"] = agent_knowledge_summary(block)
     return agents
 
 
-def _agent_form_extras(block: AgentBlock | None = None, *, role: str = "worker") -> dict:
+def _model_hints(root_path: Path) -> list[str]:
+    hints: set[str] = set()
+    try:
+        cfg = load_task_models_admin(root_path)
+        for entry in cfg.task_models.values():
+            hints.add(entry.default)
+            hints.update(entry.alternatives)
+    except Exception:
+        pass
+    return sorted(hints)
+
+
+def _agent_form_extras(
+    block: AgentBlock | None = None, *, role: str = "worker", root_path: Path | None = None
+) -> dict:
     eff_role = block.role if block else role
     agent = block
     return {
         "tool_choices": TOOL_CHOICES,
         "knowledge_choices": KNOWLEDGE_CHOICES,
+        "model_hints": _model_hints(root_path) if root_path else [],
         "use_custom_tools": bool(block and block.tools_allow),
         "selected_tools": set(block.tools_allow) if block and block.tools_allow else set(),
         "selected_deny": set(block.tools_deny) if block and block.tools_deny else set(),
@@ -283,7 +301,7 @@ def register_team_settings_routes(
                 agent=None,
                 roles=AGENT_ROLES,
                 error=None,
-                **_agent_form_extras(),
+                **_agent_form_extras(root_path=root_path),
             ),
         )
 
@@ -311,7 +329,7 @@ def register_team_settings_routes(
                 roles=AGENT_ROLES,
                 is_orchestrator=agent_id == orch,
                 error=None,
-                **_agent_form_extras(block),
+                **_agent_form_extras(block, root_path=root_path),
             ),
         )
 
@@ -336,6 +354,7 @@ def register_team_settings_routes(
         tools_allow, tools_deny = _parse_agent_tools_from_form(form)
         knowledge = _parse_knowledge_from_form(form)
         default_assignee = form.get("default_task_assignee") == "on"
+        llm_model = str(form.get("llm_model", "")).strip() or None
         try:
             mgr.create_agent(
                 team_id,
@@ -354,6 +373,7 @@ def register_team_settings_routes(
                 tools_deny=tools_deny,
                 qdrant_collections=knowledge,
                 default_task_assignee=default_assignee,
+                llm_model=llm_model,
             )
         except AgentManagerError as exc:
             return templates.TemplateResponse(
@@ -368,7 +388,7 @@ def register_team_settings_routes(
                     roles=AGENT_ROLES,
                     error=str(exc),
                     form_agent_id=agent_id,
-                    **_agent_form_extras(role=role),
+                    **_agent_form_extras(role=role, root_path=root_path),
                 ),
                 status_code=400,
             )
@@ -398,6 +418,7 @@ def register_team_settings_routes(
         tools_allow, tools_deny = _parse_agent_tools_from_form(form)
         knowledge = _parse_knowledge_from_form(form)
         default_assignee = form.get("default_task_assignee") == "on"
+        llm_model = str(form.get("llm_model", "")).strip() or None
         try:
             mgr.update_agent(
                 team_id,
@@ -412,6 +433,7 @@ def register_team_settings_routes(
                 tools_deny=tools_deny,
                 qdrant_collections=knowledge,
                 default_task_assignee=default_assignee,
+                llm_model=llm_model,
             )
         except AgentManagerError as exc:
             block = mgr.get_agent_block(team_id, agent_id)
@@ -429,7 +451,7 @@ def register_team_settings_routes(
                     roles=AGENT_ROLES,
                     is_orchestrator=agent_id == orch,
                     error=str(exc),
-                    **_agent_form_extras(block),
+                    **_agent_form_extras(block, root_path=root_path),
                 ),
                 status_code=400,
             )
