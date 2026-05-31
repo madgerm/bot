@@ -1,8 +1,9 @@
-{% extends "base.html" %}
+{% extends "team_layout.html" %}
 {% block title %}Tasks — {{ team_id }}{% endblock %}
-{% block content %}
-<a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
-<h1 class="text-2xl font-bold mt-4 mb-6">Task Board</h1>
+{% block team_content %}
+<header class="p-page-header mb-6">
+  <h1 class="text-2xl font-bold">Aufgaben</h1>
+</header>
 <form method="post" action="/teams/{{ team_id }}/tasks/create" class="mb-8 flex flex-wrap gap-2">
   <input name="title" required placeholder="Titel" class="p-input flex-1 min-w-[200px]">
   <input name="description" placeholder="Beschreibung" class="p-input flex-1 min-w-[200px]">

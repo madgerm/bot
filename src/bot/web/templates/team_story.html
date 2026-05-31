@@ -1,8 +1,9 @@
-{% extends "base.html" %}
+{% extends "team_layout.html" %}
 {% block title %}Story — {{ team_id }}{% endblock %}
-{% block content %}
-<a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
-<h1 class="text-2xl font-bold mt-4 mb-2">Story Studio</h1>
+{% block team_content %}
+<header class="p-page-header mb-6">
+  <h1 class="text-2xl font-bold">Story Studio</h1>
+</header>
 <p class="p-muted text-sm mb-6">
   Dateibasiert unter <code>data/{{ team_id }}/story/</code> — wie im Story-Plan (AGENTS.md, characters/, world/, chapters/).
 </p>

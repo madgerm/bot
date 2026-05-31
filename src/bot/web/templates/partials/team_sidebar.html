@@ -1,0 +1,80 @@
+{% set path = request.url.path %}
+{% set tid = team_id %}
+{% set tname = team_name or team_display_name(tid) %}
+
+<aside class="p-team-sidebar" aria-label="Team-Navigation">
+  <div class="p-team-sidebar__head">
+    <a href="/teams/{{ tid }}" class="p-team-sidebar__title">{{ tname }}</a>
+    <p class="p-team-sidebar__meta"><code>{{ tid }}</code></p>
+  </div>
+
+  <nav class="p-team-nav">
+    <p class="p-team-nav__group">Start</p>
+    <a href="/teams/{{ tid }}"
+      class="p-team-nav__link{% if path == '/teams/' ~ tid or path == '/teams/' ~ tid ~ '/' %} is-active{% endif %}">
+      Übersicht
+    </a>
+
+    <p class="p-team-nav__group">Zusammenarbeit</p>
+    <a href="/teams/{{ tid }}/chat"
+      class="p-team-nav__link{% if '/chat' in path %} is-active{% endif %}">
+      Chat · Orchestrator
+    </a>
+    <a href="/teams/{{ tid }}/verification"
+      class="p-team-nav__link{% if '/verification' in path %} is-active{% endif %}">
+      Prüfungen
+    </a>
+    <a href="/teams/{{ tid }}/tasks"
+      class="p-team-nav__link{% if '/tasks' in path %} is-active{% endif %}">
+      Aufgaben
+    </a>
+
+    <p class="p-team-nav__group">Wissen & Inhalt</p>
+    <a href="/teams/{{ tid }}/knowledge"
+      class="p-team-nav__link{% if '/knowledge' in path %} is-active{% endif %}">
+      Wissen
+    </a>
+    <a href="/teams/{{ tid }}/media"
+      class="p-team-nav__link{% if path.endswith('/media') %} is-active{% endif %}">
+      Medien
+    </a>
+    <a href="/teams/{{ tid }}/story"
+      class="p-team-nav__link{% if '/story' in path %} is-active{% endif %}">
+      Story
+    </a>
+
+    <p class="p-team-nav__group">Betrieb</p>
+    <a href="/teams/{{ tid }}/mail"
+      class="p-team-nav__link{% if '/mail' in path %} is-active{% endif %}">
+      E-Mail
+    </a>
+    <a href="/teams/{{ tid }}/hours"
+      class="p-team-nav__link{% if '/hours' in path %} is-active{% endif %}">
+      Öffnungszeiten
+    </a>
+    <a href="/teams/{{ tid }}/crawl"
+      class="p-team-nav__link{% if '/crawl' in path %} is-active{% endif %}">
+      Crawl
+    </a>
+
+    <p class="p-team-nav__group">Technik</p>
+    <a href="/teams/{{ tid }}/files"
+      class="p-team-nav__link{% if '/files' in path %} is-active{% endif %}">
+      Dateien
+    </a>
+    <a href="/teams/{{ tid }}/git"
+      class="p-team-nav__link{% if path.endswith('/git') %} is-active{% endif %}">
+      Git
+    </a>
+    <a href="/teams/{{ tid }}/settings"
+      class="p-team-nav__link{% if '/settings' in path %} is-active{% endif %}">
+      Einstellungen
+    </a>
+    <a href="/teams/{{ tid }}/settings/agents"
+      class="p-team-nav__link{% if '/settings/agents' in path %} is-active{% endif %}">
+      Agents
+    </a>
+  </nav>
+
+  <a href="/dashboard" class="p-team-sidebar__back">← Alle Teams</a>
+</aside>

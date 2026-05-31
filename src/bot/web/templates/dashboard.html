@@ -1,30 +1,32 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — Bot Panel{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold mb-2">Dashboard</h1>
-<p class="p-muted mb-8">System: <span class="p-secondary">{{ system_name }}</span></p>
+<header class="p-dashboard-hero">
+  <h1>Teams</h1>
+  <p class="p-muted text-sm mt-1">System: <span class="p-secondary">{{ system_name }}</span></p>
+</header>
 
-<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
   {% for team in teams %}
-  <a href="/teams/{{ team.id }}"
-    class="block p-5 p-card-hover">
+  <a href="/teams/{{ team.id }}" class="p-card-hover p-team-card">
     <h2 class="font-semibold text-lg">{{ team.name }}</h2>
-    <p class="text-sm p-muted mt-1">ID: {{ team.id }}</p>
-    <p class="text-sm mt-2">
+    <p class="text-sm p-muted mt-1">ID: <code>{{ team.id }}</code></p>
+    <p class="text-sm mt-3">
       <span class="{% if team.enabled %}p-status-ok{% else %}p-status-warn{% endif %}">
         {% if team.enabled %}aktiv{% else %}deaktiviert{% endif %}
       </span>
-      · {{ team.agent_count }} Agent(s)
+      <span class="p-faint"> · </span>
+      {{ team.agent_count }} Agent{% if team.agent_count != 1 %}s{% endif %}
     </p>
     {% if team.connection %}
-    <p class="text-xs p-faint mt-1">Runner: {{ team.connection }}</p>
+    <p class="text-xs p-faint mt-2">Runner: {{ team.connection }}</p>
     {% endif %}
     {% if team.error %}
-    <p class="text-xs p-status-bad mt-1">{{ team.error }}</p>
+    <p class="text-xs p-status-bad mt-2">{{ team.error }}</p>
     {% endif %}
   </a>
   {% else %}
-  <p class="p-muted">Keine Teams sichtbar.</p>
+  <p class="p-muted col-span-full">Keine Teams sichtbar. Als Admin können Sie ein Team anlegen.</p>
   {% endfor %}
 </div>
 {% endblock %}

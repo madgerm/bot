@@ -1,25 +1,28 @@
 {% extends "base.html" %}
 {% block title %}Anmelden — Bot Panel{% endblock %}
 {% block content %}
-<div class="max-w-md mx-auto mt-16">
-  <h1 class="text-2xl font-bold mb-6">Anmelden</h1>
+<div class="p-login-wrap">
+  <header class="text-center mb-8">
+    <h1 class="text-2xl font-bold tracking-tight">Bot Panel</h1>
+    <p class="p-muted text-sm mt-2">Melden Sie sich an, um Teams und Agents zu verwalten.</p>
+  </header>
   {% if error %}
-  <div class="mb-4 p-3 rounded p-alert-error">{{ error }}</div>
+  <div class="mb-4 p-3 rounded p-alert-error" role="alert">{{ error }}</div>
   {% endif %}
-  <form method="post" action="/login" class="space-y-4 p-card p-6">
+  <form method="post" action="/login" class="p-card p-login-card space-y-4">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <div>
       <label class="p-label" for="username">Benutzer</label>
-      <input id="username" name="username" type="text" required
+      <input id="username" name="username" type="text" required autocomplete="username"
         class="p-input">
     </div>
     <div>
       <label class="p-label" for="password">Passwort</label>
-      <input id="password" name="password" type="password" required
+      <input id="password" name="password" type="password" required autocomplete="current-password"
         class="p-input">
     </div>
-    <button type="submit" class="p-btn p-btn-primary w-full py-2">Einloggen</button>
+    <button type="submit" class="p-btn p-btn-primary w-full py-2.5">Einloggen</button>
   </form>
-  <p class="mt-4 text-xs p-faint">Demo: admin/changeme oder demo/changeme</p>
+  <p class="mt-5 text-xs p-faint text-center">Demo: <code>admin</code> / <code>changeme</code></p>
 </div>
 {% endblock %}

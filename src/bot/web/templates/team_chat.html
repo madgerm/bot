@@ -1,16 +1,13 @@
-{% extends "base.html" %}
+{% extends "team_layout.html" %}
 {% block title %}Chat — {{ team_id }}{% endblock %}
-{% block content %}
-<div class="mb-6 flex flex-wrap gap-4 items-center">
-  <a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
-  <a href="/teams/{{ team_id }}/knowledge" class="text-sm p-link">Wissen</a>
-  <a href="/teams/{{ team_id }}/settings/agents" class="text-sm p-link">Agents</a>
+{% block team_content %}
+<header class="p-page-header mb-6">
   {% if direct_agent %}
   <h1 class="text-2xl font-bold">Direkt-PM · <code>{{ direct_agent }}</code></h1>
   {% else %}
   <h1 class="text-2xl font-bold">Team-Chat · Orchestrator</h1>
   {% endif %}
-</div>
+</header>
 
 <div class="grid lg:grid-cols-[220px_1fr] gap-6">
   <aside class="p-card p-4 text-sm h-fit">

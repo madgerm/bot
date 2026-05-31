@@ -1,71 +1,96 @@
-{% extends "base.html" %}
+{% extends "team_layout.html" %}
 {% block title %}{{ dashboard.team_name }} — Bot Panel{% endblock %}
-{% block content %}
-<div class="mb-6">
-  <a href="/dashboard" class="text-sm p-link">← Dashboard</a>
-  <div class="flex flex-wrap gap-4 mt-2 text-sm">
-    <a href="/teams/{{ team_id }}/chat" class="p-link">Chat (SQLite)</a>
-    <a href="/teams/{{ team_id }}/verification" class="p-link">Prüfungen</a>
-    <a href="/teams/{{ team_id }}/knowledge" class="p-link">Wissen (Qdrant)</a>
-    <a href="/teams/{{ team_id }}/mail" class="p-link">E-Mail</a>
-    <a href="/teams/{{ team_id }}/hours" class="p-link">Öffnungszeiten</a>
-    <a href="/teams/{{ team_id }}/tasks" class="p-link">Tasks</a>
-    <a href="/teams/{{ team_id }}/settings" class="p-link">Einstellungen</a>
-    <a href="/teams/{{ team_id }}/agents" class="p-link">Agents (kurz)</a>
-    <a href="/teams/{{ team_id }}/files" class="p-link">Dateien</a>
-    <a href="/teams/{{ team_id }}/git" class="p-link">Git</a>
-    <a href="/teams/{{ team_id }}/story" class="p-link">Story</a>
-    <a href="/teams/{{ team_id }}/media" class="p-link">Medien</a>
-    <a href="/teams/{{ team_id }}/crawl" class="p-link">Crawl</a>
-  </div>
-  <h1 class="text-2xl font-bold mt-2">{{ dashboard.team_name }}</h1>
-  <p class="p-muted text-sm">Team <code class="p-secondary">{{ dashboard.team_id }}</code>
-    · Orchestrator: {{ dashboard.orchestrator_id }}</p>
-  <p class="text-xs p-faint mt-1">Team-Runner ({{ host_label }}): <code>{{ connection }}</code></p>
-</div>
+{% block team_content %}
+<header class="p-page-header mb-8">
+  <h1 class="text-2xl font-bold tracking-tight">{{ dashboard.team_name }}</h1>
+  <p class="p-muted text-sm mt-2">
+    ID <code>{{ dashboard.team_id }}</code>
+    · Orchestrator <code>{{ dashboard.orchestrator_id }}</code>
+  </p>
+  <p class="text-xs p-faint mt-1">Runner ({{ host_label }}): <code>{{ connection }}</code></p>
+</header>
 
-<div class="space-y-6">
-  {% for agent in dashboard.agents %}
-  <section class="p-card overflow-hidden agent-dash-card cursor-pointer"
-    data-chat-url="/teams/{{ team_id }}/chat?direct={{ agent.agent_id }}"
-    title="Doppelklick: Direkt-PM (Orchestrator über Chat-Link oben)">
-    <div class="px-5 py-4 p-divider flex flex-wrap items-center justify-between gap-2">
-      <div>
-        <h2 class="font-semibold">
-          <a href="/teams/{{ team_id }}/chat?direct={{ agent.agent_id }}" class="p-link" onclick="event.stopPropagation()">{{ agent.agent_id }}</a>
-        </h2>
-        <span class="text-xs uppercase tracking-wide p-faint">{{ agent.role }}</span>
+<section class="mb-10" aria-labelledby="team-quick-heading">
+  <h2 id="team-quick-heading" class="p-section-title">Bereiche</h2>
+  <div class="p-hub-grid">
+    <a href="/teams/{{ team_id }}/chat" class="p-hub-card">
+      <span class="p-hub-card__icon" aria-hidden="true">💬</span>
+      <span class="p-hub-card__title">Chat</span>
+      <span class="p-hub-card__desc">Orchestrator & Direkt-PM</span>
+    </a>
+    <a href="/teams/{{ team_id }}/verification" class="p-hub-card">
+      <span class="p-hub-card__icon" aria-hidden="true">✓</span>
+      <span class="p-hub-card__title">Prüfungen</span>
+      <span class="p-hub-card__desc">Fragen-Team & Freigaben</span>
+    </a>
+    <a href="/teams/{{ team_id }}/tasks" class="p-hub-card">
+      <span class="p-hub-card__icon" aria-hidden="true">☑</span>
+      <span class="p-hub-card__title">Aufgaben</span>
+      <span class="p-hub-card__desc">Tasks & Status</span>
+    </a>
+    <a href="/teams/{{ team_id }}/knowledge" class="p-hub-card">
+      <span class="p-hub-card__icon" aria-hidden="true">📚</span>
+      <span class="p-hub-card__title">Wissen</span>
+      <span class="p-hub-card__desc">Qdrant & Suche</span>
+    </a>
+    <a href="/teams/{{ team_id }}/mail" class="p-hub-card">
+      <span class="p-hub-card__icon" aria-hidden="true">✉</span>
+      <span class="p-hub-card__title">E-Mail</span>
+      <span class="p-hub-card__desc">Postfach & Threads</span>
+    </a>
+    <a href="/teams/{{ team_id }}/settings" class="p-hub-card">
+      <span class="p-hub-card__icon" aria-hidden="true">⚙</span>
+      <span class="p-hub-card__title">Einstellungen</span>
+      <span class="p-hub-card__desc">Team, Agents, Pipeline</span>
+    </a>
+  </div>
+</section>
+
+<section aria-labelledby="team-agents-heading">
+  <h2 id="team-agents-heading" class="p-section-title">Agents & letzte Nachrichten</h2>
+  <p class="text-sm p-faint mb-4">Doppelklick auf eine Karte öffnet den Direkt-Chat.</p>
+  <div class="space-y-6">
+    {% for agent in dashboard.agents %}
+    <section class="p-card overflow-hidden agent-dash-card cursor-pointer"
+      data-chat-url="/teams/{{ team_id }}/chat?direct={{ agent.agent_id }}">
+      <div class="px-5 py-4 p-divider flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 class="font-semibold">
+            <a href="/teams/{{ team_id }}/chat?direct={{ agent.agent_id }}" class="p-link"
+              onclick="event.stopPropagation()">{{ agent.agent_id }}</a>
+          </h3>
+          <span class="text-xs uppercase tracking-wide p-faint">{{ agent.role }}</span>
+        </div>
+        <div class="flex gap-3 text-sm">
+          <span class="p-status-warn">pending {{ agent.pending }}</span>
+          <span class="p-secondary">processing {{ agent.processing }}</span>
+          <span class="p-status-ok">done {{ agent.done }}</span>
+          <span class="p-status-bad">failed {{ agent.failed }}</span>
+        </div>
       </div>
-      <div class="flex gap-3 text-sm">
-        <span class="p-status-warn">pending {{ agent.pending }}</span>
-        <span class="p-link">processing {{ agent.processing }}</span>
-        <span class="p-status-ok">done {{ agent.done }}</span>
-        <span class="p-status-bad">failed {{ agent.failed }}</span>
+      <div class="px-5 py-4">
+        {% if agent.recent %}
+        <ul class="space-y-2 text-sm">
+          {% for msg in agent.recent %}
+          <li class="p-list-item">
+            <div class="flex justify-between gap-2">
+              <span class="font-medium truncate">{{ msg.subject }}</span>
+              <span class="text-xs shrink-0 px-2 py-0.5 rounded
+                {% if msg.status == 'pending' %}p-chip p-chip-pending{% elif msg.status == 'processing' %}p-chip p-chip-processing{% elif msg.status == 'done' %}p-chip p-chip-done{% else %}p-chip p-chip-failed{% endif %}">{{ msg.status }}</span>
+            </div>
+            <p class="p-muted text-xs mt-1">{{ msg.from_agent }} → {{ msg.to_agent }}</p>
+            <p class="p-secondary mt-1 line-clamp-2">{{ msg.content[:200] }}{% if msg.content|length > 200 %}…{% endif %}</p>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="p-faint text-sm">Keine Messages.</p>
+        {% endif %}
       </div>
-    </div>
-    <div class="px-5 py-4">
-      <h3 class="text-xs p-faint uppercase mb-2">Letzte Messages</h3>
-      {% if agent.recent %}
-      <ul class="space-y-2 text-sm">
-        {% for msg in agent.recent %}
-        <li class="p-list-item">
-          <div class="flex justify-between gap-2">
-            <span class="font-medium truncate">{{ msg.subject }}</span>
-            <span class="text-xs shrink-0 px-2 py-0.5 rounded
-              {% if msg.status == 'pending' %}p-chip p-chip-pending{% elif msg.status == 'processing' %}p-chip p-chip-processing{% elif msg.status == 'done' %}p-chip p-chip-done{% else %}p-chip p-chip-failed{% endif %}">{{ msg.status }}</span>
-          </div>
-          <p class="p-muted text-xs mt-1">{{ msg.from_agent }} → {{ msg.to_agent }}</p>
-          <p class="p-secondary mt-1 line-clamp-2">{{ msg.content[:200] }}{% if msg.content|length > 200 %}…{% endif %}</p>
-        </li>
-        {% endfor %}
-      </ul>
-      {% else %}
-      <p class="p-faint text-sm">Keine Messages.</p>
-      {% endif %}
-    </div>
-  </section>
-  {% endfor %}
-</div>
+    </section>
+    {% endfor %}
+  </div>
+</section>
 <script>
 document.querySelectorAll('.agent-dash-card').forEach((card) => {
   card.addEventListener('dblclick', () => {

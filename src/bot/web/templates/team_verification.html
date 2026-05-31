@@ -1,12 +1,6 @@
-{% extends "base.html" %}
+{% extends "team_layout.html" %}
 {% block title %}Prüfungen — {{ team_id }}{% endblock %}
-{% block content %}
-<div class="mb-6 flex flex-wrap gap-4 items-center">
-  <a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
-  <a href="/teams/{{ team_id }}/chat" class="text-sm p-link">Chat</a>
-  <h1 class="text-2xl font-bold">Prüffragen</h1>
-</div>
-
+{% block team_content %}
 {% if not is_verification %}
 <p class="p-card p-4 text-sm p-muted mb-6">
   Dieses Team ist ein <strong>Aufgaben-Team</strong> (<code>workflow: tasks</code>).

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block main_class %}max-w-[1400px]{% endblock %}
+{% block content %}
+{% set team_name = team_name | default(team_display_name(team_id)) %}
+{% include "partials/breadcrumbs.html" %}
+<div class="p-team-shell">
+  {% include "partials/team_sidebar.html" %}
+  <div class="p-team-main">
+    {% block team_content %}{% endblock %}
+  </div>
+</div>
+{% endblock %}
