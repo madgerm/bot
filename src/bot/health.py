@@ -81,7 +81,9 @@ def collect_health(
     try:
         config = load_runtime_config(root_path)
         payload["system"] = config.system.system.name
-        payload["llm_enabled"] = config.system.system.llm.enabled
+        llm = config.system.system.llm
+        payload["llm_enabled"] = llm.enabled
+        payload["llm_mode"] = llm.mode if llm.enabled else None
         payload["worker_mode"] = config.system.system.polling.worker_mode
         payload["inbox_watch_seconds"] = config.system.system.polling.inbox_watch_seconds
     except ConfigLoadError:

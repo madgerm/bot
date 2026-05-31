@@ -1,0 +1,16 @@
+{
+  "system": {
+    "name": "bot-runner-vps",
+    "llm": {
+      "enabled": true,
+      "mode": "proxy",
+      "proxy": {
+        "base_url": "https://panel.example.lan:8080",
+        "token_env": "BOT_LLM_PROXY_TOKEN"
+      },
+      "api_base": "http://127.0.0.1:4000",
+      "secret_ref": "LITELLM_API_KEY",
+      "timeout_seconds": 300
+    }
+  }
+}

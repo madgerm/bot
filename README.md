@@ -220,27 +220,75 @@ Fertige Team-Presets: `teams/demo/`, `teams/coding/`, `teams/story/`.
 
 ## Remote: Web-Panel ↔ Team-Runner auf anderem Rechner
 
-Wenn der **Team-Runner** auf Server B läuft und das **Web-Panel** auf Server A, brauchst du:
+Typisches Setup: **Team-Runner auf VPS** (Internet), **Web-Panel + Ollama im LAN** — du steuerst alles nur über das Panel; Ollama muss vom VPS aus **nicht** erreichbar sein.
+
+### 1. Panel steuert Runner (Dashboard)
 
 1. HTTP-API auf dem Team-Runner (`bot team serve`)
-2. Ein gemeinsames **API-Token** (`bot team token`)
-3. Eintrag in `config/team_hosts.json` auf dem Web-Panel-Rechner
+2. Gemeinsames **API-Token** (`bot team token`)
+3. `config/team_hosts.json` auf dem Panel mit `mode: "remote"`
 
 ```bash
 bot team token --write-config
-# → export BOT_TEAM_API_TOKEN=...
 
-# Server B:
+# VPS (Team-Runner):
 export BOT_TEAM_API_TOKEN=<token>
-bot run --team demo
+bot run
 bot team serve --host 0.0.0.0 --port 8443
 
-# Server A:
+# LAN (Web-Panel):
 export BOT_TEAM_API_TOKEN=<derselbe-token>
 bot web
 ```
 
-Details und `team_hosts.json`-Beispiele siehe oben in der Architektur-Tabelle.
+### 2. Runner nutzt Panel als LLM-Proxy (Ollama nur im LAN)
+
+Agents auf dem VPS rufen **kein** Ollama direkt an, sondern `POST /api/v1/llm/complete` auf dem Panel; das Panel leitet an LiteLLM/Ollama weiter.
+
+| Rechner | `config/system.json` | Rolle |
+|---------|----------------------|--------|
+| **LAN (Panel)** | `llm.mode: "direct"`, `api_base` → Ollama/LiteLLM lokal | Proxy-Ziel |
+| **VPS (Runner)** | `llm.mode: "proxy"`, `llm.proxy.base_url` → Panel-URL | Agents |
+
+Beispiel-Konfigurationen: `config/system.panel-lan.example.json`, `config/system.runner-proxy.example.json`.
+
+**Panel (LAN)** — Ollama erreichbar, Proxy-API aktiv:
+
+```json
+"llm": {
+  "enabled": true,
+  "mode": "direct",
+  "api_base": "http://127.0.0.1:11434"
+}
+```
+
+```bash
+export BOT_LLM_PROXY_TOKEN=<langer-zufallswert>   # oder BOT_TEAM_API_TOKEN
+# optional config/team_api.json: { "token_env": "BOT_LLM_PROXY_TOKEN" }
+bot web --host 0.0.0.0 --port 8080
+```
+
+**Runner (VPS)** — nur Proxy, kein Ollama:
+
+```json
+"llm": {
+  "enabled": true,
+  "mode": "proxy",
+  "proxy": {
+    "base_url": "https://panel.dein-lan.de:8080",
+    "token_env": "BOT_LLM_PROXY_TOKEN"
+  }
+}
+```
+
+```bash
+export BOT_LLM_PROXY_TOKEN=<derselbe-wert-wie-am-panel>
+bot run
+```
+
+Das Panel muss vom VPS aus erreichbar sein (HTTPS, VPN, Tailscale oder Reverse-Tunnel). Latenz VPS ↔ LAN ist für die Agent-Loops unkritisch, solange das Panel erreichbar bleibt.
+
+**Hinweis:** Chat, Dateien und Qdrant nutzen weiterhin das Projekt-`root` am Panel — für volle Remote-Verwaltung gemeinsames Datenverzeichnis oder spätere API-Erweiterungen. Der **LLM-Proxy** deckt die Agent-Modellaufrufe ab.
 
 ---
 

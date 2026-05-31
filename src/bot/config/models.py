@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class AuthUser(BaseModel):
@@ -40,14 +40,32 @@ class PollingConfig(BaseModel):
     """thread = ein Thread pro Agent; process = eigener OS-Prozess (empfohlen)."""
 
 
+class LlmProxyConfig(BaseModel):
+    """Team-Runner (VPS) → Web-Panel (LAN) → Ollama/LiteLLM."""
+
+    base_url: str
+    """URL des Web-Panels, z. B. http://192.168.1.10:8080"""
+    token_env: str = "BOT_LLM_PROXY_TOKEN"
+    """Bearer-Token (gleicher Wert wie Panel-Seite in team_api.json / .env)."""
+
+
 class LlmConfig(BaseModel):
     enabled: bool = False
     provider: str = "litellm"
+    mode: Literal["direct", "proxy"] = "direct"
+    """direct: api_base lokal; proxy: Completion über Web-Panel."""
     api_base: str = "http://127.0.0.1:4000"
     secret_ref: str | None = None
+    proxy: LlmProxyConfig | None = None
     max_retries: int = Field(default=3, ge=1)
     retry_backoff_seconds: float = Field(default=1.0, ge=0)
     timeout_seconds: float = Field(default=120.0, gt=0)
+
+    @model_validator(mode="after")
+    def _validate_proxy_mode(self) -> LlmConfig:
+        if self.mode == "proxy" and self.proxy is None:
+            raise ValueError("llm.proxy ist erforderlich, wenn llm.mode=proxy")
+        return self
 
 
 class SystemBlock(BaseModel):

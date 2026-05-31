@@ -44,6 +44,8 @@ def _csrf_exempt(path: str) -> bool:
         return True
     if path.startswith("/api/v1/webhooks"):
         return True
+    if path.startswith("/api/v1/llm/"):
+        return True
     if path.startswith("/api/v1/integrations"):
         return True
     if path.startswith("/api/docs"):

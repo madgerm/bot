@@ -1,0 +1,12 @@
+{
+  "system": {
+    "name": "bot-panel-lan",
+    "llm": {
+      "enabled": true,
+      "mode": "direct",
+      "api_base": "http://127.0.0.1:11434",
+      "secret_ref": "LITELLM_API_KEY",
+      "timeout_seconds": 300
+    }
+  }
+}

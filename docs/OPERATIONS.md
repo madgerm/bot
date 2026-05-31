@@ -53,6 +53,8 @@ bot web
 
 Remote: zusätzlich `bot team serve` auf dem Runner-Rechner und `config/team_hosts.json` auf dem Panel.
 
+**Ollama nur im LAN:** Runner `llm.mode: proxy` → Panel `llm.mode: direct` — siehe README „LLM-Proxy“. Token: `BOT_LLM_PROXY_TOKEN` (Bearer wie Team-API).
+
 ## 3. Cron / periodische Jobs
 
 | Aufgabe | Beispiel |
