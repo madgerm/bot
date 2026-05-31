@@ -1,5 +1,5 @@
 """Betriebs-Hilfen (Upgrade, Neustart)."""
 
-from bot.ops.upgrade import UpgradeReport, run_panel_upgrade
+from bot.ops.upgrade import GitVersionInfo, UpgradeReport, collect_git_version, run_panel_upgrade
 
-__all__ = ["UpgradeReport", "run_panel_upgrade"]
+__all__ = ["GitVersionInfo", "UpgradeReport", "collect_git_version", "run_panel_upgrade"]

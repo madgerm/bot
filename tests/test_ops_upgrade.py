@@ -8,8 +8,14 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
-from bot.ops.upgrade import UpgradeStep, run_panel_upgrade
+from bot.ops.upgrade import UpgradeStep, collect_git_version, run_panel_upgrade
 from bot.web import create_app
+
+
+def test_collect_git_version_no_repo(tmp_path: Path) -> None:
+    info = collect_git_version(tmp_path, fetch=False)
+    assert info.is_repo is False
+    assert info.package_version
 
 
 def test_run_panel_upgrade_skips_git_without_repo(tmp_path: Path) -> None:
@@ -77,4 +83,5 @@ def test_admin_ops_page(ops_client: TestClient) -> None:
     r = ops_client.get("/admin/ops")
     assert r.status_code == 200
     assert "Update & Neustart" in r.text
-    assert "LLM" in r.text
+    assert "Lokal" in r.text
+    assert "Git" in r.text

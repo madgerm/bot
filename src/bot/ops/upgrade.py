@@ -13,6 +13,24 @@ SYSTEM_UNITS = USER_UNITS
 
 
 @dataclass
+class GitVersionInfo:
+    """Vergleich: was lokal läuft vs. was Git (Remote) anbietet."""
+
+    is_repo: bool
+    package_version: str
+    branch: str | None = None
+    local_short: str | None = None
+    local_subject: str | None = None
+    remote_ref: str | None = None
+    remote_short: str | None = None
+    commits_ahead: int = 0
+    commits_behind: int = 0
+    update_available: bool = False
+    fetch_ran: bool = False
+    error: str | None = None
+
+
+@dataclass
 class UpgradeStep:
     name: str
     ok: bool
@@ -26,6 +44,79 @@ class UpgradeReport:
     @property
     def success(self) -> bool:
         return all(s.ok for s in self.steps)
+
+
+def _git_line(cmd: list[str], *, cwd: Path, timeout: int = 30) -> str | None:
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=str(cwd),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        if proc.returncode != 0:
+            return None
+        return (proc.stdout or "").strip() or None
+    except (subprocess.TimeoutExpired, OSError):
+        return None
+
+
+def _package_version() -> str:
+    try:
+        from importlib.metadata import version
+
+        return version("bot")
+    except Exception:
+        return "0.1.0"
+
+
+def collect_git_version(root: Path | str, *, fetch: bool = True) -> GitVersionInfo:
+    """Lokal installierter Stand vs. Remote-Branch (nach optionalem git fetch)."""
+    root_path = Path(root).resolve()
+    pkg = _package_version()
+    if not (root_path / ".git").is_dir():
+        return GitVersionInfo(
+            is_repo=False,
+            package_version=pkg,
+            error="Kein Git-Repository — nur manuelles Kopieren/ pip install möglich.",
+        )
+
+    info = GitVersionInfo(is_repo=True, package_version=pkg)
+    if fetch:
+        fetch_step = _run(["git", "fetch", "--quiet"], cwd=root_path, timeout=90)
+        info.fetch_ran = True
+        if not fetch_step.ok:
+            info.error = f"git fetch: {fetch_step.detail[:200]}"
+
+    info.branch = _git_line(["git", "branch", "--show-current"], cwd=root_path)
+    info.local_short = _git_line(["git", "rev-parse", "--short", "HEAD"], cwd=root_path)
+    info.local_subject = _git_line(
+        ["git", "log", "-1", "--format=%s"],
+        cwd=root_path,
+    )
+
+    upstream = _git_line(["git", "rev-parse", "--abbrev-ref", "@{upstream}"], cwd=root_path)
+    if not upstream:
+        for fallback in ("origin/main", "origin/master"):
+            if _git_line(["git", "rev-parse", "--verify", fallback], cwd=root_path):
+                upstream = fallback
+                break
+    info.remote_ref = upstream
+    if upstream:
+        info.remote_short = _git_line(["git", "rev-parse", "--short", upstream], cwd=root_path)
+        counts = _git_line(
+            ["git", "rev-list", "--left-right", "--count", f"HEAD...{upstream}"],
+            cwd=root_path,
+        )
+        if counts:
+            parts = counts.split()
+            if len(parts) == 2:
+                info.commits_ahead = int(parts[0])
+                info.commits_behind = int(parts[1])
+                info.update_available = info.commits_behind > 0
+
+    return info
 
 
 def _run(cmd: list[str], *, cwd: Path | None = None, timeout: int = 300) -> UpgradeStep:

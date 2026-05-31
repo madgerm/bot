@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from bot.config import load_runtime_config
-from bot.ops.upgrade import run_panel_upgrade
+from bot.ops.upgrade import collect_git_version, run_panel_upgrade
 from bot.web.auth import CurrentUser, require_admin
 
 
@@ -37,6 +37,7 @@ def register_ops_routes(app: FastAPI, templates: Jinja2Templates, root: Path) ->
                 "user": user,
                 "root": str(root),
                 "llm": _llm_panel_status(root),
+                "git": collect_git_version(root, fetch=True),
             },
         )
 
@@ -59,6 +60,7 @@ def register_ops_routes(app: FastAPI, templates: Jinja2Templates, root: Path) ->
                 "user": user,
                 "root": str(root),
                 "llm": _llm_panel_status(root),
+                "git": collect_git_version(root, fetch=False),
                 "report": report,
             },
         )

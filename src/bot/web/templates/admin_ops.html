@@ -4,27 +4,71 @@
 <a href="/admin" class="text-sm p-link">← Admin</a>
 <h1 class="text-2xl font-bold mt-4 mb-2">Update & Neustart</h1>
 <p class="text-sm p-muted mb-6 max-w-2xl">
-  Aktualisiert Code und Python-Pakete im Installationsverzeichnis
-  <code>{{ root }}</code> und startet die systemd-Dienste
-  <code>bot-web-panel</code> und <code>bot-team-runner</code> neu (falls aktiv).
+  Vergleich <strong>Lokal (läuft gerade)</strong> mit <strong>Git (Remote)</strong> —
+  der Button holt die Remote-Version und startet Panel + Runner neu.
 </p>
+
+<section class="p-card p-5 mb-8 max-w-3xl">
+  <h2 class="font-semibold mb-4">Version: Lokal ↔ Git</h2>
+  {% if not git.is_repo %}
+  <p class="text-sm p-status-warn">{{ git.error or "Kein Git-Repo unter dem Installationspfad." }}</p>
+  <p class="text-xs p-faint mt-2">Paket-Version (pip): <code>{{ git.package_version }}</code></p>
+  {% else %}
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div class="p-list-item">
+      <p class="text-xs uppercase tracking-wide p-faint mb-2">Lokal (installiert & aktiv)</p>
+      <p class="font-mono text-sm">{{ git.local_short or '?' }}</p>
+      <p class="text-sm mt-1">Branch <code>{{ git.branch or '—' }}</code></p>
+      {% if git.local_subject %}
+      <p class="text-xs p-muted mt-2 line-clamp-2">{{ git.local_subject }}</p>
+      {% endif %}
+      <p class="text-xs p-faint mt-2">pip-Paket <code>bot=={{ git.package_version }}</code></p>
+      {% if git.commits_ahead > 0 %}
+      <p class="text-xs p-status-warn mt-2">{{ git.commits_ahead }} Commit(s) nur lokal (nicht gepusht)</p>
+      {% endif %}
+    </div>
+    <div class="p-list-item">
+      <p class="text-xs uppercase tracking-wide p-faint mb-2">Git (Remote)</p>
+      {% if git.remote_ref %}
+      <p class="font-mono text-sm">{{ git.remote_short or '?' }}</p>
+      <p class="text-sm mt-1"><code>{{ git.remote_ref }}</code></p>
+      {% if git.fetch_ran %}
+      <p class="text-xs p-faint mt-2">Stand nach <code>git fetch</code></p>
+      {% endif %}
+      {% else %}
+      <p class="text-sm p-muted">Kein Upstream — z. B. <code>git branch -u origin/main</code></p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="mt-4 p-3 rounded text-sm
+    {% if git.update_available %}border border-amber-500/50 bg-[var(--p-warn-bg)]{% else %}p-card-muted{% endif %}">
+    {% if git.update_available %}
+    <strong class="p-status-warn">Update verfügbar:</strong>
+    Remote ist <strong>{{ git.commits_behind }}</strong> Commit(s) voraus.
+    Mit „Jetzt aktualisieren“ wird <code>git pull</code> ausgeführt.
+    {% elif git.remote_ref %}
+    <span class="p-status-ok">Lokal ist auf dem gleichen Stand wie {{ git.remote_ref }}.</span>
+    {% else %}
+    <span class="p-muted">Remote-Vergleich nicht möglich (Upstream fehlt).</span>
+    {% endif %}
+  </div>
+  {% if git.error %}
+  <p class="text-xs p-status-bad mt-2">{{ git.error }}</p>
+  {% endif %}
+  <a href="/admin/ops" class="p-link text-xs mt-3 inline-block">Vergleich neu laden (git fetch)</a>
+  {% endif %}
+</section>
 
 <section class="p-card p-5 mb-8 max-w-2xl">
   <h2 class="font-semibold mb-2">LLM / Chat-Antworten</h2>
   {% if llm.uses_stub %}
   <p class="text-sm p-status-warn">
-    <strong>LLM ist deaktiviert</strong> (<code>system.json → llm.enabled: false</code>).
-    Chat-Antworten kommen dann vom eingebauten <strong>Python-Stub</strong>
-    (<code>[llm-stub …]</code>) — sehr schnell, <em>nicht</em> von Ollama.
+    <strong>LLM ist deaktiviert</strong> — Antworten vom Python-Stub (<code>[llm-stub]</code>), nicht Ollama.
   </p>
   {% else %}
   <p class="text-sm p-status-ok">
-    LLM aktiv · Modus <code>{{ llm.mode }}</code>
-    {% if llm.api_base %} · Basis <code>{{ llm.api_base }}</code>{% endif %}
-  </p>
-  <p class="text-xs p-faint mt-2">
-    Echte Antworten entstehen erst, wenn <code>bot run</code> läuft und das Modell antwortet
-    (Ollama/LiteLLM kann Sekunden bis Minuten brauchen).
+    LLM aktiv · <code>{{ llm.mode }}</code>
+    {% if llm.api_base %} · {{ llm.api_base }}{% endif %}
   </p>
   {% endif %}
   <a href="/admin/settings/system" class="p-link text-sm mt-2 inline-block">→ System-Einstellungen</a>
@@ -51,31 +95,30 @@
     {% endfor %}
   </ul>
   {% if report.success %}
-  <p class="text-sm p-muted mt-4">
-    Das Panel wurde ggf. neu gestartet — diese Seite nach ein paar Sekunden neu laden
-    (<kbd>F5</kbd>).
-  </p>
+  <p class="text-sm p-muted mt-4">Seite nach Neustart neu laden (<kbd>F5</kbd>).</p>
   {% endif %}
 </section>
 {% endif %}
 
 <form method="post" action="/admin/ops/upgrade" class="p-card p-5 max-w-2xl space-y-4">
   <p class="text-sm p-secondary">
-    Führt aus: <code>git pull --ff-only</code>, dann <code>pip install -e .</code>, dann
-    <code>systemctl restart</code> (user oder system).
+    <strong>Lokal → Git:</strong> <code>git pull --ff-only</code> · <code>pip install -e .</code> ·
+    Neustart <code>bot-web-panel</code> + <code>bot-team-runner</code>
   </p>
   <label class="flex items-start gap-2 text-sm">
     <input type="checkbox" name="confirm" value="yes" required class="mt-1">
-    <span>Ich möchte Bot-Panel und Team-Runner jetzt aktualisieren und neu starten.</span>
+    <span>Remote-Version holen und Dienste neu starten.</span>
   </label>
   <label class="flex items-center gap-2 text-sm p-muted">
     <input type="checkbox" name="skip_git" value="1">
-    <span>Git pull überspringen (nur pip + Neustart)</span>
+    <span>Nur pip + Neustart (Git pull überspringen)</span>
   </label>
-  <button type="submit" class="p-btn p-btn-primary">Jetzt aktualisieren</button>
+  <button type="submit" class="p-btn p-btn-primary">
+    {% if git.update_available %}Git-Update installieren{% else %}Neu installieren &amp; neu starten{% endif %}
+  </button>
 </form>
 
 <p class="text-xs p-faint mt-6 max-w-2xl">
-  Manuell auf dem Server: <code>cd {{ root }} && git pull && pip install -e . && systemctl --user restart bot-web-panel bot-team-runner</code>
+  Pfad: <code>{{ root }}</code>
 </p>
 {% endblock %}
