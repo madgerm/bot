@@ -16,6 +16,7 @@ from bot.config.writers.hosts_admin import (
     load_team_api_admin,
     probe_host_connection,
     probe_llm,
+    probe_llm_http,
     probe_llm_live,
     probe_qdrant,
 )
@@ -112,10 +113,16 @@ def register_status_settings_routes(
         request: Request,
         user: CurrentUser,
         live: bool = Query(False),
+        ping: bool = Query(False),
     ):
         require_admin(user)
         try:
-            llm = probe_llm_live(root_path) if live else probe_llm(root_path)
+            if live:
+                llm = probe_llm_live(root_path)
+            elif ping:
+                llm = probe_llm_http(root_path)
+            else:
+                llm = probe_llm(root_path)
         except Exception as exc:
             llm = {"ok": False, "summary": str(exc)}
         return templates.TemplateResponse(
@@ -124,6 +131,7 @@ def register_status_settings_routes(
             {
                 "llm": llm,
                 "live": live,
+                "ping": ping,
                 "tested_at": datetime.now(UTC).strftime("%H:%M:%S UTC"),
             },
         )

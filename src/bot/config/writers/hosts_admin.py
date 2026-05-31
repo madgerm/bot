@@ -317,6 +317,57 @@ def probe_llm(root: Path) -> dict[str, Any]:
     }
 
 
+def probe_llm_http(root: Path) -> dict[str, Any]:
+    """Schneller HTTP-Check der LLM-API (ohne Chat-Completion)."""
+    base = probe_llm(root)
+    if not base.get("enabled"):
+        return {**base, "ping_ok": None, "ping_summary": "LLM deaktiviert — kein HTTP-Ping"}
+    if not base.get("ok"):
+        return {
+            **base,
+            "ping_ok": False,
+            "ping_summary": "HTTP-Ping übersprungen (Konfiguration unvollständig)",
+        }
+    try:
+        cfg = load_system_config_admin(root)
+    except Exception as exc:
+        return {**base, "ping_ok": False, "ping_summary": str(exc)}
+
+    llm = cfg.system.llm
+    api_base = (llm.api_base or "").rstrip("/")
+    if not api_base:
+        return {**base, "ping_ok": False, "ping_summary": "api_base fehlt"}
+
+    headers: dict[str, str] = {}
+    if llm.secret_ref and env_var_is_set(llm.secret_ref):
+        token = os.environ.get(str(llm.secret_ref).strip(), "")
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
+    paths = ("/health", "/v1/models", "/models")
+    last_error: str | None = None
+    for path in paths:
+        url = f"{api_base}{path}"
+        try:
+            with httpx.Client(timeout=8.0) as client:
+                response = client.get(url, headers=headers or None)
+            if response.status_code < 400:
+                return {
+                    **base,
+                    "ping_ok": True,
+                    "ping_summary": f"HTTP {response.status_code} — GET {path}",
+                }
+            last_error = f"HTTP {response.status_code} — {url}"
+        except httpx.HTTPError as exc:
+            last_error = str(exc)
+
+    return {
+        **base,
+        "ping_ok": False,
+        "ping_summary": f"HTTP-Ping fehlgeschlagen: {last_error or 'keine Antwort'}",
+    }
+
+
 def probe_llm_live(root: Path) -> dict[str, Any]:
     """Kurzer Live-Request ans konfigurierte LLM (nicht nur Env-Check)."""
     base = probe_llm(root)
