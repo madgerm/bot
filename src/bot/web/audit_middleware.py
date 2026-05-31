@@ -28,6 +28,21 @@ def _parse_post_action(path: str) -> tuple[str, str, str | None, dict[str, Any]]
     m = re.match(r"^/teams/([^/]+)/tasks/([^/]+)/status$", path)
     if m:
         return ("tasks", "update_status", m.group(1), {"task_id": m.group(2)})
+    m = re.match(r"^/teams/([^/]+)/settings/general$", path)
+    if m:
+        return ("config", "team_general", m.group(1), {"config_path": f"teams/{m.group(1)}/team.json"})
+    m = re.match(r"^/teams/([^/]+)/settings/pipeline$", path)
+    if m:
+        return ("config", "team_pipeline", m.group(1), {"config_path": f"teams/{m.group(1)}/team.json"})
+    m = re.match(r"^/teams/([^/]+)/settings/agents/create$", path)
+    if m:
+        return ("config", "agent_create", m.group(1), {})
+    m = re.match(r"^/teams/([^/]+)/settings/agents/([^/]+)/save$", path)
+    if m:
+        return ("config", "agent_update", m.group(1), {"agent_id": m.group(2)})
+    m = re.match(r"^/teams/([^/]+)/settings/agents/([^/]+)/delete$", path)
+    if m:
+        return ("config", "agent_delete", m.group(1), {"agent_id": m.group(2)})
     m = re.match(r"^/teams/([^/]+)/agents/create$", path)
     if m:
         return ("agents", "create", m.group(1), {})

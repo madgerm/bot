@@ -246,6 +246,10 @@ class AgentBlock(BaseModel):
     enabled: bool = True
     interval_seconds: float | None = None
     display_name: str | None = None
+    task_categories: list[str] = Field(default_factory=list)
+    """Optional: bevorzugte task_models-Kategorien für diesen Agent."""
+    system_prompt_extra: str | None = None
+    """Zusatz zum System-Prompt (wird von Handlern genutzt, sobald verdrahtet)."""
 
     @field_validator("id")
     @classmethod

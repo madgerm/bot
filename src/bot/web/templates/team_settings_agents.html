@@ -1,0 +1,40 @@
+{% extends "team_settings_base.html" %}
+{% block title %}Agents — {{ team_id }}{% endblock %}
+{% block team_settings_content %}
+<h1 class="text-2xl font-bold mb-2">Agents</h1>
+{% if request.query_params.get('saved') == 'deleted' %}
+<p class="p-status-ok mb-4">Agent gelöscht.</p>
+{% endif %}
+<p class="mb-4">
+  <a href="/teams/{{ team_id }}/settings/agents/new" class="p-link font-medium">+ Neuer Agent</a>
+</p>
+<div class="p-card overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="p-muted text-left">
+      <tr>
+        <th class="px-4 py-2">ID</th>
+        <th class="px-4 py-2">Rolle</th>
+        <th class="px-4 py-2">Status</th>
+        <th class="px-4 py-2">Intervall</th>
+        <th class="px-4 py-2"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in agents %}
+      <tr class="border-t border-[var(--p-border)]">
+        <td class="px-4 py-2 font-mono text-xs">
+          {{ a.id }}
+          {% if a.id == orchestrator_id %}<span class="p-faint">(Orchestrator)</span>{% endif %}
+        </td>
+        <td class="px-4 py-2">{{ a.role }}</td>
+        <td class="px-4 py-2">{% if a.enabled %}<span class="p-status-ok text-xs">aktiv</span>{% else %}<span class="p-status-warn text-xs">aus</span>{% endif %}</td>
+        <td class="px-4 py-2 text-xs p-faint">{{ a.interval_seconds or 'global' }}</td>
+        <td class="px-4 py-2 text-right">
+          <a href="/teams/{{ team_id }}/settings/agents/{{ a.id }}" class="p-link text-xs">Bearbeiten</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

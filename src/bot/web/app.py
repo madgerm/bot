@@ -701,5 +701,8 @@ def create_app(root: Path | str) -> FastAPI:
     register_llm_proxy_routes(app, root_path)
     register_phase3_routes(app, templates, root_path)
     register_settings_routes(app, templates, root_path)
+    from bot.web.team_settings_routes import register_team_settings_routes
+
+    register_team_settings_routes(app, templates, root_path)
 
     return app

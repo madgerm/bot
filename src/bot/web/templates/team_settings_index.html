@@ -1,0 +1,27 @@
+{% extends "team_settings_base.html" %}
+{% block title %}Einstellungen — {{ team_id }}{% endblock %}
+{% block team_settings_content %}
+<h1 class="text-2xl font-bold mb-2">Team-Einstellungen</h1>
+<p class="text-sm p-muted mb-6"><code>teams/{{ team_id }}/team.json</code> und <code>agents/</code></p>
+
+<div class="grid gap-4 sm:grid-cols-2 mb-8">
+  <a href="/teams/{{ team_id }}/settings/general" class="p-card p-5 block hover:opacity-90">
+    <h2 class="font-semibold">Allgemein</h2>
+    <p class="text-sm p-muted mt-1">{{ team.name }} · Preset {{ team.preset }} · {% if team.enabled %}aktiv{% else %}deaktiviert{% endif %}</p>
+  </a>
+  <a href="/teams/{{ team_id }}/settings/pipeline" class="p-card p-5 block hover:opacity-90">
+    <h2 class="font-semibold">Pipeline</h2>
+    <p class="text-sm p-muted mt-1">
+      {% if resolved %}
+      Ausführung: {{ resolved.execute_id }} · Review: {{ resolved.review_id }}
+      {% else %}
+      execute / review / document
+      {% endif %}
+    </p>
+  </a>
+  <a href="/teams/{{ team_id }}/settings/agents" class="p-card p-5 block hover:opacity-90">
+    <h2 class="font-semibold">Agents</h2>
+    <p class="text-sm p-muted mt-1">{{ agents | length }} Agent(s) · Orchestrator: {{ team.orchestrator_id }}</p>
+  </a>
+</div>
+{% endblock %}

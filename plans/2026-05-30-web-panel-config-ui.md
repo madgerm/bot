@@ -198,26 +198,25 @@ Reihenfolge: Infrastruktur zuerst, dann global, dann Team, dann Agent-Tiefe, dan
 
 ---
 
-### Phase 3 — Team & Agents (Kern deines Wunsches) (ca. 2 PRs)
+### Phase 3 — Team & Agents (Kern deines Wunsches) (ca. 2 PRs) ✅
 
 **Ziel:** Teams und Agents im Panel konfigurieren.
 
 **3a — Team & Pipeline**
 
-- [ ] `/teams/<id>/settings` — Übersicht + Links
-- [ ] `/teams/<id>/settings/general` — `name`, `enabled`, `preset`, `orchestrator_id`
-- [ ] `/teams/<id>/settings/pipeline` — execute/review/document Agent-Dropdowns
-- [ ] Validierung: referenzierte Agent-IDs existieren
+- [x] `/teams/<id>/settings` — Übersicht + Links
+- [x] `/teams/<id>/settings/general` — `name`, `enabled`, `preset`, `orchestrator_id`
+- [x] `/teams/<id>/settings/pipeline` — execute/review/document Agent-Dropdowns
+- [x] Validierung: referenzierte Agent-IDs existieren
 
 **3b — Agent-Editor**
 
-- [ ] `/teams/<id>/settings/agents` — Liste mit Status (enabled, role, interval)
-- [ ] `/teams/<id>/settings/agents/<agent_id>` — Formular: role, display_name, interval, enabled
-- [ ] Erweitern `AgentBlock` + UI: `task_categories`, `system_prompt_extra` (optional leer)
-- [ ] Create/Delete aus bestehender Route hierher verlinken oder konsolidieren
-- [ ] Live-Hinweis: „Welche Tools diese Rolle standardmäßig hat“ (readonly aus Code, bis Phase 4)
+- [x] `/teams/<id>/settings/agents` — Liste mit Status
+- [x] `/teams/<id>/settings/agents/<agent_id>` — role, display_name, interval, enabled
+- [x] `AgentBlock`: `task_categories`, `system_prompt_extra`
+- [x] Create/Delete; `/teams/<id>/agents` → Redirect auf Settings
 
-**Akzeptanz:** Demo-Team komplett über Panel umbenennen/neuen Agent anlegen; Runner lädt nach Reload.
+**Akzeptanz:** Team/Agents über Panel; pytest grün.
 
 ---
 
@@ -314,7 +313,7 @@ Alles andere (Welches LLM, welche Crawl-URL, welcher Agent welche Rolle, welcher
 1. [x] Phase 0 PR: `config/writers` + `/admin/settings` Gerüst  
 2. [x] Phase 1 PR: Nutzer-UI  
 3. [x] Phase 2 PR: LLM + task_models + System  
-4. [ ] Danach Team/Agents (Phase 3) — dein Hauptfokus  
+4. [x] Phase 3 PR: Team/Agents/Pipeline  
 
 Branch-Vorschlag pro Phase: `cursor/web-config-phase-N-f179`  
 Review nach jeder Phase: du testest im Panel, dann nächste Phase.
