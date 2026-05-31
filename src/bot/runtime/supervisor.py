@@ -67,7 +67,7 @@ class Supervisor:
         watch = polling.inbox_watch_seconds
         mode: WorkerMode = worker_mode or polling.worker_mode
         inbox_template = config.system.system.communication.inbox_base
-        self._llm_stack = build_llm_stack(config)
+        self._llm_stack = build_llm_stack(config, root=self.root)
         teams: dict[str, TeamRuntime] = {}
         for team_id, bundle in config.teams.items():
             if team_filter and team_id not in team_filter:

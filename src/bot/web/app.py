@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Form, HTTPException, Request
@@ -46,7 +47,17 @@ def create_app(root: Path | str) -> FastAPI:
 
     templates.env.globals["csrf_token_for"] = _csrf_for_request
 
-    app = FastAPI(title="Bot Panel", docs_url="/api/docs", redoc_url=None)
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        from bot.channel.panel_connector import PanelChannelManager
+
+        channel_mgr = PanelChannelManager(root_path)
+        channel_mgr.start()
+        app.state.channel_mgr = channel_mgr
+        yield
+        await channel_mgr.stop()
+
+    app = FastAPI(title="Bot Panel", docs_url="/api/docs", redoc_url=None, lifespan=lifespan)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     app.add_middleware(CsrfMiddleware)
     app.add_middleware(PanelAuditMiddleware, root=root_path)

@@ -52,8 +52,8 @@ class LlmProxyConfig(BaseModel):
 class LlmConfig(BaseModel):
     enabled: bool = False
     provider: str = "litellm"
-    mode: Literal["direct", "proxy"] = "direct"
-    """direct: api_base lokal; proxy: Completion über Web-Panel."""
+    mode: Literal["direct", "proxy", "channel"] = "direct"
+    """direct: lokal; proxy: HTTP zum Panel; channel: Panel verbindet sich (Queue)."""
     api_base: str = "http://127.0.0.1:4000"
     secret_ref: str | None = None
     proxy: LlmProxyConfig | None = None

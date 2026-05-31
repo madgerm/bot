@@ -1,0 +1,10 @@
+{
+  "system": {
+    "name": "bot-runner-vps",
+    "llm": {
+      "enabled": true,
+      "mode": "channel",
+      "timeout_seconds": 600
+    }
+  }
+}

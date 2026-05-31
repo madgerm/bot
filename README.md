@@ -290,6 +290,60 @@ Das Panel muss vom VPS aus erreichbar sein (HTTPS, VPN, Tailscale oder Reverse-T
 
 **Hinweis:** Chat, Dateien und Qdrant nutzen weiterhin das Projekt-`root` am Panel — für volle Remote-Verwaltung gemeinsames Datenverzeichnis oder spätere API-Erweiterungen. Der **LLM-Proxy** deckt die Agent-Modellaufrufe ab.
 
+### 3. Kanal-Modus (empfohlen): Panel verbindet sich zum Runner
+
+Wie ein **Chat**: Das Panel baut **eine ausgehende** WebSocket-Verbindung zum VPS auf (`wss://…/api/v1/channel/ws`). Darüber laufen LLM-Anfragen in beide Richtungen — der **Runner muss das Panel nicht im Internet erreichen**.
+
+| | Panel (LAN) | Runner (VPS) |
+|---|-------------|----------------|
+| Verbindung | verbindet sich → Runner | `bot team serve` (WebSocket) |
+| LLM | `llm.mode: direct` → Ollama | `llm.mode: channel` |
+| Konfig | `team_hosts.json` → `"channel": true` | `data/_channel/llm_queue.sqlite` (Cache bei Ausfall) |
+
+**LLM-Anfragen** werden auf dem Runner **persistent gecacht**, bis das Panel wieder verbunden ist. **Ping/HTTP-Status** dürfen fehlschlagen, ohne die Queue zu löschen.
+
+Beispiele: `config/system.panel-lan.example.json`, `config/system.runner-channel.example.json`, `config/team_hosts.channel.example.json`.
+
+**VPS:**
+
+```json
+"llm": { "enabled": true, "mode": "channel", "timeout_seconds": 600 }
+```
+
+```bash
+export BOT_TEAM_API_TOKEN=<token>
+bot run
+bot team serve --host 0.0.0.0 --port 8443
+```
+
+**LAN (Panel):**
+
+```json
+"llm": { "enabled": true, "mode": "direct", "api_base": "http://127.0.0.1:11434" }
+```
+
+`config/team_hosts.json`:
+
+```json
+{
+  "hosts": [{
+    "id": "vps",
+    "mode": "remote",
+    "base_url": "https://runner.example.com:8443",
+    "token_env": "BOT_TEAM_API_TOKEN",
+    "channel": true,
+    "teams": ["demo"]
+  }]
+}
+```
+
+```bash
+export BOT_TEAM_API_TOKEN=<derselbe-token>
+bot web
+```
+
+Das Panel startet den Kanal-Connector automatisch beim `bot web`-Start.
+
 ---
 
 ## Phase 2: Qdrant, Team-Chat, Playwright

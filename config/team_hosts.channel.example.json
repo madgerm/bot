@@ -1,0 +1,13 @@
+{
+  "hosts": [
+    {
+      "id": "vps-runner",
+      "label": "Team-Runner VPS",
+      "mode": "remote",
+      "base_url": "https://runner.example.com:8443",
+      "token_env": "BOT_TEAM_API_TOKEN",
+      "channel": true,
+      "teams": ["demo", "coding", "story"]
+    }
+  ]
+}

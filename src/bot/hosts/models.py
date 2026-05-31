@@ -19,6 +19,8 @@ class TeamHostEntry(BaseModel):
         default=None,
         description="Name der Umgebungsvariable mit dem API-Token (nur remote)",
     )
+    channel: bool = False
+    """Panel baut WebSocket zum Runner auf (LLM-Queue, Runner muss Panel nicht anrufen)."""
 
     @model_validator(mode="after")
     def validate_remote(self) -> TeamHostEntry:
