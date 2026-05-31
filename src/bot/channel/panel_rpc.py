@@ -36,6 +36,22 @@ def execute_panel_rpc(panel_root: Path, kind: str, payload: dict[str, Any]) -> d
             raise RuntimeError(str(exc)) from exc
         return {"result": result}
 
+    if kind == "browser.open":
+        from bot.browser.service import BrowserService, BrowserServiceError
+
+        team_id = str(payload["team_id"])
+        url = str(payload.get("url", ""))
+        max_chars = int(payload.get("max_chars", 8000))
+        if not url.startswith(("http://", "https://")):
+            raise ValueError("url muss mit http(s) beginnen")
+        try:
+            info = BrowserService.for_team(panel_root, team_id).open_url_with_body(
+                url, max_chars=max_chars
+            )
+        except BrowserServiceError as exc:
+            raise RuntimeError(str(exc)) from exc
+        return {"info": info, "body_text": info.get("body_text", "")}
+
     if kind == "media.describe_image":
         from bot.media import MediaService, MediaServiceError
 

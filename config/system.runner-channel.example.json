@@ -5,6 +5,9 @@
       "enabled": true,
       "mode": "channel",
       "timeout_seconds": 600
-    }
-  }
+    },
+    "qdrant_global": { "enabled": false },
+    "playwright_global": { "mode": "local", "headless": true }
+  },
+  "_comment": "Qdrant/Playwright deaktiviert oder weglassen — laufen nur über Panel-Kanal"
 }

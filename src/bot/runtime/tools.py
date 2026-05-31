@@ -166,19 +166,33 @@ class AgentToolkit:
         return ToolResult(True, "\n---\n".join(lines) or "(keine Treffer)", {"hits": len(hits)})
 
     def _tool_browser_open(self, args: dict[str, Any]) -> ToolResult:
-        from bot.browser.service import BrowserService, BrowserServiceError
-
         url = str(args.get("url", ""))
         if not url.startswith(("http://", "https://")):
             raise ToolExecutionError("url muss mit http(s) beginnen")
         try:
-            svc = BrowserService.for_team(self.ctx.root, self.ctx.team_id)
-            info = svc.open_url(url)
-            text = ""
-            if svc._page:
-                text = svc._page.inner_text("body")[:8000]
-            svc.close()
-        except BrowserServiceError as exc:
+            from bot.channel.satellite import channel_rpc, is_satellite_root
+
+            if is_satellite_root(self.ctx.root):
+                data = channel_rpc(
+                    self.ctx.root,
+                    "browser.open",
+                    {
+                        "team_id": self.ctx.team_id,
+                        "url": url,
+                        "max_chars": 8000,
+                    },
+                    timeout_seconds=180.0,
+                )
+                info = data.get("info", {})
+                text = str(data.get("body_text", ""))
+            else:
+                from bot.browser.service import BrowserService, BrowserServiceError
+
+                info = BrowserService.for_team(self.ctx.root, self.ctx.team_id).open_url_with_body(
+                    url
+                )
+                text = str(info.get("body_text", ""))
+        except Exception as exc:
             raise ToolExecutionError(str(exc)) from exc
         body = f"title={info.get('title')}\nurl={info.get('url')}\n\n{text}"
         return ToolResult(True, body, info)

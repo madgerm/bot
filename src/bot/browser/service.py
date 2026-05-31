@@ -77,6 +77,18 @@ class BrowserService:
             "mode": self.cfg.mode,
         }
 
+    def open_url_with_body(self, url: str, *, max_chars: int = 8000) -> dict[str, Any]:
+        """URL öffnen, Seitentext lesen, Browser wieder schließen (Panel/Satellit-RPC)."""
+        try:
+            info = self.open_url(url)
+            body_text = ""
+            if self._page is not None:
+                body_text = self._page.inner_text("body")[:max_chars]
+            info["body_text"] = body_text
+            return info
+        finally:
+            self.close()
+
     def screenshot(self, path: Path) -> Path:
         if self._page is None:
             raise BrowserServiceError("Keine Seite geöffnet — zuerst open_url aufrufen")
