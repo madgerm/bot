@@ -1,0 +1,30 @@
+{% extends "settings_base.html" %}
+{% block title %}Einstellungen — Bot Panel{% endblock %}
+{% set settings_active = 'index' %}
+{% block settings_content %}
+<h1 class="text-2xl font-bold mb-2">Einstellungen</h1>
+<p class="text-sm p-muted mb-8 max-w-3xl">
+  Konfiguration wird schrittweise hierher verlagert — ohne JSON-Dateien von Hand zu bearbeiten.
+  Projekt-Root: <code class="text-xs">{{ root_label }}</code>
+</p>
+
+<div class="grid gap-4 sm:grid-cols-2">
+  {% for s in sections %}
+  <article class="p-card p-5 flex flex-col">
+    <h2 class="text-lg font-semibold mb-1">{{ s.title }}</h2>
+    <p class="text-sm p-muted flex-1 mb-4">{{ s.description }}</p>
+    {% if s.href %}
+    <a href="{{ s.href }}" class="p-link text-sm font-medium">Öffnen →</a>
+    {% elif s.phase %}
+    <span class="text-xs p-status-warn inline-block">Phase {{ s.phase }} — in Arbeit</span>
+    {% else %}
+    <span class="text-xs p-faint">Demnächst</span>
+    {% endif %}
+  </article>
+  {% endfor %}
+</div>
+
+<p class="text-xs p-faint mt-10">
+  Roadmap: <code>plans/2026-05-30-web-panel-config-ui.md</code> · Doku: <code>docs/CONFIG-UI.md</code>
+</p>
+{% endblock %}

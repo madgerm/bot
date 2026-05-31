@@ -8,6 +8,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from bot.config.models import ImageGenerationConfig, MediaChannelConfig, MediaGlobalConfig
+from bot.config.writers import atomic_write_json
 from bot.media.config import TeamMediaConfig
 
 
@@ -38,10 +39,7 @@ def load_media_global(root: Path) -> MediaGlobalConfig:
 def save_media_global(root: Path, media: MediaGlobalConfig) -> None:
     data = load_system_raw(root)
     data["media_global"] = media.model_dump(mode="json", exclude_none=True)
-    _system_path(root).write_text(
-        json.dumps(data, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
+    atomic_write_json(_system_path(root), data)
 
 
 def load_team_media_file(root: Path, team_id: str) -> TeamMediaConfig | None:
@@ -55,11 +53,9 @@ def load_team_media_file(root: Path, team_id: str) -> TeamMediaConfig | None:
 
 def save_team_media_file(root: Path, team_id: str, media: TeamMediaConfig) -> Path:
     path = root / "teams" / team_id / "media.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps({"media": media.model_dump(mode="json", exclude_none=True)}, indent=2)
-        + "\n",
-        encoding="utf-8",
+    atomic_write_json(
+        path,
+        {"media": media.model_dump(mode="json", exclude_none=True)},
     )
     return path
 

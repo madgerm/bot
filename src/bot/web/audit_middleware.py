@@ -114,10 +114,19 @@ def _parse_post_action(path: str) -> tuple[str, str, str | None, dict[str, Any]]
         return ("admin", "deploy_generate", None, {"team_id": m.group(1)})
     m = re.match(r"^/admin/media/global$", path)
     if m:
-        return ("admin", "media_global_save", None, {})
+        return ("config", "media_global_save", None, {"config_path": "config/system.json"})
     m = re.match(r"^/admin/media/team/([^/]+)$", path)
     if m:
-        return ("admin", "media_team_save", m.group(1), {})
+        return (
+            "config",
+            "media_team_save",
+            m.group(1),
+            {"config_path": f"teams/{m.group(1)}/media.json"},
+        )
+    m = re.match(r"^/admin/settings(?:/([^/]+))?(?:/([^/]+))?$", path)
+    if m:
+        sub = "/".join(x for x in (m.group(1), m.group(2)) if x)
+        return ("config", sub or "save", None, {"path": path})
     m = re.match(r"^/api/v1/webhooks/([^/]+)/([^/]+)$", path)
     if m:
         return ("webhook", "ingest", m.group(1), {"agent_id": m.group(2)})
