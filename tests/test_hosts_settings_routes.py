@@ -97,5 +97,6 @@ def test_status_page(client: TestClient) -> None:
     _login(client)
     r = client.get("/admin/settings/status")
     assert r.status_code == 200
-    assert "Team-Runner" in r.text
+    assert "status-live" in r.text
+    assert "/admin/settings/status/fragment" in r.text
     assert "LLM" in r.text

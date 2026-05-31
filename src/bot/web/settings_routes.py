@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 
 from bot.web.auth import CurrentUser, require_admin
 from bot.web.hosts_settings_routes import register_hosts_settings_routes
+from bot.web.status_settings_routes import register_status_settings_routes
 from bot.web.system_settings_routes import register_system_settings_routes
 from bot.web.users_settings_routes import register_users_settings_routes
 
@@ -79,3 +80,4 @@ def register_settings_routes(
     register_users_settings_routes(app, templates, root_path)
     register_system_settings_routes(app, templates, root_path)
     register_hosts_settings_routes(app, templates, root_path)
+    register_status_settings_routes(app, templates, root_path)

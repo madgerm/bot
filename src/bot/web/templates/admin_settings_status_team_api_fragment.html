@@ -1,0 +1,26 @@
+<section id="status-team-api" class="mb-10">
+  <div class="flex flex-wrap justify-between gap-2 items-center mb-3">
+    <h2 class="text-lg font-semibold">Team-API (Runner-Token)</h2>
+    <button type="button" class="p-link text-sm"
+      hx-get="/admin/settings/status/fragment/team-api"
+      hx-target="#status-team-api"
+      hx-swap="outerHTML"
+      hx-indicator="#status-team-api .section-spinner">
+      Aktualisieren
+    </button>
+  </div>
+  <span class="section-spinner htmx-indicator text-xs p-faint mb-2 block">Prüfe …</span>
+  <div class="p-card p-4 text-sm">
+    <p>Env <code>{{ team_api.token_env }}</code>:
+      {% if team_api.token_set %}
+      <span class="p-status-ok">gesetzt</span>
+      {% else %}
+      <span class="p-status-warn">nicht gesetzt</span>
+      {% endif %}
+    </p>
+    <p class="text-xs p-faint mt-1">Teams: {{ team_api.teams | join(', ') or '—' }}</p>
+    {% if tested_at %}
+    <p class="text-xs p-faint mt-2">{{ tested_at }}</p>
+    {% endif %}
+  </div>
+</section>

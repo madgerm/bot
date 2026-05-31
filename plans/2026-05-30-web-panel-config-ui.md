@@ -270,7 +270,7 @@ Reihenfolge: Infrastruktur zuerst, dann global, dann Team, dann Agent-Tiefe, dan
 - **Validierungsfehler** inline (Pydantic `ValidationError` → lesbare Meldungen)
 - **Gefährliche Aktionen** (User löschen, Agent löschen, mode=channel) mit Bestätigung
 - **Dark/Light** — bestehende CSS-Variablen (`p-card`, `p-link`)
-- Kein JavaScript-Framework nötig — HTMX optional später für Live-Tests
+- HTMX auf `/admin/settings/status` für Live-Tests ohne Full-Page-Reload
 
 ---
 

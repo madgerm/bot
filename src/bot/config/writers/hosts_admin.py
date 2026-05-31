@@ -317,7 +317,47 @@ def probe_llm(root: Path) -> dict[str, Any]:
     }
 
 
-def collect_settings_status(root: Path) -> dict[str, Any]:
+def probe_llm_live(root: Path) -> dict[str, Any]:
+    """Kurzer Live-Request ans konfigurierte LLM (nicht nur Env-Check)."""
+    base = probe_llm(root)
+    if not base.get("enabled"):
+        return {**base, "live_ok": None, "live_summary": "LLM deaktiviert — kein Live-Test"}
+    if not base.get("ok"):
+        return {
+            **base,
+            "live_ok": False,
+            "live_summary": "Live-Test übersprungen (Konfiguration unvollständig)",
+        }
+    try:
+        from bot.config import load_runtime_config
+        from bot.llm import build_llm_stack
+
+        config = load_runtime_config(root)
+        stack = build_llm_stack(config)
+        model = stack.router.resolve("planning", role="orchestrator")
+        fallbacks = stack.router.fallbacks("planning", role="orchestrator")
+        reply = stack.client.complete(
+            model,
+            [
+                {"role": "user", "content": "Antworte nur mit: ok"},
+            ],
+            fallbacks=fallbacks or None,
+        )
+        snippet = (reply or "").strip()[:80]
+        return {
+            **base,
+            "live_ok": True,
+            "live_summary": f"Live-Antwort OK — {snippet!r}",
+        }
+    except Exception as exc:
+        return {
+            **base,
+            "live_ok": False,
+            "live_summary": f"Live-Test fehlgeschlagen: {exc}",
+        }
+
+
+def collect_settings_status(root: Path, *, live_llm: bool = False) -> dict[str, Any]:
     """Aggregiert Status für /admin/settings/status."""
     hosts_cfg = load_hosts_admin(root)
     host_rows: list[dict[str, Any]] = []
@@ -342,7 +382,7 @@ def collect_settings_status(root: Path) -> dict[str, Any]:
             "token_set": env_var_is_set(api_cfg.token_env),
             "teams": api_cfg.teams,
         },
-        "llm": probe_llm(root),
+        "llm": probe_llm_live(root) if live_llm else probe_llm(root),
         "qdrant": probe_qdrant(root),
         "channel_hosts": [
             h.id for h in hosts_cfg.hosts if h.mode == "remote" and h.channel

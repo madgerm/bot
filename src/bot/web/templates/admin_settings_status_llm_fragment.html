@@ -1,0 +1,33 @@
+<section id="status-llm" class="mb-10">
+  <div class="flex flex-wrap justify-between gap-2 items-center mb-3">
+    <h2 class="text-lg font-semibold">LLM</h2>
+    <div class="flex gap-3 text-sm">
+      <button type="button" class="p-link"
+        hx-get="/admin/settings/status/fragment/llm"
+        hx-target="#status-llm"
+        hx-swap="outerHTML"
+        hx-indicator="#status-llm .section-spinner">
+        Config prüfen
+      </button>
+      <button type="button" class="p-link"
+        hx-get="/admin/settings/status/fragment/llm?live=1"
+        hx-target="#status-llm"
+        hx-swap="outerHTML"
+        hx-indicator="#status-llm .section-spinner">
+        Live-Test (Prompt)
+      </button>
+    </div>
+  </div>
+  <span class="section-spinner htmx-indicator text-xs p-faint mb-2 block">Test läuft …</span>
+  <div class="p-card p-4 text-sm">
+    <p class="{% if llm.ok %}p-status-ok{% else %}p-status-warn{% endif %}">{{ llm.summary }}</p>
+    {% if llm.live_summary is defined and llm.live_summary %}
+    <p class="mt-2 text-xs {% if llm.live_ok %}p-status-ok{% elif llm.live_ok is none %}p-faint{% else %}p-status-warn{% endif %}">
+      {{ llm.live_summary }}
+    </p>
+    {% endif %}
+    {% if tested_at %}
+    <p class="text-xs p-faint mt-2">{{ tested_at }}{% if live %} · Live{% endif %}</p>
+    {% endif %}
+  </div>
+</section>
