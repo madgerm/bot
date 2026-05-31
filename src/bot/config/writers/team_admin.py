@@ -79,6 +79,7 @@ def save_team_general(
     enabled: bool,
     preset: Literal["generic", "demo", "coding", "story"],
     orchestrator_id: str,
+    workflow: Literal["tasks", "verification"] = "tasks",
 ) -> TeamConfig:
     cfg = load_team_config(root, team_id)
     team = cfg.team.model_copy(
@@ -87,6 +88,7 @@ def save_team_general(
             "enabled": enabled,
             "preset": preset,
             "orchestrator_id": orchestrator_id.strip(),
+            "workflow": workflow,
         }
     )
     new_cfg = cfg.model_copy(update={"team": team})

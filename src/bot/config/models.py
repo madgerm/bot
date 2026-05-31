@@ -211,6 +211,8 @@ class TeamBlock(BaseModel):
     orchestrator_id: str
     enabled: bool = True
     preset: Literal["generic", "demo", "coding", "story"] = "generic"
+    workflow: Literal["tasks", "verification"] = "tasks"
+    """tasks = Anweisungen umsetzen; verification = Prüffragen prüfen/bewerten/fixen."""
 
     @field_validator("id")
     @classmethod
