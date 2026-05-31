@@ -321,6 +321,7 @@ def run_tool_loop(
     task_category: str,
     tools: frozenset[str] | None = None,
     max_steps: int = 6,
+    message_model_override: str | None = None,
 ) -> str:
     """LLM-Schleife mit Tool-Ausführung; gibt finale Zusammenfassung zurück."""
     toolkit = AgentToolkit(ctx)
@@ -330,9 +331,15 @@ def run_tool_loop(
         {"role": "system", "content": sys},
         {"role": "user", "content": user_content},
     ]
-    category = task_category
-    model = ctx.llm_stack.router.resolve(category, role=ctx.role)
-    fallbacks = ctx.llm_stack.router.fallbacks(category, role=ctx.role)
+    from bot.llm.agent_model import resolve_agent_model
+
+    model, fallbacks = resolve_agent_model(
+        ctx.llm_stack,
+        role=ctx.role,
+        task_category=task_category,
+        agent=ctx.agent,
+        message_model_override=message_model_override,
+    )
 
     for _step in range(max_steps):
         raw = ctx.llm_stack.client.complete(

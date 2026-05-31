@@ -247,7 +247,9 @@ class AgentBlock(BaseModel):
     interval_seconds: float | None = None
     display_name: str | None = None
     task_categories: list[str] = Field(default_factory=list)
-    """Optional: bevorzugte task_models-Kategorien für diesen Agent."""
+    """Optional: task_models-Kategorie (erstes Element) wenn llm_model leer ist."""
+    llm_model: str | None = None
+    """Optional: festes Modell für diesen Agent (z. B. ollama/qwen2.5-coder). Überschreibt Rollen-Routing."""
     system_prompt_extra: str | None = None
     """Zusatz zum System-Prompt in Agent-Handlern."""
     tools_allow: list[str] = Field(default_factory=list)

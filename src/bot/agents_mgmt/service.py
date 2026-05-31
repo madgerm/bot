@@ -44,6 +44,7 @@ class AgentManager:
                     "tools_deny": block.tools_deny,
                     "qdrant_collections": block.qdrant_collections,
                     "default_task_assignee": block.default_task_assignee,
+                    "llm_model": block.llm_model,
                 }
             )
         return sorted(result, key=lambda x: x["id"])
@@ -94,6 +95,8 @@ class AgentManager:
         tools_deny: list[str] | None = None,
         qdrant_collections: list[str] | None = None,
         default_task_assignee: bool | None = None,
+        llm_model: str | None = None,
+        clear_llm_model: bool = False,
         clear_interval: bool = False,
         clear_display_name: bool = False,
         clear_prompt_extra: bool = False,
@@ -127,6 +130,10 @@ class AgentManager:
             agent["qdrant_collections"] = qdrant_collections
         if default_task_assignee is not None:
             agent["default_task_assignee"] = default_task_assignee
+        if clear_llm_model:
+            agent["llm_model"] = None
+        elif llm_model is not None:
+            agent["llm_model"] = llm_model.strip() or None
         cfg = AgentConfig.model_validate({"agent": agent})
         atomic_write_json(path, cfg.model_dump())
         if default_task_assignee:

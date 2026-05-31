@@ -183,6 +183,10 @@ def create_app(root: Path | str) -> FastAPI:
         from bot.web.team_access import team_access_level
 
         access = team_access_level(user, team_id)
+        awaiting_approval = any(
+            m.role == "assistant" and m.metadata.get("awaiting_approval")
+            for m in messages
+        )
         return templates.TemplateResponse(
             request,
             "team_chat.html",
@@ -194,6 +198,7 @@ def create_app(root: Path | str) -> FastAPI:
                 "filter_q": q,
                 "audit_log": audit,
                 "can_write": access in ("admin", "operator"),
+                "awaiting_approval": awaiting_approval,
             },
         )
 
@@ -210,9 +215,61 @@ def create_app(root: Path | str) -> FastAPI:
 
         require_team_write(team_id, user)
         from bot.chat import ChatStore
+        from bot.chat.orchestrator_bridge import enqueue_panel_chat
+        from bot.config.writers.team_admin import load_team_config
+        from bot.messages import MessageError
 
         store = ChatStore(root_path, team_id)
-        store.add(role=role, content=content, agent_id=agent_id or None)  # type: ignore[arg-type]
+        orch_id = load_team_config(root_path, team_id).team.orchestrator_id
+        chat_role = role if role in ("user", "assistant", "system", "tool") else "user"
+        store.add(
+            role=chat_role,  # type: ignore[arg-type]
+            content=content,
+            agent_id=agent_id or (orch_id if chat_role == "user" else None),
+            metadata={"username": user.username} if chat_role == "user" else {},
+        )
+        if chat_role == "user":
+            try:
+                enqueue_panel_chat(
+                    root_path,
+                    team_id,
+                    username=user.username,
+                    content=content,
+                    message_type="chat.user",
+                )
+            except MessageError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return RedirectResponse(f"/teams/{team_id}/chat", status_code=302)
+
+    @app.post("/teams/{team_id}/chat/approve")
+    async def team_chat_approve(request: Request, team_id: str, user: CurrentUser):
+        from bot.web.team_access import require_team_write
+
+        require_team_write(team_id, user)
+        from bot.chat import ChatStore
+        from bot.chat.orchestrator_bridge import enqueue_panel_chat
+        from bot.config.writers.team_admin import load_team_config
+        from bot.messages import MessageError
+
+        orch_id = load_team_config(root_path, team_id).team.orchestrator_id
+        store = ChatStore(root_path, team_id)
+        store.add(
+            role="user",
+            content="Freigegeben — bitte an das Team delegieren.",
+            agent_id=orch_id,
+            metadata={"username": user.username, "approval": True},
+        )
+        try:
+            enqueue_panel_chat(
+                root_path,
+                team_id,
+                username=user.username,
+                content="Freigegeben (so ist top)",
+                message_type="chat.approve",
+                subject="Chat-Freigabe",
+            )
+        except MessageError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         return RedirectResponse(f"/teams/{team_id}/chat", status_code=302)
 
     @app.post("/teams/{team_id}/chat/delete")
