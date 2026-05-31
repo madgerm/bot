@@ -2,7 +2,21 @@
 
 Typischer Ablauf für **einen Rechner** (lokal oder Server).
 
-## 1. Vorbereitung
+## 0. Debian/Ubuntu-Installation (Skript)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/madgerm/bot/main/scripts/install-debian.sh -o /tmp/bot-install-debian.sh && bash /tmp/bot-install-debian.sh
+```
+
+Das Skript fragt:
+
+1. **Team-Runner**, **Web-Panel** oder **beides**
+2. **systemweit** (`/opt/bot`, User `bot`, `/etc/bot/env`) oder **nur Ihr Benutzer** (`~/bot`, `~/.config/bot/env`)
+3. optional **systemd**-Dienste
+
+Demo-Logins: `admin` / `changeme`, `demo` / `changeme`, `reader` / `changeme` — Details in `README.md`.
+
+## 1. Vorbereitung (manuell)
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
