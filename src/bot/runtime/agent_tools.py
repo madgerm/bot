@@ -93,6 +93,28 @@ def resolve_qdrant_collections(agent: AgentBlock | None) -> frozenset[str]:
     return valid if valid else frozenset(COLLECTION_SUFFIXES)
 
 
+def agent_tools_summary(role: str, agent: AgentBlock | None) -> str:
+    """Kurztext für Agent-Listen im Panel."""
+    if agent is None:
+        return "—"
+    parts: list[str] = []
+    if agent.tools_allow:
+        parts.append(f"{len(agent.tools_allow)} erlaubt")
+    else:
+        parts.append("Rollen-Std.")
+    if agent.tools_deny:
+        parts.append(f"−{len(agent.tools_deny)}")
+    eff = len(resolve_allowed_tools(role, agent))
+    parts.append(f"{eff} aktiv")
+    return " · ".join(parts)
+
+
+def agent_knowledge_summary(agent: AgentBlock | None) -> str:
+    if agent is None or not agent.qdrant_collections:
+        return "alle"
+    return ", ".join(agent.qdrant_collections)
+
+
 def validate_qdrant_collection(agent: AgentBlock | None, collection: str) -> str:
     """Gibt Suffix zurück oder wirft ValueError."""
     suffix = collection.strip() or "project"

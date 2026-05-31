@@ -61,6 +61,13 @@ def panel_client(runtime_project: Path) -> TestClient:
     return TestClient(create_app(runtime_project))
 
 
+def test_tools_deny_from_role_default() -> None:
+    agent = AgentBlock(id="w", role="worker", tools_deny=["browser_open", "git_commit"])
+    allowed = resolve_allowed_tools("worker", agent)
+    assert "browser_open" not in allowed
+    assert "read_file" in allowed
+
+
 def test_save_agent_tools_via_panel(runtime_project: Path, panel_client: TestClient) -> None:
     panel_client.get("/login")
     panel_client.post(
@@ -73,6 +80,7 @@ def test_save_agent_tools_via_panel(runtime_project: Path, panel_client: TestCli
         data={
             "role": "worker",
             "enabled": "on",
+            "use_custom_tools": "on",
             "tool_read_file": "on",
             "tool_list_files": "on",
             "know_project": "on",
@@ -85,3 +93,28 @@ def test_save_agent_tools_via_panel(runtime_project: Path, panel_client: TestCli
     )
     assert set(data["agent"]["tools_allow"]) == {"read_file", "list_files"}
     assert data["agent"]["qdrant_collections"] == ["project"]
+
+
+def test_save_tools_deny(runtime_project: Path, panel_client: TestClient) -> None:
+    panel_client.get("/login")
+    panel_client.post(
+        "/login",
+        data={"username": "admin", "password": "secret"},
+        follow_redirects=False,
+    )
+    r = panel_client.post(
+        "/teams/alpha/settings/agents/worker-exec/save",
+        data={
+            "role": "worker",
+            "enabled": "on",
+            "deny_tool_browser_open": "on",
+            "deny_tool_git_commit": "on",
+        },
+        follow_redirects=False,
+    )
+    assert r.status_code == 302
+    data = json.loads(
+        (runtime_project / "teams" / "alpha" / "agents" / "worker-exec" / "agent.json").read_text()
+    )
+    assert "browser_open" in data["agent"]["tools_deny"]
+    assert data["agent"].get("tools_allow") in ([], None) or not data["agent"].get("tools_allow")
