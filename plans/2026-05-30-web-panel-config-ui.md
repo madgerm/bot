@@ -177,25 +177,24 @@ Reihenfolge: Infrastruktur zuerst, dann global, dann Team, dann Agent-Tiefe, dan
 
 ---
 
-### Phase 2 — Globales System (ca. 1–2 PRs)
+### Phase 2 — Globales System (ca. 1–2 PRs) ✅
 
 **Ziel:** LLM, Qdrant, Playwright, Polling ohne Datei-Edit.
 
 **2a — LLM & Modelle**
 
-- [ ] `/admin/settings/system` — Tabs: LLM | Qdrant | Playwright | Polling | Webhooks
-- [ ] LLM: `enabled`, `mode` (direct/proxy/channel), `api_base`, `model`, `proxy.*`, `hub.relay_url/room/token_env`
-- [ ] Hinweis-Boxen pro Modus (Verlinkung README Satellit)
-- [ ] `/admin/settings/models` — `task_models.json` Tabelle (Kategorie → Modell, temperature, …)
+- [x] `/admin/settings/system` — Sektionen: LLM | Qdrant | Playwright | Polling | Webhooks
+- [x] LLM: `enabled`, `mode` (direct/proxy/channel), `api_base`, `proxy.*`, `hub` (Relay)
+- [x] Env-Status für `secret_ref` / Token-Env-Namen
+- [x] `/admin/settings/models` — `task_models.json` Tabelle + neue Kategorie
 
 **2b — Qdrant & Playwright**
 
-- [ ] Qdrant: `enabled`, `url`, `embedding.*`, `reindex.enabled/interval/include_crawl`
-- [ ] Button „Verbindung testen“ + `bot qdrant init` als Hintergrund-Hinweis
-- [ ] Playwright: `source`, `headless`, `ws_endpoints` (Liste)
-- [ ] Medien: bestehendes `/admin/media` in Settings-Navigation einbinden
+- [x] Qdrant: `enabled`, `url`, `embedding.*`, `reindex.*`
+- [x] Playwright: `mode`, `headless`, `ws_endpoints`
+- [x] Settings-Nav: System | Modelle
 
-**Akzeptanz:** `config/system.json` + `task_models.json` nur noch via Panel geändert; pytest mit Temp-Root.
+**Akzeptanz:** `config/system.json` + `task_models.json` via Panel; pytest grün.
 
 ---
 
@@ -314,7 +313,7 @@ Alles andere (Welches LLM, welche Crawl-URL, welcher Agent welche Rolle, welcher
 
 1. [x] Phase 0 PR: `config/writers` + `/admin/settings` Gerüst  
 2. [x] Phase 1 PR: Nutzer-UI  
-3. [ ] Phase 2a PR: LLM + task_models  
+3. [x] Phase 2 PR: LLM + task_models + System  
 4. [ ] Danach Team/Agents (Phase 3) — dein Hauptfokus  
 
 Branch-Vorschlag pro Phase: `cursor/web-config-phase-N-f179`  

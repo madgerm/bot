@@ -134,6 +134,16 @@ def _parse_post_action(path: str) -> tuple[str, str, str | None, dict[str, Any]]
             None,
             {"config_path": "config/users.json", "username": m.group(1)},
         )
+    m = re.match(r"^/admin/settings/system/(llm|qdrant|playwright|polling|webhooks)$", path)
+    if m:
+        return (
+            "config",
+            f"system_{m.group(1)}",
+            None,
+            {"config_path": "config/system.json", "section": m.group(1)},
+        )
+    if path == "/admin/settings/models":
+        return ("config", "task_models_update", None, {"config_path": "config/task_models.json"})
     m = re.match(r"^/admin/settings/users/([^/]+)/delete$", path)
     if m:
         return (

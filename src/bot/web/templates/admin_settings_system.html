@@ -1,0 +1,161 @@
+{% extends "settings_base.html" %}
+{% block title %}System — Einstellungen{% endblock %}
+{% block settings_content %}
+<h1 class="text-2xl font-bold mb-2">System</h1>
+<p class="text-sm p-muted mb-6"><code>config/system.json</code> — LLM, Qdrant, Playwright, Polling, Webhooks</p>
+
+{% if saved %}
+<p class="p-status-ok mb-4">Gespeichert: {{ saved }}</p>
+{% endif %}
+{% if error %}
+<p class="p-status-bad mb-4 text-sm">{{ error }}</p>
+{% endif %}
+
+<div class="text-xs p-faint mb-8 p-card p-3">
+  <strong>Umgebungsvariablen (Secrets):</strong>
+  {% for ref, ok in secret_status.items() %}
+  <span class="ml-3"><code>{{ ref }}</code> — {% if ok %}<span class="p-status-ok">gesetzt</span>{% else %}<span class="p-status-warn">nicht gesetzt</span>{% endif %}</span>
+  {% else %}
+  <span class="ml-2">keine secret_ref konfiguriert</span>
+  {% endfor %}
+</div>
+
+<section class="p-card p-5 mb-8">
+  <h2 class="text-lg font-semibold mb-4">LLM / Ollama / LiteLLM</h2>
+  <form method="post" action="/admin/settings/system/llm" class="space-y-4 max-w-2xl">
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" name="llm_enabled" value="on" {% if llm.enabled %}checked{% endif %}> LLM aktiv
+    </label>
+    <div>
+      <label class="block text-sm p-muted mb-1">Modus</label>
+      <select name="llm_mode" class="w-full p-input">
+        <option value="direct" {% if llm.mode == 'direct' %}selected{% endif %}>direct — lokal (LiteLLM/Ollama)</option>
+        <option value="proxy" {% if llm.mode == 'proxy' %}selected{% endif %}>proxy — Runner → Panel HTTP</option>
+        <option value="channel" {% if llm.mode == 'channel' %}selected{% endif %}>channel — Panel-WebSocket + Queue</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm p-muted mb-1">API-Basis (LiteLLM)</label>
+      <input name="api_base" class="w-full p-input" value="{{ llm.api_base }}">
+    </div>
+    <div>
+      <label class="block text-sm p-muted mb-1">Secret (Env-Name)</label>
+      <input name="secret_ref" class="w-full p-input" value="{{ llm.secret_ref or '' }}" placeholder="LITELLM_API_KEY">
+    </div>
+    <div class="grid grid-cols-3 gap-3">
+      <div>
+        <label class="block text-xs p-muted mb-1">Retries</label>
+        <input type="number" name="max_retries" min="1" class="w-full p-input" value="{{ llm.max_retries }}">
+      </div>
+      <div>
+        <label class="block text-xs p-muted mb-1">Backoff (s)</label>
+        <input type="number" step="0.1" name="retry_backoff" class="w-full p-input" value="{{ llm.retry_backoff_seconds }}">
+      </div>
+      <div>
+        <label class="block text-xs p-muted mb-1">Timeout (s)</label>
+        <input type="number" step="1" name="timeout_seconds" class="w-full p-input" value="{{ llm.timeout_seconds }}">
+      </div>
+    </div>
+    <details class="text-sm">
+      <summary class="p-link cursor-pointer">Proxy (mode=proxy)</summary>
+      <div class="mt-3 space-y-3 pl-2 border-l-2 border-[var(--p-border)]">
+        <input name="proxy_base_url" class="w-full p-input" placeholder="Panel-URL" value="{{ llm.proxy.base_url if llm.proxy else '' }}">
+        <input name="proxy_token_env" class="w-full p-input" placeholder="BOT_LLM_PROXY_TOKEN" value="{{ llm.proxy.token_env if llm.proxy else 'BOT_LLM_PROXY_TOKEN' }}">
+      </div>
+    </details>
+    <details class="text-sm">
+      <summary class="p-link cursor-pointer">Internet-Relay (optional bei channel)</summary>
+      <div class="mt-3 space-y-3 pl-2 border-l-2 border-[var(--p-border)]">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" name="use_hub" value="on" {% if llm.hub %}checked{% endif %}> Relay nutzen
+        </label>
+        <input name="hub_relay_url" class="w-full p-input" placeholder="wss://relay.example/ws" value="{{ llm.hub.relay_url if llm.hub else '' }}">
+        <input name="hub_relay_room" class="w-full p-input" placeholder="relay_room" value="{{ llm.hub.relay_room if llm.hub else 'default' }}">
+        <input name="hub_token_env" class="w-full p-input" value="{{ llm.hub.token_env if llm.hub else 'BOT_RELAY_TOKEN' }}">
+      </div>
+    </details>
+    <button type="submit" class="px-4 py-2 rounded bg-[var(--p-accent)] text-white text-sm">LLM speichern</button>
+  </form>
+</section>
+
+<section class="p-card p-5 mb-8">
+  <h2 class="text-lg font-semibold mb-4">Qdrant (Vektor-Wissen)</h2>
+  <form method="post" action="/admin/settings/system/qdrant" class="space-y-4 max-w-2xl">
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" name="qdrant_enabled" value="on" {% if qdrant and qdrant.enabled %}checked{% endif %}> Qdrant aktiv
+    </label>
+    <input name="url" class="w-full p-input" value="{{ qdrant.url if qdrant else 'http://127.0.0.1:6333' }}">
+    <input name="secret_ref" class="w-full p-input" placeholder="QDRANT_API_KEY" value="{{ qdrant.secret_ref if qdrant else '' }}">
+    <div class="grid grid-cols-3 gap-3">
+      <div>
+        <label class="block text-xs p-muted mb-1">Embedding</label>
+        <select name="embedding_provider" class="w-full p-input">
+          <option value="hash" {% if qdrant and qdrant.embedding.provider == 'hash' %}selected{% endif %}>hash</option>
+          <option value="litellm" {% if qdrant and qdrant.embedding.provider == 'litellm' %}selected{% endif %}>litellm</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs p-muted mb-1">Modell</label>
+        <input name="embedding_model" class="w-full p-input" value="{{ qdrant.embedding.model if qdrant and qdrant.embedding.model else '' }}">
+      </div>
+      <div>
+        <label class="block text-xs p-muted mb-1">Vektor-Dim</label>
+        <input type="number" name="vector_size" min="8" class="w-full p-input" value="{{ qdrant.embedding.vector_size if qdrant else 384 }}">
+      </div>
+    </div>
+    <details class="text-sm">
+      <summary class="p-link cursor-pointer">Auto-Reindex</summary>
+      <div class="mt-3 space-y-2 pl-2">
+        <label class="flex items-center gap-2"><input type="checkbox" name="reindex_enabled" value="on" {% if qdrant and qdrant.reindex.enabled %}checked{% endif %}> Periodisch</label>
+        <label class="flex items-center gap-2"><input type="checkbox" name="watch_workspace" value="on" {% if qdrant and qdrant.reindex.watch_workspace %}checked{% endif %}> Workspace beobachten</label>
+        <label class="flex items-center gap-2"><input type="checkbox" name="include_crawl" value="on" {% if qdrant and qdrant.reindex.include_crawl %}checked{% endif %}> Crawl einbeziehen</label>
+        <input type="number" name="reindex_interval" class="w-full p-input" value="{{ qdrant.reindex.interval_seconds if qdrant else 3600 }}" placeholder="Intervall (s)">
+        <input type="number" name="watch_interval" class="w-full p-input" value="{{ qdrant.reindex.watch_interval_seconds if qdrant else 30 }}">
+        <input type="number" name="debounce_seconds" class="w-full p-input" value="{{ qdrant.reindex.debounce_seconds if qdrant else 90 }}">
+      </div>
+    </details>
+    <button type="submit" class="px-4 py-2 rounded bg-[var(--p-accent)] text-white text-sm">Qdrant speichern</button>
+  </form>
+</section>
+
+<section class="p-card p-5 mb-8">
+  <h2 class="text-lg font-semibold mb-4">Playwright / Browser</h2>
+  <form method="post" action="/admin/settings/system/playwright" class="space-y-4 max-w-2xl">
+    <select name="mode" class="w-full p-input">
+      <option value="local" {% if playwright and playwright.mode == 'local' %}selected{% endif %}>local</option>
+      <option value="remote" {% if playwright and playwright.mode == 'remote' %}selected{% endif %}>remote</option>
+    </select>
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" name="headless" value="on" {% if not playwright or playwright.headless %}checked{% endif %}> Headless
+    </label>
+    <textarea name="ws_endpoints" rows="3" class="w-full p-input font-mono text-xs" placeholder="ws://… (eine URL pro Zeile)">{% if playwright %}{{ playwright.ws_endpoints | join('\n') }}{% endif %}</textarea>
+    <input name="secret_ref" class="w-full p-input" value="{{ playwright.secret_ref if playwright and playwright.secret_ref else '' }}">
+    <button type="submit" class="px-4 py-2 rounded bg-[var(--p-accent)] text-white text-sm">Playwright speichern</button>
+  </form>
+</section>
+
+<section class="p-card p-5 mb-8">
+  <h2 class="text-lg font-semibold mb-4">Polling / Runner</h2>
+  <form method="post" action="/admin/settings/system/polling" class="space-y-4 max-w-xl">
+    <input type="number" step="0.1" name="interval_seconds" class="w-full p-input" value="{{ polling.interval_seconds }}">
+    <input type="number" step="0.1" name="inbox_watch_seconds" class="w-full p-input" value="{{ polling.inbox_watch_seconds }}">
+    <select name="worker_mode" class="w-full p-input">
+      <option value="process" {% if polling.worker_mode == 'process' %}selected{% endif %}>process</option>
+      <option value="thread" {% if polling.worker_mode == 'thread' %}selected{% endif %}>thread</option>
+    </select>
+    <button type="submit" class="px-4 py-2 rounded bg-[var(--p-accent)] text-white text-sm">Polling speichern</button>
+  </form>
+</section>
+
+<section class="p-card p-5 mb-8">
+  <h2 class="text-lg font-semibold mb-4">Webhooks</h2>
+  <form method="post" action="/admin/settings/system/webhooks" class="space-y-4 max-w-xl">
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" name="enabled" value="on" {% if not webhooks or webhooks.enabled %}checked{% endif %}> Aktiv
+    </label>
+    <input name="secret_ref" class="w-full p-input" value="{{ webhooks.secret_ref if webhooks else 'BOT_WEBHOOK_SECRET' }}">
+    <input name="path_prefix" class="w-full p-input" value="{{ webhooks.path_prefix if webhooks else '/api/v1/webhooks' }}">
+    <button type="submit" class="px-4 py-2 rounded bg-[var(--p-accent)] text-white text-sm">Webhooks speichern</button>
+  </form>
+</section>
+{% endblock %}
