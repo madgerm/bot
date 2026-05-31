@@ -1,26 +1,42 @@
 {% for line in feed %}
-<article class="p-3 rounded text-sm
-  {% if line.kind == 'internal' %}p-card-muted border-l-2 border-indigo-600/60{% else %}p-card{% endif %}"
-  style="margin-left: {{ (line.indent * 1.25)|round(2) }}rem">
-  <div class="text-xs p-faint mb-1 flex flex-wrap gap-2">
-    <span>{{ line.created_at }}</span>
-    <span>{{ line.label }}</span>
-    {% if line.kind == 'internal' %}<span class="p-chip">Team intern</span>{% endif %}
-    {% if line.awaiting_approval %}<span class="p-status-warn">Freigabe?</span>{% endif %}
+{% if line.bubble_side == 'system' %}
+<div class="p-chat-system" style="--chat-indent: {{ line.indent }}">
+  <div class="p-chat-system__pill">
+    <span class="p-chat-system__who">{{ line.sender_display }}</span>
+    {% if line.internal_summary %}
+    <span class="p-chat-system__meta">{{ line.internal_summary }}</span>
+    {% endif %}
+    <time class="p-chat-system__time">{{ line.time_display }}</time>
   </div>
-  <pre class="whitespace-pre-wrap">{{ line.content }}</pre>
-  {% if can_write and line.awaiting_approval and not direct_agent %}
-  <form method="post" action="/teams/{{ team_id }}/chat/approve" class="mt-2">
-    <button type="submit" class="p-btn p-btn-success text-xs">Freigeben</button>
-  </form>
-  {% endif %}
-  {% if can_write and line.panel_message_id and line.kind == 'panel' %}
-  <form method="post" action="/teams/{{ team_id }}/chat/delete" class="mt-2 inline">
-    <input type="hidden" name="message_id" value="{{ line.panel_message_id }}">
-    <button type="submit" class="text-xs p-link">Löschen</button>
-  </form>
-  {% endif %}
-</article>
+  <p class="p-chat-system__text">{{ line.content_plain }}</p>
+</div>
 {% else %}
-<p class="p-faint">Noch keine Nachrichten.</p>
+<div class="p-chat-row p-chat-row--{{ line.bubble_side }}">
+  <div class="p-chat-bubble">
+    <div class="p-chat-bubble__head">
+      <span class="p-chat-bubble__name">{{ line.sender_display }}</span>
+      <time class="p-chat-bubble__time" datetime="">{{ line.time_display }}</time>
+    </div>
+    <div class="p-chat-bubble__body">{{ line.content }}</div>
+    {% if line.awaiting_approval %}
+    <div class="p-chat-bubble__actions">
+      <span class="p-chat-badge p-chat-badge--warn">Freigabe ausstehend</span>
+      {% if can_write and not direct_agent %}
+      <form method="post" action="/teams/{{ team_id }}/chat/approve" class="inline">
+        <button type="submit" class="p-btn p-btn-success text-xs">Plan freigeben</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if can_write and line.panel_message_id and line.kind == 'panel' %}
+    <form method="post" action="/teams/{{ team_id }}/chat/delete" class="p-chat-bubble__delete">
+      <input type="hidden" name="message_id" value="{{ line.panel_message_id }}">
+      <button type="submit" class="text-xs p-faint hover:p-link" title="Nachricht löschen">Löschen</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% else %}
+<p class="p-chat-empty">Noch keine Nachrichten — schreiben Sie unten die erste Nachricht.</p>
 {% endfor %}

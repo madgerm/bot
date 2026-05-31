@@ -49,6 +49,9 @@ def test_build_team_feed_nests_internal_between_panel(runtime_project: Path) -> 
     assert "internal" in kinds
     internal = [ln for ln in feed if ln.kind == "internal"]
     assert internal[0].indent == 1
+    panel_user = next(ln for ln in feed if ln.kind == "panel" and ln.content == "Panel A")
+    assert panel_user.bubble_side == "out"
+    assert panel_user.role == "user"
 
 
 def test_build_team_feed_panel_only(runtime_project: Path) -> None:
@@ -169,7 +172,7 @@ def test_chat_direct_route(panel_client: TestClient, runtime_project: Path) -> N
 
     page = panel_client.get("/teams/alpha/chat?direct=worker-exec")
     assert page.status_code == 200
-    assert "Direkt-PM" in page.text
+    assert "Direkt-Chat" in page.text
     assert "PM Inhalt" in page.text
 
 

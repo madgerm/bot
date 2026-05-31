@@ -68,6 +68,15 @@ def test_team_page_scoped(client: TestClient) -> None:
     assert "p-hub-card" in r.text
 
 
+def test_team_chat_has_bubble_layout(client: TestClient) -> None:
+    _login(client)
+    r = client.get("/teams/alpha/chat")
+    assert r.status_code == 200
+    assert "p-chat-thread" in r.text
+    assert "p-chat-composer" in r.text
+    assert "p-chat-bubble" in r.text or "p-chat-empty" in r.text
+
+
 def test_team_forbidden_for_unknown(client: TestClient) -> None:
     _login(client, "viewer", "secret")
     r = client.get("/teams/other")

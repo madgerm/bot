@@ -24,12 +24,62 @@ class FeedLine:
     metadata: dict[str, Any]
     panel_message_id: str | None = None
     awaiting_approval: bool = False
+    role: str | None = None
+    agent_id: str | None = None
 
     @property
     def css_indent(self) -> str:
         if self.indent <= 0:
             return ""
         return "ml-" + str(min(self.indent * 6, 12))
+
+    @property
+    def bubble_side(self) -> str:
+        """out = Nutzer (rechts), in = Agent/Orchestrator (links), system = Team intern."""
+        if self.kind == "internal":
+            return "system"
+        if self.role == "user":
+            return "out"
+        return "in"
+
+    @property
+    def sender_display(self) -> str:
+        if self.kind == "internal":
+            fa = self.metadata.get("from_agent") or "?"
+            ta = self.metadata.get("to_agent") or "?"
+            return f"{fa} → {ta}"
+        if self.role == "user":
+            return str(self.metadata.get("username") or "Du")
+        if self.agent_id:
+            return self.agent_id
+        head = self.label.split(" · ", 1)[0].strip()
+        return head or "Orchestrator"
+
+    @property
+    def time_display(self) -> str:
+        dt = self.created_at
+        if isinstance(dt, datetime):
+            return dt.strftime("%H:%M")
+        return str(dt)[:5]
+
+    @property
+    def content_plain(self) -> str:
+        """Nachrichtentext ohne redundante Betreff-Zeile (intern)."""
+        if self.kind != "internal":
+            return self.content
+        parts = self.content.split("\n\n", 1)
+        if len(parts) == 2 and len(parts[0]) < 160 and parts[1].strip():
+            return parts[1].strip()
+        return self.content
+
+    @property
+    def internal_summary(self) -> str:
+        if self.kind != "internal":
+            return ""
+        mt = self.metadata.get("msg_type") or ""
+        st = self.metadata.get("status") or ""
+        bits = [b for b in (mt, st) if b]
+        return " · ".join(bits)
 
 
 def _skip_internal(msg: Message, orch_id: str) -> bool:
@@ -82,6 +132,8 @@ def _line_from_internal(msg: Message, orch_id: str) -> FeedLine:
             "msg_type": msg.type,
             "status": status,
         },
+        role=None,
+        agent_id=None,
     )
 
 
@@ -119,6 +171,8 @@ def _line_from_panel(msg: ChatMessage) -> FeedLine:
         metadata=dict(msg.metadata),
         panel_message_id=msg.id if msg.metadata.get("channel") != "internal" else None,
         awaiting_approval=bool(msg.metadata.get("awaiting_approval")),
+        role=msg.role,
+        agent_id=msg.agent_id,
     )
 
 
