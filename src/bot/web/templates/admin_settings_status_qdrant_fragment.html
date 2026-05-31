@@ -1,0 +1,19 @@
+<section id="status-qdrant" class="mb-10">
+  <div class="flex flex-wrap justify-between gap-2 items-center mb-3">
+    <h2 class="text-lg font-semibold">Qdrant</h2>
+    <button type="button" class="p-link text-sm"
+      hx-get="/admin/settings/status/fragment/qdrant"
+      hx-target="#status-qdrant"
+      hx-swap="outerHTML"
+      hx-indicator="#status-qdrant .section-spinner">
+      Erneut testen
+    </button>
+  </div>
+  <span class="section-spinner htmx-indicator text-xs p-faint mb-2 block">Test läuft …</span>
+  <div class="p-card p-4 text-sm">
+    <p class="{% if qdrant.ok %}p-status-ok{% else %}p-status-warn{% endif %}">{{ qdrant.summary }}</p>
+    {% if tested_at %}
+    <p class="text-xs p-faint mt-2">{{ tested_at }}</p>
+    {% endif %}
+  </div>
+</section>

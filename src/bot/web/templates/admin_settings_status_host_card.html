@@ -1,0 +1,23 @@
+<article id="host-{{ h.id }}" class="p-card p-4">
+  <div class="flex flex-wrap justify-between gap-2 items-start">
+    <span class="font-medium">{{ h.label }} <span class="text-xs p-faint font-mono">({{ h.id }})</span></span>
+    <div class="flex items-center gap-3">
+      <span class="text-xs {% if h.ok %}p-status-ok{% else %}p-status-warn{% endif %}">
+        {% if h.ok %}OK{% else %}Fehler{% endif %}
+      </span>
+      <button type="button" class="p-link text-xs"
+        hx-get="/admin/settings/status/fragment/hosts/{{ h.id }}"
+        hx-target="#host-{{ h.id }}"
+        hx-swap="outerHTML"
+        hx-indicator="#host-{{ h.id }} .status-spinner">
+        Erneut testen
+      </button>
+    </div>
+  </div>
+  <p class="text-sm p-muted mt-1">{{ h.summary }}</p>
+  <p class="text-xs p-faint mt-1">
+    Modus {{ h.mode }} · Teams: {{ h.teams | join(', ') or '—' }}{% if h.channel %} · Kanal{% endif %}
+    {% if tested_at %} · {{ tested_at }}{% endif %}
+  </p>
+  <span class="status-spinner htmx-indicator text-xs p-faint mt-2 block">Test läuft …</span>
+</article>

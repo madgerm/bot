@@ -12,7 +12,6 @@ from fastapi.templating import Jinja2Templates
 from bot.config.writers.hosts_admin import (
     HostsAdminError,
     TeamApiAdminConfig,
-    collect_settings_status,
     create_host,
     delete_host,
     entry_from_form,
@@ -298,21 +297,4 @@ def register_hosts_settings_routes(
         return RedirectResponse(
             f"/admin/settings/hosts?test={host_id}&ok={flag}",
             status_code=302,
-        )
-
-    @app.get("/admin/settings/status", response_class=HTMLResponse)
-    async def settings_status_page(request: Request, user: CurrentUser):
-        require_admin(user)
-        try:
-            status = collect_settings_status(root_path)
-        except HostsAdminError as exc:
-            raise HTTPException(status_code=500, detail=str(exc)) from exc
-        return templates.TemplateResponse(
-            request,
-            "admin_settings_status.html",
-            {
-                "user": user,
-                "status": status,
-                "settings_active": "status",
-            },
         )

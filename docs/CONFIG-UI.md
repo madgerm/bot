@@ -31,7 +31,11 @@ Vollständiger Plan: [`plans/2026-05-30-web-panel-config-ui.md`](../plans/2026-0
 | `/admin/settings/hosts/wizard` | Setup-Assistent + Token-Generator | `team_hosts.json`, ggf. `team_api.json` |
 | `/admin/settings/hosts/new` | Host anlegen | `team_hosts.json` |
 | `/admin/settings/hosts/{id}` | Host bearbeiten | `team_hosts.json` |
-| `/admin/settings/status` | Verbindungstests (Hosts, LLM, Qdrant) | — |
+| `/admin/settings/status` | Verbindungstests (HTMX, Live-Reload pro Sektion) | — |
+| `/admin/settings/status/fragment` | HTMX: alle Tests | — |
+| `/admin/settings/status/fragment/hosts/{id}` | HTMX: ein Host | — |
+| `/admin/settings/status/fragment/llm` | HTMX: LLM (`?live=1` für Prompt) | — |
+| `/admin/settings/status/fragment/qdrant` | HTMX: Qdrant | — |
 
 | `/teams/<id>/settings` | Team-Übersicht | — |
 | `/teams/<id>/settings/general` | Name, Preset, Orchestrator | `teams/<id>/team.json` |

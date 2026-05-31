@@ -1,0 +1,13 @@
+<p class="text-xs p-faint mb-6">Stand: {{ tested_at }}</p>
+{% with hosts=status.hosts, channel_hosts=status.channel_hosts %}
+{% include "admin_settings_status_hosts_fragment.html" %}
+{% endwith %}
+{% with team_api=status.team_api %}
+{% include "admin_settings_status_team_api_fragment.html" %}
+{% endwith %}
+{% with llm=status.llm %}
+{% include "admin_settings_status_llm_fragment.html" %}
+{% endwith %}
+{% with qdrant=status.qdrant %}
+{% include "admin_settings_status_qdrant_fragment.html" %}
+{% endwith %}

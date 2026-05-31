@@ -327,3 +327,12 @@ html.dark .p-chip-failed {
   border-color: var(--p-link);
   color: var(--p-link);
 }
+
+/* HTMX — Lade-Indikatoren auf Status-Seite */
+.htmx-indicator {
+  display: none;
+}
+.htmx-request.htmx-indicator,
+.htmx-request .htmx-indicator {
+  display: block;
+}

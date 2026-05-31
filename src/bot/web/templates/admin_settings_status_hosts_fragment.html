@@ -1,0 +1,28 @@
+<section id="status-hosts" class="mb-10">
+  <div class="flex flex-wrap justify-between gap-2 items-center mb-3">
+    <h2 class="text-lg font-semibold">Team-Runner</h2>
+    <button type="button" class="p-link text-sm"
+      hx-get="/admin/settings/status/fragment/hosts"
+      hx-target="#status-hosts"
+      hx-swap="outerHTML"
+      hx-indicator="#status-hosts .section-spinner">
+      Alle Hosts testen
+    </button>
+  </div>
+  <span class="section-spinner htmx-indicator text-xs p-faint mb-2 block">Tests laufen …</span>
+  <div class="space-y-3">
+    {% for h in hosts %}
+    {% include "admin_settings_status_host_card.html" %}
+    {% else %}
+    <p class="p-faint text-sm">Keine Hosts — <a href="/admin/settings/hosts/wizard" class="p-link">Assistent starten</a></p>
+    {% endfor %}
+  </div>
+  {% if channel_hosts %}
+  <p class="text-xs p-muted mt-4">
+    Kanal konfiguriert für: <code>{{ channel_hosts | join(', ') }}</code>
+  </p>
+  {% endif %}
+  {% if tested_at %}
+  <p class="text-xs p-faint mt-2">Zuletzt: {{ tested_at }}</p>
+  {% endif %}
+</section>
