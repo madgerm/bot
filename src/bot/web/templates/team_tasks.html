@@ -6,7 +6,14 @@
 <form method="post" action="/teams/{{ team_id }}/tasks/create" class="mb-8 flex flex-wrap gap-2">
   <input name="title" required placeholder="Titel" class="p-input flex-1 min-w-[200px]">
   <input name="description" placeholder="Beschreibung" class="p-input flex-1 min-w-[200px]">
-  <input name="assignee_agent" placeholder="Agent-ID" class="p-input w-40">
+  <select name="assignee_agent" class="p-input w-48">
+    <option value="">— kein Assignee —</option>
+    {% for a in agents %}
+    <option value="{{ a.id }}" {% if a.id == default_assignee %}selected{% endif %}>
+      {{ a.display_name or a.id }} ({{ a.id }})
+    </option>
+    {% endfor %}
+  </select>
   <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded">Anlegen</button>
 </form>
 <div class="grid md:grid-cols-3 gap-4">
@@ -17,6 +24,9 @@
       {% for t in grouped[status] %}
       <li class="p-list-item">
         <div class="font-medium">{{ t.title }}</div>
+        {% if t.assignee_agent %}
+        <p class="text-xs p-faint mt-1">Assignee: <code>{{ t.assignee_agent }}</code></p>
+        {% endif %}
         <p class="p-muted text-xs mt-1">{{ t.description[:80] }}</p>
         {% if status != 'done' %}
         <form method="post" action="/teams/{{ team_id }}/tasks/{{ t.id }}/status" class="mt-2">

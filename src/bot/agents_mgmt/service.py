@@ -43,6 +43,7 @@ class AgentManager:
                     "tools_allow": block.tools_allow,
                     "tools_deny": block.tools_deny,
                     "qdrant_collections": block.qdrant_collections,
+                    "default_task_assignee": block.default_task_assignee,
                 }
             )
         return sorted(result, key=lambda x: x["id"])
@@ -92,6 +93,7 @@ class AgentManager:
         tools_allow: list[str] | None = None,
         tools_deny: list[str] | None = None,
         qdrant_collections: list[str] | None = None,
+        default_task_assignee: bool | None = None,
         clear_interval: bool = False,
         clear_display_name: bool = False,
         clear_prompt_extra: bool = False,
@@ -123,9 +125,34 @@ class AgentManager:
             agent["tools_deny"] = tools_deny
         if qdrant_collections is not None:
             agent["qdrant_collections"] = qdrant_collections
+        if default_task_assignee is not None:
+            agent["default_task_assignee"] = default_task_assignee
         cfg = AgentConfig.model_validate({"agent": agent})
         atomic_write_json(path, cfg.model_dump())
+        if default_task_assignee:
+            self._clear_default_task_assignees(team_id, except_agent_id=agent_id)
         return {"id": agent_id, "updated": True}
+
+    def _clear_default_task_assignees(self, team_id: str, *, except_agent_id: str) -> None:
+        agents_dir = self.root / "teams" / team_id / "agents"
+        if not agents_dir.is_dir():
+            return
+        for agent_dir in agents_dir.iterdir():
+            if not agent_dir.is_dir():
+                continue
+            aid = agent_dir.name
+            if aid == except_agent_id:
+                continue
+            path = agent_dir / "agent.json"
+            if not path.is_file():
+                continue
+            data = json.loads(path.read_text(encoding="utf-8"))
+            inner = data.get("agent", {})
+            if not inner.get("default_task_assignee"):
+                continue
+            inner["default_task_assignee"] = False
+            cfg = AgentConfig.model_validate({"agent": inner})
+            atomic_write_json(path, cfg.model_dump())
 
     def delete_agent(self, team_id: str, agent_id: str) -> None:
         cfg = load_runtime_config(self.root)

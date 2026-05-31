@@ -16,6 +16,7 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
     @app.get("/teams/{team_id}/tasks", response_class=HTMLResponse)
     async def team_tasks_page(request: Request, team_id: str, user: CurrentUser):
         require_team_access(team_id, user)
+        from bot.agents_mgmt.service import AgentManager
         from bot.tasks import TaskService
 
         tasks = TaskService.for_team(root_path, team_id).store.list_tasks()
@@ -23,10 +24,26 @@ def register_phase3_routes(app, templates: Jinja2Templates, root_path: Path) -> 
         for t in tasks:
             if t.status in grouped:
                 grouped[t.status].append(t)
+        agents: list[dict] = []
+        default_assignee = ""
+        try:
+            agents = AgentManager(root_path).list_agents(team_id)
+            for row in agents:
+                if row.get("default_task_assignee"):
+                    default_assignee = row["id"]
+                    break
+        except Exception:
+            agents = []
         return templates.TemplateResponse(
             request,
             "team_tasks.html",
-            {"user": user, "team_id": team_id, "grouped": grouped},
+            {
+                "user": user,
+                "team_id": team_id,
+                "grouped": grouped,
+                "agents": agents,
+                "default_assignee": default_assignee,
+            },
         )
 
     @app.post("/teams/{team_id}/tasks/create")

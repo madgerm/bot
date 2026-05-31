@@ -335,6 +335,7 @@ def register_team_settings_routes(
         cats = [c.strip() for c in task_categories.split(",") if c.strip()]
         tools_allow, tools_deny = _parse_agent_tools_from_form(form)
         knowledge = _parse_knowledge_from_form(form)
+        default_assignee = form.get("default_task_assignee") == "on"
         try:
             mgr.create_agent(
                 team_id,
@@ -352,6 +353,7 @@ def register_team_settings_routes(
                 tools_allow=tools_allow,
                 tools_deny=tools_deny,
                 qdrant_collections=knowledge,
+                default_task_assignee=default_assignee,
             )
         except AgentManagerError as exc:
             return templates.TemplateResponse(
@@ -395,6 +397,7 @@ def register_team_settings_routes(
         interval = float(interval_seconds) if interval_seconds.strip() else None
         tools_allow, tools_deny = _parse_agent_tools_from_form(form)
         knowledge = _parse_knowledge_from_form(form)
+        default_assignee = form.get("default_task_assignee") == "on"
         try:
             mgr.update_agent(
                 team_id,
@@ -408,6 +411,7 @@ def register_team_settings_routes(
                 tools_allow=tools_allow,
                 tools_deny=tools_deny,
                 qdrant_collections=knowledge,
+                default_task_assignee=default_assignee,
             )
         except AgentManagerError as exc:
             block = mgr.get_agent_block(team_id, agent_id)

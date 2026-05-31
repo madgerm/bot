@@ -146,3 +146,30 @@ def test_status_fragment_llm_ping(client: TestClient) -> None:
     )
     assert r.status_code == 200
     assert "API-Ping" in r.text or "ping" in r.text.lower()
+
+
+def test_status_fragment_mail(client: TestClient, web_project: Path) -> None:
+    from tests.test_mail_status import _write_email
+
+    _write_email(web_project)
+    _login(client)
+    r = client.get(
+        "/admin/settings/status/fragment/mail",
+        headers={"HX-Request": "true"},
+    )
+    assert r.status_code == 200
+    assert "status-mail" in r.text
+    assert "alpha" in r.text
+
+
+def test_status_fragment_includes_mail(client: TestClient, web_project: Path) -> None:
+    from tests.test_mail_status import _write_email
+
+    _write_email(web_project)
+    _login(client)
+    r = client.get(
+        "/admin/settings/status/fragment",
+        headers={"HX-Request": "true"},
+    )
+    assert r.status_code == 200
+    assert "status-mail" in r.text

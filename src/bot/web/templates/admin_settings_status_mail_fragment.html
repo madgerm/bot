@@ -1,0 +1,49 @@
+<section id="status-mail" class="mb-10">
+  <div class="flex flex-wrap justify-between gap-2 items-center mb-3">
+    <h2 class="text-lg font-semibold">E-Mail (Teams)</h2>
+    <div class="flex gap-3 text-sm">
+      <button type="button" class="p-link"
+        hx-get="/admin/settings/status/fragment/mail"
+        hx-target="#status-mail"
+        hx-swap="outerHTML"
+        hx-indicator="#status-mail .section-spinner">
+        Config prüfen
+      </button>
+      <button type="button" class="p-link"
+        hx-get="/admin/settings/status/fragment/mail?probe=1"
+        hx-target="#status-mail"
+        hx-swap="outerHTML"
+        hx-indicator="#status-mail .section-spinner">
+        Verbindung testen
+      </button>
+    </div>
+  </div>
+  <span class="section-spinner htmx-indicator text-xs p-faint mb-2 block">Test läuft …</span>
+  <div class="p-card p-4 text-sm">
+    {% if mail.summary %}
+    <p class="{% if mail.ok %}p-status-ok{% elif mail.ok is none %}p-faint{% else %}p-status-warn{% endif %} mb-3">
+      {{ mail.summary }}
+    </p>
+    {% endif %}
+    {% if mail.teams %}
+    <ul class="space-y-3">
+      {% for row in mail.teams %}
+      <li class="border-t border-[var(--p-border)] pt-3 first:border-0 first:pt-0">
+        <span class="font-mono text-xs">{{ row.team_id }}</span>
+        <p class="mt-1 {% if row.ok %}p-status-ok{% else %}p-status-warn{% endif %}">{{ row.summary }}</p>
+        {% if row.probe_summary %}
+        <p class="text-xs mt-1 {% if row.imap_ok and row.smtp_ok %}p-status-ok{% else %}p-status-warn{% endif %}">
+          {{ row.probe_summary }}
+        </p>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="p-faint">Kein Team mit <code>email.json</code> — E-Mail unter Team-Einstellungen konfigurieren.</p>
+    {% endif %}
+    {% if tested_at %}
+    <p class="text-xs p-faint mt-3">{{ tested_at }}{% if probe %} · Verbindungstest{% endif %}</p>
+    {% endif %}
+  </div>
+</section>

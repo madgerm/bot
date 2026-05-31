@@ -11,3 +11,6 @@
 {% with qdrant=status.qdrant %}
 {% include "admin_settings_status_qdrant_fragment.html" %}
 {% endwith %}
+{% with mail=status.mail, probe=false %}
+{% include "admin_settings_status_mail_fragment.html" %}
+{% endwith %}
