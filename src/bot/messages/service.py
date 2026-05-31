@@ -66,6 +66,12 @@ class MessageService:
 
         stored = recipient.receive(message)
         sender.write_outbox_copy(stored)
+        try:
+            from bot.chat.mirror import mirror_agent_message_to_chat
+
+            mirror_agent_message_to_chat(self._root, team_id, stored)
+        except Exception:
+            pass
         return stored
 
     def list_inbox(

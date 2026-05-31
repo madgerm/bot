@@ -25,10 +25,14 @@
 
 <div class="space-y-6">
   {% for agent in dashboard.agents %}
-  <section class="p-card overflow-hidden">
+  <section class="p-card overflow-hidden agent-dash-card cursor-pointer"
+    data-chat-url="/teams/{{ team_id }}/chat?direct={{ agent.agent_id }}"
+    title="Doppelklick: Direkt-PM (Orchestrator über Chat-Link oben)">
     <div class="px-5 py-4 p-divider flex flex-wrap items-center justify-between gap-2">
       <div>
-        <h2 class="font-semibold">{{ agent.agent_id }}</h2>
+        <h2 class="font-semibold">
+          <a href="/teams/{{ team_id }}/chat?direct={{ agent.agent_id }}" class="p-link" onclick="event.stopPropagation()">{{ agent.agent_id }}</a>
+        </h2>
         <span class="text-xs uppercase tracking-wide p-faint">{{ agent.role }}</span>
       </div>
       <div class="flex gap-3 text-sm">
@@ -61,4 +65,12 @@
   </section>
   {% endfor %}
 </div>
+<script>
+document.querySelectorAll('.agent-dash-card').forEach((card) => {
+  card.addEventListener('dblclick', () => {
+    const url = card.dataset.chatUrl;
+    if (url) window.location.href = url;
+  });
+});
+</script>
 {% endblock %}

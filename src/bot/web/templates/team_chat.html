@@ -3,71 +3,112 @@
 {% block content %}
 <div class="mb-6 flex flex-wrap gap-4 items-center">
   <a href="/teams/{{ team_id }}" class="text-sm p-link">← Team</a>
-  <a href="/teams/{{ team_id }}/knowledge" class="text-sm p-link">Wissen (Qdrant)</a>
+  <a href="/teams/{{ team_id }}/knowledge" class="text-sm p-link">Wissen</a>
+  <a href="/teams/{{ team_id }}/settings/agents" class="text-sm p-link">Agents</a>
+  {% if direct_agent %}
+  <h1 class="text-2xl font-bold">Direkt-PM · <code>{{ direct_agent }}</code></h1>
+  {% else %}
   <h1 class="text-2xl font-bold">Team-Chat · Orchestrator</h1>
-  <code class="p-faint text-sm">data/{{ team_id }}/chat.sqlite</code>
-  {% if not can_write %}<span class="p-status-warn text-sm">(Nur Lesen)</span>{% endif %}
+  {% endif %}
 </div>
 
-<p class="text-sm p-muted mb-4 p-card p-3">
-  Deine Nachrichten gehen an den <strong>Orchestrator</strong> (Inbox), wenn <code>bot run</code> läuft.
-  Er antwortet hier im Chat mit einem Plan — danach <strong>Freigeben</strong>, dann delegiert er ans Team.
-  Seite ggf. neu laden, bis die Antwort erscheint.
-</p>
+<div class="grid lg:grid-cols-[220px_1fr] gap-6">
+  <aside class="p-card p-4 text-sm h-fit">
+    <h2 class="font-semibold mb-2">Agents (Doppelklick)</h2>
+    <ul class="space-y-1">
+      <li>
+        <a href="/teams/{{ team_id }}/chat" class="p-link block py-1 {% if not direct_agent %}font-medium{% endif %}"
+          title="Orchestrator-Chat">@ {{ orchestrator_id }}</a>
+      </li>
+      {% for a in agents_for_pm %}
+      <li>
+        <a href="/teams/{{ team_id }}/chat?direct={{ a.id }}"
+          class="agent-pm-link block py-1 rounded px-1 {% if direct_agent == a.id %}bg-[var(--p-border)] font-medium{% endif %}"
+          data-agent-id="{{ a.id }}"
+          title="Doppelklick = Direkt-PM">{{ a.display_name }} <span class="p-faint text-xs">({{ a.id }})</span></a>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="text-xs p-faint mt-3">Doppelklick auf einen Agenten öffnet den Direkt-Chat.</p>
+  </aside>
 
-{% if awaiting_approval %}
-<form method="post" action="/teams/{{ team_id }}/chat/approve" class="mb-6">
-  <button type="submit" class="p-btn p-btn-success text-sm">Plan freigeben („so ist top“) → Team starten</button>
-</form>
-{% endif %}
+  <div>
+    {% if not direct_agent %}
+    <p class="text-sm p-muted mb-4 p-card p-3">
+      Oben: dein Dialog mit dem <strong>Orchestrator</strong>.
+      <strong>Eingerückt</strong>: interne Nachrichten (Orchestrator ↔ Agents).
+      <code>bot run</code> muss laufen. <a href="?show_internal=0" class="p-link">nur Panel</a>
+      {% if not show_internal %} · <a href="?show_internal=1" class="p-link">inkl. Team-Verkehr</a>{% endif %}
+    </p>
+    {% else %}
+    <p class="text-sm p-muted mb-4 p-card p-3">
+      Direktnachricht an <code>{{ direct_agent }}</code> (Inbox). Der Agent antwortet bei laufendem <code>bot run</code>
+      ggf. im Team-Feed sichtbar.
+      <a href="/teams/{{ team_id }}/chat" class="p-link ml-2">← Orchestrator-Chat</a>
+    </p>
+    {% endif %}
 
-<form method="get" class="flex flex-wrap gap-2 mb-4">
-  <input name="agent" placeholder="Agent filtern" value="{{ filter_agent or '' }}"
-    class="p-input">
-  <input name="q" placeholder="Textsuche" value="{{ filter_q or '' }}"
-    class="p-input">
-  <button type="submit" class="p-btn p-btn-muted text-sm">Filtern</button>
-</form>
-
-{% if can_write %}
-<form method="post" action="/teams/{{ team_id }}/chat/send" class="mb-6 p-4 p-card space-y-3">
-  <textarea name="content" required rows="3" placeholder="Nachricht an den Orchestrator…"
-    class="p-input"></textarea>
-  <input type="hidden" name="role" value="user">
-  <button type="submit" class="p-btn p-btn-primary text-sm">Senden</button>
-</form>
-{% endif %}
-
-<section class="space-y-3 mb-10">
-  {% for m in messages %}
-  <article class="p-3 rounded p-card-muted text-sm">
-    <div class="text-xs p-faint mb-1">
-      {{ m.created_at }} · {{ m.role }}
-      {% if m.agent_id %}· <code>{{ m.agent_id }}</code>{% endif %}
-      {% if m.metadata.get('awaiting_approval') %}· <span class="p-status-warn">wartet auf Freigabe</span>{% endif %}
-    </div>
-    <pre class="whitespace-pre-wrap">{{ m.content }}</pre>
-    {% if can_write and m.role == 'assistant' and m.metadata.get('awaiting_approval') %}
-    <form method="post" action="/teams/{{ team_id }}/chat/approve" class="mt-2">
-      <button type="submit" class="p-btn p-btn-success text-xs">Freigeben</button>
+    {% if awaiting_approval and not direct_agent %}
+    <form method="post" action="/teams/{{ team_id }}/chat/approve" class="mb-4">
+      <button type="submit" class="p-btn p-btn-success text-sm">Plan freigeben → Team starten</button>
     </form>
     {% endif %}
+
+    <form method="get" class="flex flex-wrap gap-2 mb-4">
+      {% if direct_agent %}<input type="hidden" name="direct" value="{{ direct_agent }}">{% endif %}
+      <input name="q" placeholder="Suche im Verlauf" value="{{ filter_q or '' }}" class="p-input">
+      <button type="submit" class="p-btn p-btn-muted text-sm">Suchen</button>
+      <a href="/teams/{{ team_id }}/chat{% if direct_agent %}?direct={{ direct_agent }}{% endif %}" class="p-link text-sm self-center">Aktualisieren</a>
+    </form>
+
     {% if can_write %}
-    <form method="post" action="/teams/{{ team_id }}/chat/delete" class="mt-2 inline">
-      <input type="hidden" name="message_id" value="{{ m.id }}">
-      <button type="submit" class="text-xs p-link">Löschen</button>
+    <form method="post" action="/teams/{{ team_id }}/chat/send" class="mb-6 p-4 p-card space-y-3">
+      {% if direct_agent %}<input type="hidden" name="direct" value="{{ direct_agent }}">{% endif %}
+      <textarea name="content" required rows="3" class="p-input"
+        placeholder="{% if direct_agent %}Nachricht an {{ direct_agent }}…{% else %}Nachricht an den Orchestrator…{% endif %}"></textarea>
+      <input type="hidden" name="role" value="user">
+      <button type="submit" class="p-btn p-btn-primary text-sm">Senden</button>
     </form>
     {% endif %}
-  </article>
-  {% else %}
-  <p class="p-faint">Noch keine Nachrichten.</p>
-  {% endfor %}
-</section>
 
-{% if can_write %}
-<form method="post" action="/teams/{{ team_id }}/chat/clear" class="p-4 rounded p-alert-warn">
-  <p class="text-sm mb-2">Gesamten Chat-Verlauf löschen (nicht rückgängig).</p>
-  <button type="submit" class="p-status-bad text-sm">Verlauf leeren</button>
-</form>
-{% endif %}
+    <section class="space-y-2 mb-10">
+      {% for line in feed %}
+      <article class="p-3 rounded text-sm
+        {% if line.kind == 'internal' %}p-card-muted border-l-2 border-indigo-600/60{% else %}p-card{% endif %}"
+        style="margin-left: {{ (line.indent * 1.25)|round(2) }}rem">
+        <div class="text-xs p-faint mb-1 flex flex-wrap gap-2">
+          <span>{{ line.created_at }}</span>
+          <span>{{ line.label }}</span>
+          {% if line.kind == 'internal' %}<span class="p-chip">Team intern</span>{% endif %}
+          {% if line.awaiting_approval %}<span class="p-status-warn">Freigabe?</span>{% endif %}
+        </div>
+        <pre class="whitespace-pre-wrap">{{ line.content }}</pre>
+        {% if can_write and line.awaiting_approval and not direct_agent %}
+        <form method="post" action="/teams/{{ team_id }}/chat/approve" class="mt-2">
+          <button type="submit" class="p-btn p-btn-success text-xs">Freigeben</button>
+        </form>
+        {% endif %}
+        {% if can_write and line.panel_message_id and line.kind == 'panel' %}
+        <form method="post" action="/teams/{{ team_id }}/chat/delete" class="mt-2 inline">
+          <input type="hidden" name="message_id" value="{{ line.panel_message_id }}">
+          <button type="submit" class="text-xs p-link">Löschen</button>
+        </form>
+        {% endif %}
+      </article>
+      {% else %}
+      <p class="p-faint">Noch keine Nachrichten.</p>
+      {% endfor %}
+    </section>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.agent-pm-link').forEach((el) => {
+  el.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    const id = el.dataset.agentId;
+    if (id) window.location.href = '/teams/{{ team_id }}/chat?direct=' + encodeURIComponent(id);
+  });
+});
+</script>
 {% endblock %}

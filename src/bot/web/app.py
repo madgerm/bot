@@ -173,32 +173,50 @@ def create_app(root: Path | str) -> FastAPI:
         user: CurrentUser,
         agent: str | None = None,
         q: str | None = None,
+        direct: str | None = None,
+        show_internal: str | None = None,
     ):
         require_team_access(team_id, user)
-        from bot.chat import ChatStore
+        from bot.chat.direct_agent import list_direct_agents
+        from bot.chat.team_feed import build_team_feed
+        from bot.config.writers.team_admin import load_team_config
 
-        store = ChatStore(root_path, team_id)
-        messages = store.list_messages(agent_id=agent, search=q, limit=100)
-        audit = store.list_audit(limit=30)
+        orch_id = load_team_config(root_path, team_id).team.orchestrator_id
+        direct_agent = (direct or "").strip() or None
+        include_internal = show_internal != "0"
+        feed = build_team_feed(
+            root_path,
+            team_id,
+            orch_id,
+            direct_agent=direct_agent,
+            include_internal=include_internal,
+        )
+        if q and not direct_agent:
+            q_lower = q.lower()
+            feed = [
+                ln
+                for ln in feed
+                if q_lower in ln.content.lower() or q_lower in ln.label.lower()
+            ]
         from bot.web.team_access import team_access_level
 
         access = team_access_level(user, team_id)
-        awaiting_approval = any(
-            m.role == "assistant" and m.metadata.get("awaiting_approval")
-            for m in messages
-        )
+        awaiting_approval = any(ln.awaiting_approval for ln in feed)
         return templates.TemplateResponse(
             request,
             "team_chat.html",
             {
                 "user": user,
                 "team_id": team_id,
-                "messages": messages,
+                "feed": feed,
                 "filter_agent": agent,
                 "filter_q": q,
-                "audit_log": audit,
                 "can_write": access in ("admin", "operator"),
                 "awaiting_approval": awaiting_approval,
+                "direct_agent": direct_agent,
+                "orchestrator_id": orch_id,
+                "agents_for_pm": list_direct_agents(root_path, team_id),
+                "show_internal": include_internal,
             },
         )
 
@@ -210,14 +228,32 @@ def create_app(root: Path | str) -> FastAPI:
         content: str = Form(...),
         role: str = Form("user"),
         agent_id: str | None = Form(None),
+        direct: str = Form(""),
     ):
         from bot.web.team_access import require_team_write
 
         require_team_write(team_id, user)
         from bot.chat import ChatStore
+        from bot.chat.direct_agent import send_direct_to_agent
         from bot.chat.orchestrator_bridge import enqueue_panel_chat
         from bot.config.writers.team_admin import load_team_config
         from bot.messages import MessageError
+
+        direct_peer = direct.strip() or None
+        if direct_peer:
+            try:
+                send_direct_to_agent(
+                    root_path,
+                    team_id,
+                    username=user.username,
+                    target_agent=direct_peer,
+                    content=content,
+                )
+            except MessageError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+            return RedirectResponse(
+                f"/teams/{team_id}/chat?direct={direct_peer}", status_code=302
+            )
 
         store = ChatStore(root_path, team_id)
         orch_id = load_team_config(root_path, team_id).team.orchestrator_id
@@ -270,7 +306,7 @@ def create_app(root: Path | str) -> FastAPI:
             )
         except MessageError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return RedirectResponse(f"/teams/{team_id}/chat", status_code=302)
+        return RedirectResponse(f"/teams/{team_id}/chat?show_internal=1", status_code=302)
 
     @app.post("/teams/{team_id}/chat/delete")
     async def team_chat_delete(
