@@ -43,6 +43,32 @@
     <label class="block text-sm p-muted mb-1">Zusatz System-Prompt (optional)</label>
     <textarea name="system_prompt_extra" rows="4" class="w-full p-input text-sm">{% if agent and agent.system_prompt_extra %}{{ agent.system_prompt_extra }}{% endif %}</textarea>
   </div>
+  <fieldset class="border-t border-[var(--p-border)] pt-4">
+    <legend class="text-sm font-medium mb-2">Tools (leer = Rollen-Standard)</legend>
+    <p class="text-xs p-faint mb-3">Nur angehakte Tools sind für diesen Agent erlaubt. Nichts angehakt = alle Tools der Rolle.</p>
+    <div class="grid gap-2 sm:grid-cols-2">
+      {% for tid, label in tool_choices %}
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="tool_{{ tid }}" value="on"
+          {% if selected_tools and tid in selected_tools %}checked{% endif %}>
+        <span>{{ label }} <code class="text-xs p-faint">{{ tid }}</code></span>
+      </label>
+      {% endfor %}
+    </div>
+  </fieldset>
+  <fieldset class="border-t border-[var(--p-border)] pt-4">
+    <legend class="text-sm font-medium mb-2">Wissen (Qdrant-Collections)</legend>
+    <p class="text-xs p-faint mb-3">Leer = alle Collections. Nur relevant wenn Tool „Wissenssuche“ aktiv ist.</p>
+    <div class="flex flex-wrap gap-4">
+      {% for suffix, label in knowledge_choices %}
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="know_{{ suffix }}" value="on"
+          {% if selected_knowledge and suffix in selected_knowledge %}checked{% endif %}>
+        {{ label }} (<code>{{ suffix }}</code>)
+      </label>
+      {% endfor %}
+    </div>
+  </fieldset>
   <button type="submit" class="px-4 py-2 rounded bg-[var(--p-accent)] text-white text-sm">Speichern</button>
   <a href="/teams/{{ team_id }}/settings/agents" class="p-link text-sm ml-4">Abbrechen</a>
 </form>

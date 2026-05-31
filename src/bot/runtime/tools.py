@@ -130,10 +130,16 @@ class AgentToolkit:
 
     def _tool_qdrant_search(self, args: dict[str, Any]) -> ToolResult:
         query = str(args.get("query", ""))
-        collection = str(args.get("collection", "project"))
+        collection_raw = str(args.get("collection", "project"))
         limit = int(args.get("limit", 5))
         if not query.strip():
             raise ToolExecutionError("query fehlt")
+        from bot.runtime.agent_tools import validate_qdrant_collection
+
+        try:
+            collection = validate_qdrant_collection(self.ctx.agent, collection_raw)
+        except ValueError as exc:
+            raise ToolExecutionError(str(exc)) from exc
         try:
             from bot.channel.satellite import channel_rpc, is_satellite_root
 

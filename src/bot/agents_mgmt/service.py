@@ -40,6 +40,9 @@ class AgentManager:
                     "display_name": block.display_name,
                     "task_categories": block.task_categories,
                     "system_prompt_extra": block.system_prompt_extra,
+                    "tools_allow": block.tools_allow,
+                    "tools_deny": block.tools_deny,
+                    "qdrant_collections": block.qdrant_collections,
                 }
             )
         return sorted(result, key=lambda x: x["id"])
@@ -86,6 +89,9 @@ class AgentManager:
         display_name: str | None = None,
         task_categories: list[str] | None = None,
         system_prompt_extra: str | None = None,
+        tools_allow: list[str] | None = None,
+        tools_deny: list[str] | None = None,
+        qdrant_collections: list[str] | None = None,
         clear_interval: bool = False,
         clear_display_name: bool = False,
         clear_prompt_extra: bool = False,
@@ -111,6 +117,12 @@ class AgentManager:
             agent["system_prompt_extra"] = None
         elif system_prompt_extra is not None:
             agent["system_prompt_extra"] = system_prompt_extra or None
+        if tools_allow is not None:
+            agent["tools_allow"] = tools_allow
+        if tools_deny is not None:
+            agent["tools_deny"] = tools_deny
+        if qdrant_collections is not None:
+            agent["qdrant_collections"] = qdrant_collections
         cfg = AgentConfig.model_validate({"agent": agent})
         atomic_write_json(path, cfg.model_dump())
         return {"id": agent_id, "updated": True}

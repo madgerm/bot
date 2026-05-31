@@ -38,6 +38,7 @@ class AgentRunner:
         self.root = root
         self.team_id = team_id
         self.agent_id = agent_cfg.agent.id
+        self._agent_block = agent_cfg.agent
         self.role = agent_cfg.agent.role
         self.enabled = agent_cfg.agent.enabled
         self.interval = agent_cfg.agent.interval_seconds or default_interval
@@ -82,6 +83,7 @@ class AgentRunner:
             agent_id=self.agent_id,
             role=self.role,
             llm_stack=self._llm_stack,
+            agent=self._agent_block,
         )
         try:
             result = self._handler.handle(message, ctx)

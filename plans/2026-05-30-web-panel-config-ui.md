@@ -242,8 +242,8 @@ Reihenfolge: Infrastruktur zuerst, dann global, dann Team, dann Agent-Tiefe, dan
 - [x] `/admin/settings/hosts` — CRUD `TeamHostEntry` (mode, base_url, teams[], channel, relay_*)
 - [x] Wizard (siehe oben) + Token-Generator
 - [x] `team_api.json` — token_env + teams (admin only, Warnung)
-- [ ] Agent: `tools_allow` / `qdrant_collections` in Schema + Runtime (`tools.py` filtert) — optional später
-- [ ] Agent-Detail: „Wissen“ — Checkboxen project/background/web — optional später
+- [x] Agent: `tools_allow` / `qdrant_collections` in Schema + Runtime (`tools.py` filtert)
+- [x] Agent-Detail: „Wissen“ — Checkboxen project/background/web
 - [x] Statusseite `/admin/settings/status` — LLM-Test, Qdrant, Host-Verbindung
 
 **Akzeptanz:** Satellit-Setup über Wizard ohne JSON-Datei öffnen.
