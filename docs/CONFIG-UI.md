@@ -14,7 +14,7 @@ Vollständiger Plan: [`plans/2026-05-30-web-panel-config-ui.md`](../plans/2026-0
 | 3 | Team, Agents, Pipeline | **fertig** |
 | 4 | Crawl, E-Mail, Hours, Integrationen, Git | **fertig** |
 | 5 | Hosts-Wizard, team_api, Status | **fertig** |
-| 6 | Installer-Profile (Relay, …) | geplant |
+| 6 | Installer-Profile (Relay, team serve, …) | **fertig** |
 
 ## Routen (Admin)
 

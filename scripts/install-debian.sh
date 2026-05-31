@@ -164,6 +164,70 @@ ensure_apt_dependencies() {
   as_root apt-get install -y --no-install-recommends "${pkgs[@]}"
 }
 
+token_urlsafe() {
+  python3 -c 'import secrets; print(secrets.token_urlsafe(32))'
+}
+
+token_hex() {
+  python3 -c 'import secrets; print(secrets.token_hex(32))'
+}
+
+append_env_if_missing() {
+  local env_path="$1" key="$2" value="$3"
+  if [[ -f "$env_path" ]] && grep -q "^${key}=" "$env_path" 2>/dev/null; then
+    return 0
+  fi
+  printf '%s=%s\n' "$key" "$value" >>"$env_path"
+  log "Env gesetzt: ${key}=…"
+}
+
+apply_install_profile() {
+  local root="$1" profile="$2" run_user="${3:-}"
+  local script="${root}/scripts/apply-install-profile.py"
+  if [[ ! -f "$script" ]]; then
+    warn "apply-install-profile.py fehlt — Profil $profile übersprungen."
+    return 1
+  fi
+  local extra=""
+  [[ "${BOT_INSTALL_CHANNEL_HOSTS:-0}" == "1" ]] && extra="--channel-hosts"
+  log "Profil anwenden: $profile"
+  if [[ -n "$run_user" ]]; then
+    venv_exec "$root" "$run_user" \
+      "python scripts/apply-install-profile.py '${root}' '${profile}' ${extra}"
+  else
+    bash -c "cd '$root' && source .venv/bin/activate && python scripts/apply-install-profile.py '$root' '$profile' ${extra}"
+  fi
+}
+
+ensure_profile_env_tokens() {
+  local env_path="$1" profile="${2:-}" mode="$3"
+  local relay="${BOT_INSTALL_RELAY:-0}"
+  if [[ "$relay" == "1" ]] || [[ "$profile" == "relay" ]]; then
+    append_env_if_missing "$env_path" "BOT_RELAY_TOKEN" "$(token_urlsafe)"
+  fi
+  if [[ "$profile" == "runner" || "$profile" == "satellite" ]] \
+    || [[ "$mode" == "runner" || "$mode" == "both" ]]; then
+    if [[ "${BOT_INSTALL_TEAM_API:-1}" != "0" ]]; then
+      append_env_if_missing "$env_path" "BOT_TEAM_API_TOKEN" "$(token_urlsafe)"
+    fi
+  fi
+  if [[ "$profile" == "panel" ]] || [[ "$mode" == "web" || "$mode" == "both" ]]; then
+    if [[ -z "${BOT_INSTALL_SKIP_SESSION_SECRET:-}" ]]; then
+      append_env_if_missing "$env_path" "BOT_SESSION_SECRET" "$(token_hex)"
+    fi
+  fi
+}
+
+resolve_mode_from_profile() {
+  local profile="${BOT_INSTALL_PROFILE:-}"
+  case "$profile" in
+    panel) echo "web" ;;
+    runner | satellite) echo "runner" ;;
+    relay) echo "relay" ;;
+    *) echo "" ;;
+  esac
+}
+
 venv_exec() {
   local root="$1"
   local run_user="${2:-}"
@@ -405,6 +469,66 @@ create_system_user() {
   log "Systembenutzer '$user' angelegt."
 }
 
+install_systemd_relay_unit() {
+  local root="$1"
+  local svc_user="$2"
+  local env_file="$3"
+  local unit_dir="/etc/systemd/system"
+  local bot_bin="${root}/.venv/bin/bot"
+  local port="${BOT_RELAY_PORT:-9000}"
+  as_root tee "${unit_dir}/bot-relay.service" >/dev/null <<EOF
+[Unit]
+Description=Bot Internet-Relay (Panel ↔ Runner)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=${svc_user}
+Group=${svc_user}
+WorkingDirectory=${root}
+EnvironmentFile=${env_file}
+ExecStart=${bot_bin} relay serve --host 0.0.0.0 --port ${port}
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  log "systemd: bot-relay.service (Port ${port})"
+}
+
+install_systemd_team_api_unit() {
+  local root="$1"
+  local svc_user="$2"
+  local env_file="$3"
+  local unit_dir="/etc/systemd/system"
+  local bot_bin="${root}/.venv/bin/bot"
+  local port="${BOT_TEAM_API_PORT:-8443}"
+  as_root tee "${unit_dir}/bot-team-api.service" >/dev/null <<EOF
+[Unit]
+Description=Bot Team-Runner HTTP-API (Remote/Kanal)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=${svc_user}
+Group=${svc_user}
+WorkingDirectory=${root}
+EnvironmentFile=${env_file}
+ExecStart=${bot_bin} team serve --host 0.0.0.0 --port ${port}
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  log "systemd: bot-team-api.service (Port ${port}, bot team serve)"
+}
+
 install_systemd_units() {
   local root="$1"
   local mode="$2"
@@ -412,6 +536,19 @@ install_systemd_units() {
   local env_file="$4"
   local unit_dir="/etc/systemd/system"
   local bot_bin="${root}/.venv/bin/bot"
+  local profile="${BOT_INSTALL_PROFILE:-}"
+  local install_relay="${BOT_INSTALL_RELAY:-0}"
+  local install_team_api="${BOT_INSTALL_TEAM_API:-0}"
+  [[ "$profile" == "relay" || "$install_relay" == "1" ]] && install_relay=1
+  [[ "$profile" == "runner" || "$profile" == "satellite" ]] && install_team_api=1
+  [[ "${BOT_INSTALL_TEAM_API:-}" == "1" ]] && install_team_api=1
+
+  if [[ "$install_relay" == "1" ]]; then
+    install_systemd_relay_unit "$root" "$svc_user" "$env_file"
+  fi
+  if [[ "$install_team_api" == "1" ]] && [[ "$mode" == "runner" || "$mode" == "both" ]]; then
+    install_systemd_team_api_unit "$root" "$svc_user" "$env_file"
+  fi
 
   if [[ "$mode" == "runner" || "$mode" == "both" ]]; then
     as_root tee "${unit_dir}/bot-team-runner.service" >/dev/null <<EOF
@@ -463,6 +600,9 @@ EOF
 
   as_root systemctl daemon-reload
   local units=()
+  [[ "$install_relay" == "1" ]] && units+=(bot-relay.service)
+  [[ "$install_team_api" == "1" && ( "$mode" == "runner" || "$mode" == "both" ) ]] \
+    && units+=(bot-team-api.service)
   [[ "$mode" == "runner" || "$mode" == "both" ]] && units+=(bot-team-runner.service)
   [[ "$mode" == "web" || "$mode" == "both" ]] && units+=(bot-web-panel.service)
   if [[ "${BOT_INSTALL_NONINTERACTIVE:-}" == "1" ]] && [[ "${BOT_INSTALL_AUTOSTART:-0}" == "1" ]] \
@@ -494,6 +634,54 @@ enable_user_linger() {
   as_root loginctl enable-linger "$USER"
 }
 
+install_systemd_user_relay_unit() {
+  local root="$1"
+  local env_file="$2"
+  local unit_dir="${HOME}/.config/systemd/user"
+  local bot_bin="${root}/.venv/bin/bot"
+  local port="${BOT_RELAY_PORT:-9000}"
+  tee "${unit_dir}/bot-relay.service" >/dev/null <<EOF
+[Unit]
+Description=Bot Internet-Relay (Benutzer)
+After=default.target
+
+[Service]
+Type=simple
+WorkingDirectory=${root}
+EnvironmentFile=${env_file}
+ExecStart=${bot_bin} relay serve --host 127.0.0.1 --port ${port}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+EOF
+}
+
+install_systemd_user_team_api_unit() {
+  local root="$1"
+  local env_file="$2"
+  local unit_dir="${HOME}/.config/systemd/user"
+  local bot_bin="${root}/.venv/bin/bot"
+  local port="${BOT_TEAM_API_PORT:-8443}"
+  tee "${unit_dir}/bot-team-api.service" >/dev/null <<EOF
+[Unit]
+Description=Bot Team-Runner API (Benutzer)
+After=default.target
+
+[Service]
+Type=simple
+WorkingDirectory=${root}
+EnvironmentFile=${env_file}
+ExecStart=${bot_bin} team serve --host 127.0.0.1 --port ${port}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+EOF
+}
+
 install_systemd_user_units() {
   local root="$1"
   local mode="$2"
@@ -502,6 +690,19 @@ install_systemd_user_units() {
   local unit_dir="${HOME}/.config/systemd/user"
   mkdir -p "$unit_dir"
   local bot_bin="${root}/.venv/bin/bot"
+  local profile="${BOT_INSTALL_PROFILE:-}"
+  local install_relay="${BOT_INSTALL_RELAY:-0}"
+  local install_team_api="${BOT_INSTALL_TEAM_API:-0}"
+  [[ "$profile" == "relay" || "$install_relay" == "1" ]] && install_relay=1
+  [[ "$profile" == "runner" || "$profile" == "satellite" ]] && install_team_api=1
+  [[ "${BOT_INSTALL_TEAM_API:-}" == "1" ]] && install_team_api=1
+
+  if [[ "$install_relay" == "1" ]]; then
+    install_systemd_user_relay_unit "$root" "$env_file"
+  fi
+  if [[ "$install_team_api" == "1" ]] && [[ "$mode" == "runner" || "$mode" == "both" ]]; then
+    install_systemd_user_team_api_unit "$root" "$env_file"
+  fi
 
   if [[ "$mode" == "runner" || "$mode" == "both" ]]; then
     tee "${unit_dir}/bot-team-runner.service" >/dev/null <<EOF
@@ -547,6 +748,9 @@ EOF
   fi
   enable_user_linger
   local units=()
+  [[ "$install_relay" == "1" ]] && units+=(bot-relay.service)
+  [[ "$install_team_api" == "1" && ( "$mode" == "runner" || "$mode" == "both" ) ]] \
+    && units+=(bot-team-api.service)
   [[ "$mode" == "runner" || "$mode" == "both" ]] && units+=(bot-team-runner.service)
   [[ "$mode" == "web" || "$mode" == "both" ]] && units+=(bot-web-panel.service)
   systemctl --user enable "${units[@]}"
@@ -590,20 +794,30 @@ print_summary() {
   local scope="$3"
   local env_file="$4"
   local autostart="${5:-nein}"
+  local profile="${BOT_INSTALL_PROFILE:-—}"
   cat <<EOF
 
 Installation abgeschlossen (Bot ${BOT_VERSION_LABEL})
   Projektverzeichnis : ${root}
   Modus              : ${mode}
+  Profil             : ${profile}
   Geltungsbereich    : ${scope}
   Umgebung           : ${env_file}
   Autostart (systemd): ${autostart}
+  Relay (systemd)    : $([[ "${BOT_INSTALL_RELAY:-0}" == "1" || "${profile}" == "relay" ]] && echo ja || echo nein)
+  Team-API (serve)   : $([[ "${BOT_INSTALL_TEAM_API:-0}" == "1" || "${profile}" == "runner" || "${profile}" == "satellite" ]] && echo ja || echo nein)
   Playwright         : $([[ "${INSTALL_PLAYWRIGHT:-0}" == "1" ]] && echo ja || echo nein)
   Crawl4AI           : $([[ "${INSTALL_CRAWL:-0}" == "1" ]] && echo ja || echo nein)
   Qdrant (Docker)    : $([[ "${INSTALL_QDRANT:-0}" == "1" ]] && echo ja || echo nein)
 
 Nächste Schritte:
 EOF
+  if [[ "${profile}" == "relay" || "${BOT_INSTALL_RELAY:-0}" == "1" ]]; then
+    cat <<EOF
+  • Relay-Token in Panel- und Runner-.env (BOT_RELAY_TOKEN) — gleicher Wert
+  • Relay-URL in system.json (llm.hub) / team_hosts (relay_url)
+EOF
+  fi
   case "$mode" in
     runner)
       cat <<EOF
@@ -626,6 +840,13 @@ EOF
   • Browser:              http://127.0.0.1:8080
 EOF
       ;;
+    relay)
+      cat <<EOF
+  • Relay starten:        set -a && source ${env_file} && set +a && bot relay serve
+  • Oder systemd:         systemctl status bot-relay
+  • Panel/Runner:         BOT_RELAY_TOKEN + relay_room in Config (Wizard /admin/settings/hosts)
+EOF
+      ;;
   esac
   print_initial_passwords
   cat <<EOF
@@ -642,8 +863,15 @@ main() {
   # Nicht-interaktiv (CI/Automatisierung):
   #   BOT_INSTALL_MODE=runner|web|both BOT_INSTALL_SCOPE=user|system BOT_INSTALL_NONINTERACTIVE=1
   #   BOT_INSTALL_PLAYWRIGHT=1 BOT_INSTALL_CRAWL=1 BOT_INSTALL_QDRANT=1 BOT_INSTALL_AUTOSTART=1
+  #   BOT_INSTALL_PROFILE=panel|runner|satellite|relay BOT_INSTALL_RELAY=1 BOT_INSTALL_TEAM_API=1
   if [[ "${BOT_INSTALL_NONINTERACTIVE:-}" == "1" ]]; then
-    : "${BOT_INSTALL_MODE:=both}"
+    if [[ -n "${BOT_INSTALL_PROFILE:-}" ]]; then
+      local profile_mode
+      profile_mode="$(resolve_mode_from_profile)"
+      : "${BOT_INSTALL_MODE:=${profile_mode:-both}}"
+    else
+      : "${BOT_INSTALL_MODE:=both}"
+    fi
     : "${BOT_INSTALL_SCOPE:=user}"
     : "${BOT_INSTALL_DIR:=${HOME}/bot}"
     export BOT_INSTALL_MODE BOT_INSTALL_SCOPE BOT_INSTALL_DIR
@@ -660,9 +888,15 @@ main() {
 
   if [[ "${BOT_INSTALL_NONINTERACTIVE:-}" == "1" ]]; then
     case "${BOT_INSTALL_MODE}" in
-      runner | web | both) mode="${BOT_INSTALL_MODE}" ;;
-      *) err "BOT_INSTALL_MODE muss runner, web oder both sein." ;;
+      runner | web | both | relay) mode="${BOT_INSTALL_MODE}" ;;
+      *) err "BOT_INSTALL_MODE muss runner, web, both oder relay sein." ;;
     esac
+    if [[ -n "${BOT_INSTALL_PROFILE:-}" ]]; then
+      case "${BOT_INSTALL_PROFILE}" in
+        panel | runner | satellite | relay) ;;
+        *) err "BOT_INSTALL_PROFILE muss panel, runner, satellite oder relay sein." ;;
+      esac
+    fi
     case "${BOT_INSTALL_SCOPE}" in
       system | s)
         scope="systemweit"
@@ -785,6 +1019,7 @@ main() {
     if [[ ! -f /etc/bot/env ]]; then
       write_env_file "/etc/bot/env" "$install_dir" "$mode"
     fi
+    ensure_profile_env_tokens "/etc/bot/env" "${BOT_INSTALL_PROFILE:-}" "$mode"
     as_root chown root:"${svc_user}" /etc/bot/env 2>/dev/null || true
     as_root chmod 640 /etc/bot/env
     install_wrapper_system "$install_dir"
@@ -792,7 +1027,16 @@ main() {
     env_file="/etc/bot/env"
   else
     write_env_file "$env_file" "$install_dir" "$mode"
+    ensure_profile_env_tokens "$env_file" "${BOT_INSTALL_PROFILE:-}" "$mode"
     install_wrapper_user "$install_dir"
+  fi
+
+  if [[ -n "${BOT_INSTALL_PROFILE:-}" ]]; then
+    if [[ "$system_install" == true ]]; then
+      apply_install_profile "$install_dir" "${BOT_INSTALL_PROFILE}" "$svc_user" || true
+    else
+      apply_install_profile "$install_dir" "${BOT_INSTALL_PROFILE}" "" || true
+    fi
   fi
 
   if [[ "$system_install" == true ]]; then
@@ -809,7 +1053,12 @@ main() {
     "$([[ "$system_install" == true ]] && echo j || echo j)"; then
     setup_systemd=true
   fi
-  if [[ "$setup_systemd" == true ]]; then
+  if [[ "$setup_systemd" == true ]] \
+    || [[ "${BOT_INSTALL_NONINTERACTIVE:-}" == "1" && ( \
+      "${BOT_INSTALL_RELAY:-0}" == "1" \
+      || "${BOT_INSTALL_PROFILE:-}" == "relay" \
+      || "${BOT_INSTALL_PROFILE:-}" == "runner" \
+      || "${BOT_INSTALL_PROFILE:-}" == "satellite" ) ]]; then
     autostart_label="ja"
     if [[ "$system_install" == true ]]; then
       install_systemd_units "$install_dir" "$mode" "$svc_user" "$env_file"
