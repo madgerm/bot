@@ -22,17 +22,123 @@ Alles auf einem Rechner: mode "local" in team_hosts.json — kein API-Token nöt
 
 ---
 
-## Voraussetzungen
+## Installation (Debian/Ubuntu)
 
-- Python 3.11+
-- Optional: LiteLLM-kompatibler Server (Ollama, LiteLLM-Proxy, …)
+Das interaktive Skript `scripts/install-debian.sh` richtet **Team-Runner**, **Web-Panel** oder **beides** ein, prüft Voraussetzungen (Python ≥3.11, `python3-venv`, Git, SQLite3, …) und installiert fehlende Pakete per `apt` nach Rückfrage.
 
-## Installation
+### One-Liner (empfohlen)
+
+**Interaktiv** (fragt: Runner / Web / beides, systemweit oder nur Ihr Benutzer):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/madgerm/bot/main/scripts/install-debian.sh -o /tmp/bot-install-debian.sh && bash /tmp/bot-install-debian.sh
+```
+
+**Systemweit** unter `/opt/bot` (benötigt `sudo`, Dienstbenutzer `bot`, optional systemd):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/madgerm/bot/main/scripts/install-debian.sh -o /tmp/bot-install-debian.sh && sudo bash /tmp/bot-install-debian.sh
+```
+
+**Nur für den aktuellen Benutzer** nach `~/bot` (ohne root):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/madgerm/bot/main/scripts/install-debian.sh | bash -s --
+```
+
+**Nicht-interaktiv** (z. B. Automatisierung): Runner + Panel, Benutzer-Installation nach `~/bot`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/madgerm/bot/main/scripts/install-debian.sh | BOT_INSTALL_NONINTERACTIVE=1 BOT_INSTALL_MODE=both BOT_INSTALL_SCOPE=user bash -s --
+```
+
+Aus dem **bereits geklonten** Repository (ohne erneuten Download):
+
+```bash
+git clone https://github.com/madgerm/bot.git && cd bot && bash scripts/install-debian.sh
+```
+
+| Variable | Werte | Bedeutung |
+|----------|--------|-----------|
+| `BOT_INSTALL_MODE` | `runner`, `web`, `both` | Was installiert wird |
+| `BOT_INSTALL_SCOPE` | `user`, `system` | Nur Ihr Login vs. `/opt/bot` + `bot`-User |
+| `BOT_INSTALL_DIR` | Pfad | Zielverzeichnis (Standard: `~/bot` oder `/opt/bot`) |
+| `BOT_REPO_URL` / `BOT_REPO_BRANCH` | | Quelle beim Download-Install |
+
+Nach der Installation: `bot` liegt bei systemweiter Installation in `/usr/local/bin/bot`, sonst in `~/.local/bin/bot` (ggf. `export PATH="$HOME/.local/bin:$PATH"`).
+
+### Was das Skript einrichtet
+
+| Komponente | Team-Runner | Web-Panel |
+|------------|-------------|-----------|
+| Python-venv + `pip install` | ja | ja |
+| `config/`, `teams/` (Demo-Teams) | ja | ja |
+| Umgebungsdatei mit Secrets | optional `BOT_TEAM_API_TOKEN` | `BOT_SESSION_SECRET` |
+| systemd (`bot-team-runner`, `bot-web-panel`) | auf Wunsch | auf Wunsch |
+
+**Geprüfte Systempakete:** `python3` (≥3.11), `python3-venv`, `python3-dev`, `git`, `sqlite3`, `build-essential`, `curl`, `ca-certificates`.  
+**SQLite** für Chat/Tasks/E-Mail wird von Python mitgeliefert — kein separater Datenbank-Server nötig.  
+**Qdrant** (optional, Vektor-Wissen): separat starten, z. B. `docker compose --profile qdrant` in `deploy/`.
+
+### Initiale Web-Zugänge (Demo)
+
+Aus `config/users.json` — **in Produktion sofort ändern** (`bot auth hash-password`):
+
+| Benutzer | Passwort | Rolle / Zugriff |
+|----------|----------|------------------|
+| `admin` | `changeme` | Administrator, Teams demo / coding / story |
+| `demo` | `changeme` | Operator für Team `demo` |
+| `reader` | `changeme` | Nur Lesen (`reader`) für Team `story` |
+
+Session-Geheimnis: wird beim Install in `~/.config/bot/env` (Benutzer) oder `/etc/bot/env` (systemweit) erzeugt — nicht committen.
+
+### Nach der Installation
+
+**Nur Team-Runner (Agents):**
+
+```bash
+set -a && source ~/.config/bot/env && set +a   # oder: source /etc/bot/env
+cd ~/bot && source .venv/bin/activate
+bot config validate
+bot run
+```
+
+**Nur Web-Panel:**
+
+```bash
+set -a && source ~/.config/bot/env && set +a
+bot web
+# → http://127.0.0.1:8080
+```
+
+**Beides auf einem Rechner** (Standard nach Install-Option „3“):
+
+```bash
+# Terminal 1
+set -a && source ~/.config/bot/env && set +a && bot run
+# Terminal 2
+set -a && source ~/.config/bot/env && set +a && bot web
+```
+
+**systemd (falls beim Install gewählt):**
+
+```bash
+sudo systemctl status bot-team-runner bot-web-panel
+sudo journalctl -u bot-web-panel -f
+```
+
+Ausführliches Betriebshandbuch: `docs/OPERATIONS.md` · Docker: `deploy/docker-compose.yml`
+
+---
+
+## Installation (manuell / Entwicklung)
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"     # Runtime + pytest/ruff/mypy
+cp .env.example .env        # Secrets setzen
+bot config validate
 ```
 
 **Optionale Extras** (nicht für jedes Deployment nötig):
@@ -41,8 +147,6 @@ pip install -e ".[dev]"     # Runtime + pytest/ruff/mypy
 |-------|--------|--------|
 | `playwright` | `pip install -e ".[playwright]"` | `bot browser` |
 | `crawl` | `pip install -e ".[crawl]"` | Crawl4AI → Qdrant |
-
-Betrieb: siehe `docs/OPERATIONS.md` · Docker: `deploy/docker-compose.yml` · HTTPS: `deploy/Caddyfile`
 
 ---
 
@@ -73,7 +177,7 @@ bot web
 # → http://127.0.0.1:8080
 ```
 
-Login: `config/users.json` (Demo: **admin** / **changeme** oder **demo** / **changeme**).
+Login: siehe Tabelle **Initiale Web-Zugänge** oben (`admin` / `changeme`, …).
 
 Standard: `config/team_hosts.json` verweist auf **lokal** — das Panel liest dieselben Dateien wie der Runner (oder spricht per API mit einem Remote-Runner).
 

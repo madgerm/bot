@@ -17,6 +17,7 @@ Multi-Agent-Runtime (`bot`): Team-Runner (file-Inbox, Agent-Subprozesse), Web-Pa
 
 | Task | Command |
 |------|---------|
+| Debian install | `bash scripts/install-debian.sh` (README: One-Liner) |
 | Config | `bot config validate` |
 | Runner | `bot run` / `bot run --once` |
 | Web | `bot web` |
