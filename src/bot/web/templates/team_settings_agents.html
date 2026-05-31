@@ -24,9 +24,11 @@
     </thead>
     <tbody>
       {% for a in agents %}
-      <tr class="border-t border-[var(--p-border)]">
+      <tr class="border-t border-[var(--p-border)] agent-row cursor-pointer"
+        data-chat-url="/teams/{{ team_id }}/chat?direct={{ a.id }}"
+        title="Doppelklick: Direkt-PM an diesen Agent">
         <td class="px-4 py-2 font-mono text-xs">
-          {{ a.id }}
+          <a href="/teams/{{ team_id }}/chat?direct={{ a.id }}" class="p-link">{{ a.id }}</a>
           {% if a.id == orchestrator_id %}<span class="p-faint">(Orchestrator)</span>{% endif %}
         </td>
         <td class="px-4 py-2">{{ a.role }}</td>
@@ -43,4 +45,12 @@
     </tbody>
   </table>
 </div>
+<script>
+document.querySelectorAll('.agent-row').forEach((row) => {
+  row.addEventListener('dblclick', () => {
+    const url = row.dataset.chatUrl;
+    if (url) window.location.href = url;
+  });
+});
+</script>
 {% endblock %}
