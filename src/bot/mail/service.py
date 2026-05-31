@@ -45,21 +45,57 @@ class MailService:
         return results
 
     def poll(self, *, limit: int = 20) -> list[EmailThread]:
+        """Neue IMAP-Mails abholen. Rückgabe nur **neu** angelegte Threads."""
         try:
             fetched = fetch_unseen(self.cfg, limit=limit)
         except ImapClientError as exc:
             raise MailServiceError(str(exc)) from exc
 
-        threads: list[EmailThread] = []
+        new_threads: list[EmailThread] = []
         for item in fetched:
+            if item.uid and self.store.thread_by_imap_uid(item.uid):
+                continue
             thread = self.store.add_thread(
                 subject=item.subject,
                 from_addr=item.from_addr,
                 body_text=item.body_text,
                 imap_uid=item.uid,
             )
-            threads.append(thread)
-        return threads
+            new_threads.append(thread)
+        return new_threads
+
+    def revise_draft(
+        self,
+        draft_id: str,
+        *,
+        feedback: str,
+        revised_by: str,
+    ) -> EmailDraft:
+        """Ablehnen des alten Entwurfs + neuer Entwurf mit Anmerkung."""
+        draft = self.store.get_draft(draft_id)
+        if not draft:
+            raise MailServiceError(f"Entwurf nicht gefunden: {draft_id}")
+        if draft.status not in ("draft", "awaiting_approval"):
+            raise MailServiceError(
+                f"Entwurf kann nicht überarbeitet werden (Status: {draft.status})"
+            )
+        try:
+            self.store.reject_draft(draft_id)
+        except MailStoreError as exc:
+            raise MailServiceError(str(exc)) from exc
+
+        note = feedback.strip()
+        body = draft.body_text
+        if note:
+            body = f"{body.rstrip()}\n\n---\nAnmerkung ({revised_by}):\n{note}"
+        return self.store.create_draft(
+            thread_id=draft.thread_id,
+            subject=draft.subject,
+            body_text=body,
+            to_addrs=list(draft.to_addrs),
+            created_by=revised_by,
+            submit=True,
+        )
 
     def import_fixture(
         self,

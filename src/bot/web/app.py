@@ -310,7 +310,12 @@ def create_app(root: Path | str) -> FastAPI:
         )
 
     @app.get("/teams/{team_id}/mail", response_class=HTMLResponse)
-    async def team_mail_page(request: Request, team_id: str, user: CurrentUser):
+    async def team_mail_page(
+        request: Request,
+        team_id: str,
+        user: CurrentUser,
+        polled: str | None = None,
+    ):
         require_team_access(team_id, user)
         from bot.mail.store import MailStore
 
@@ -318,6 +323,11 @@ def create_app(root: Path | str) -> FastAPI:
         threads = store.list_threads(limit=50)
         drafts = store.list_drafts(status="awaiting_approval", limit=20)
         mail_error: str | None = None
+        mail_info: str | None = None
+        if polled == "ok":
+            mail_info = "Postfach abgeholt — neue Mails werden von Agents verarbeitet."
+        elif polled and polled != "ok":
+            mail_info = polled
         return templates.TemplateResponse(
             request,
             "team_mail.html",
@@ -327,7 +337,26 @@ def create_app(root: Path | str) -> FastAPI:
                 "threads": threads,
                 "drafts": drafts,
                 "mail_error": mail_error,
+                "mail_info": mail_info,
             },
+        )
+
+    @app.post("/teams/{team_id}/mail/poll")
+    async def team_mail_poll(request: Request, team_id: str, user: CurrentUser):
+        require_team_write(team_id, user)
+        from bot.mail import MailService, MailServiceError
+        from bot.mail.notify import notify_new_mail_threads
+
+        try:
+            service = MailService.for_team(root_path, team_id)
+            new_threads = service.poll(limit=20)
+            notify_new_mail_threads(root_path, team_id, new_threads)
+            info = "ok" if new_threads else "Keine neuen Mails"
+        except MailServiceError as exc:
+            info = str(exc)
+        return RedirectResponse(
+            f"/teams/{team_id}/mail?polled={info}",
+            status_code=302,
         )
 
     @app.get("/teams/{team_id}/mail/{thread_id}", response_class=HTMLResponse)
@@ -394,6 +423,43 @@ def create_app(root: Path | str) -> FastAPI:
 
         try:
             MailService.for_team(root_path, team_id).approve(draft_id, user.username)
+        except MailServiceError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return RedirectResponse(request.headers.get("referer", f"/teams/{team_id}/mail"), status_code=302)
+
+    @app.post("/teams/{team_id}/mail/draft/{draft_id}/reject")
+    async def team_mail_reject(
+        request: Request,
+        team_id: str,
+        draft_id: str,
+        user: CurrentUser,
+    ):
+        require_team_write(team_id, user)
+        from bot.mail import MailService, MailServiceError
+
+        try:
+            MailService.for_team(root_path, team_id).reject(draft_id)
+        except MailServiceError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return RedirectResponse(request.headers.get("referer", f"/teams/{team_id}/mail"), status_code=302)
+
+    @app.post("/teams/{team_id}/mail/draft/{draft_id}/revise")
+    async def team_mail_revise(
+        request: Request,
+        team_id: str,
+        draft_id: str,
+        user: CurrentUser,
+        feedback: str = Form(...),
+    ):
+        require_team_write(team_id, user)
+        from bot.mail import MailService, MailServiceError
+
+        try:
+            MailService.for_team(root_path, team_id).revise_draft(
+                draft_id,
+                feedback=feedback,
+                revised_by=user.username,
+            )
         except MailServiceError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return RedirectResponse(request.headers.get("referer", f"/teams/{team_id}/mail"), status_code=302)

@@ -10,6 +10,12 @@
 {% if mail_error %}
 <p class="p-status-bad text-sm mb-4">{{ mail_error }}</p>
 {% endif %}
+{% if mail_info %}
+<p class="p-status-ok text-sm mb-4">{{ mail_info }}</p>
+{% endif %}
+<form method="post" action="/teams/{{ team_id }}/mail/poll" class="mb-6">
+  <button type="submit" class="p-btn p-btn-primary text-sm">Postfach abholen (IMAP)</button>
+</form>
 
 <h2 class="text-lg font-semibold mb-2">Wartet auf Freigabe</h2>
 <div class="space-y-2 mb-8">
